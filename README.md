@@ -2,47 +2,207 @@
 
 ## Overview
 
-In today’s business environment, organizations increasingly rely on data driven insights to improve operational efficiency and maintain a competitive advantage. Companies that manage distributed teams, especially those operating across multiple countries, face challenges in tracking productivity, measuring performance, and identifying opportunities for improvement.
+In today’s business environment, organizations increasingly rely on data-driven insights to improve operational efficiency and maintain a competitive advantage. Companies that manage distributed teams, especially those operating across multiple countries, face challenges in tracking productivity, measuring performance, and identifying opportunities for improvement.
 
 This project focuses on developing a prototype dashboard for a photography company that employs a remote workforce responsible for editing and processing images. The purpose of the dashboard is to provide visibility into employee productivity, task completion, and processing time. By leveraging performance data, the company can better understand workflow efficiency, establish benchmarks, and make informed decisions to enhance overall operations.
 
-## Project Purpose
+---
 
-This project is intended to provide a photography company with a prototype dashboard that gives management visibility into employee productivity, workflow timing, and optimization.
+## Background and Need
 
-The goal is to better understand how photo editing tasks move through the work cycle, how much time is spent in each stage, and how work is distributed across the team. The dashboard should help the company identify trends, establish realistic performance benchmarks, and use that information to improve planning for future photography clients.
+The client is a photography company that relies on a team of approximately twenty remote workers located overseas to edit and process images. Currently, there is no centralized system in place to effectively track employee performance, monitor task completion, or measure the time required for images to move through the production cycle.
 
-## Objectives
+One of the primary challenges is the lack of clear performance metrics. The company needs a way to determine how long it takes for images to be processed, how individual employees contribute to overall output, and how to establish realistic performance benchmarks based on collected data. Without this information, it is difficult to identify inefficiencies or optimize workflows.
 
-* Track which employee completed each assigned editing task
-* Measure the time spent on each task and the total cycle time for photos moving through the editing process
-* Calculate averages and other performance KPIs across individuals and the team as a whole
-* Provide visibility into who is doing what and how efficiently tasks are being completed
-* Demonstrate the value of a centralized tracking dashboard through a proof of concept prototype
+This project addresses that need by introducing a structured tracking and reporting system that provides visibility into operations and improves productivity.
+
+---
+
+## Project Objectives
+
+- Track which employee completed each assigned editing task  
+- Measure time spent on each task and total workflow cycle time  
+- Calculate averages and performance KPIs across individuals and teams  
+- Provide visibility into task distribution and efficiency  
+- Demonstrate the value of a centralized tracking dashboard  
+
+---
 
 ## Scope
 
-The scope of this project is to design and develop an MVP or prototype for a productivity tracking dashboard for internal business use. The prototype will focus on collecting, displaying, and summarizing employee task data related to photo editing workflows.
+### In Scope
 
-It will include:
+This project focuses on designing and developing a prototype (MVP) dashboard for internal business use. The system will:
 
-* Sample dashboard views
-* Basic reporting features
-* KPIs such as task completion, time spent per task, average turnaround time, and employee productivity trends
+- Collect employee task and time data  
+- Display workflow and productivity metrics  
+- Provide basic reporting functionality  
+- Present KPIs such as:
+  - Task completion rates  
+  - Time per task  
+  - Average turnaround time  
+  - Employee productivity trends  
 
-## Out of Scope
+### Out of Scope
 
-This project does not include the following:
+- Full production deployment  
+- Enterprise-level security implementation  
+- Integration with all existing business systems  
+- Replacement of current operational workflow tools  
 
-* Full production deployment
-* Enterprise level security hardening
-* Integration with all existing business systems
-* Replacement of the company’s full operational workflow tools
+This project is a proof of concept intended to demonstrate value rather than serve as a final system.
 
-Since this is only a proof of concept, the deliverable is meant to validate the idea and demonstrate functionality rather than serve as a finished system.
+---
+
+## Customers and Stakeholders
+
+**Primary Customer:**  
+Cherished Memories Photography
+
+**Key Users:**
+- Business owner  
+- Managers  
+- Operations leads  
+
+**Other Stakeholders:**
+- Employees whose work activity is tracked  
+
+---
+
+## Project Requirements
+
+The system requirements are derived from project objectives and customer needs. These requirements define the functionality, performance expectations, and behavior of the system.
+
+---
+
+### Functional Requirements
+
+The system shall:
+
+- Allow managers to assign employees to projects and tasks  
+- Capture task types (e.g., editing, culling)  
+- Provide a start/stop timer for tracking time  
+- Store elapsed time for tasks and projects  
+- Track image metrics:
+  - Total images  
+  - Completed images  
+  - Remaining images  
+- Store hourly rate information for cost analysis  
+- Generate reports for:
+  - Employee activity  
+  - Project progress  
+  - Time usage  
+  - Image metrics  
+- Calculate performance metrics:
+  - Average time per task  
+  - Average time per image  
+  - Total hours worked  
+- Provide insights for project feasibility  
+- Restrict access to authorized management users  
+
+---
+
+### Non-Functional Requirements
+
+**Performance**
+- Dashboards load within 2–5 seconds  
+- Support multiple users without performance issues  
+- Reports generate within a few seconds  
+
+**Usability**
+- Simple and intuitive interface  
+- Clear and presentation-ready dashboard  
+
+**Reliability**
+- Maintain accurate and consistent data  
+- Prevent data loss during normal use  
+
+**Security**
+- Role-based access control  
+- Protection of sensitive data  
+
+**Scalability**
+- Support future integrations  
+- Handle increased users and data  
+
+**Deployment**
+- Web-based application with future mobile compatibility  
+
+---
+
+### Use Case Scenarios
+
+**Track Task Activity**  
+Managers assign tasks and track time using a timer  
+
+**Monitor Project Progress**  
+Managers view image metrics and elapsed time  
+
+**Generate Reports**  
+Managers analyze productivity and performance data  
+
+**Analyze Efficiency**  
+Managers identify bottlenecks using calculated metrics  
+
+**Evaluate Feasibility**  
+Managers determine if projects can be completed with available resources  
+
+---
+
+## Assumptions and Constraints
+
+### Assumptions
+
+- Managers are the primary users  
+- Employees do not initially access dashboards  
+- Time tracking is manual  
+- The system is a prototype  
+- Web platform is prioritized  
+- Used for internal analysis  
+
+### Constraints
+
+- Limited project timeline  
+- Small development team  
+- Limited access to real data  
+- No project budget  
+- Scope limited to core functionality  
+
+### Priorities
+
+- Accurate time tracking  
+- Meaningful reporting  
+- Project feasibility insights  
+- Clear dashboard interface  
+- Web-based accessibility  
+
+---
+
+## Project Delivery
+
+The system will be delivered as a web-based application accessible through standard internet browsers.
+
+Users will be able to log in and access dashboards, reports, and project data from any device with internet connectivity. No installation is required.
+
+### Requirements
+
+- Modern web browser (Chrome, Edge, Safari)  
+- Internet connection  
+- User authentication  
+
+### Future Enhancements
+
+- Mobile application support  
+- Integration with external systems  
+- Scalable architecture  
+
+---
 
 ## Deliverable
 
-The final deliverable is a proof of concept dashboard prototype that demonstrates how a centralized productivity tracking system could help the photography company monitor employee performance, measure workflow efficiency, and support better planning for future client work.
+The final deliverable is a prototype dashboard that demonstrates how a centralized system can:
 
-If you want, I can also turn this into a more polished GitHub style README with sections like Features, Tech Stack, and Future Enhancements.
+- Track employee performance  
+- Measure workflow efficiency  
+- Provide actionable insights  
+- Support better project planning  
