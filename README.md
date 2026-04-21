@@ -2,29 +2,31 @@
 
 ## Overview
 
-In today’s business environment, organizations increasingly rely on data-driven insights to improve operational efficiency and maintain a competitive advantage. Companies that manage distributed teams, especially those operating across multiple countries, face challenges in tracking productivity, measuring performance, and identifying opportunities for improvement.
+This project is a **prototype dashboard** designed for a photography company with a remote workforce responsible for editing and processing images. The goal is to provide visibility into employee productivity, workflow efficiency, and task performance using centralized data tracking and reporting.
 
-This project focuses on developing a prototype dashboard for a photography company that employs a remote workforce responsible for editing and processing images. The purpose of the dashboard is to provide visibility into employee productivity, task completion, and processing time. By leveraging performance data, the company can better understand workflow efficiency, establish benchmarks, and make informed decisions to enhance overall operations. :contentReference[oaicite:0]{index=0}
+The system demonstrates how organizations can leverage data-driven insights to improve operational efficiency, establish benchmarks, and support better decision-making.
 
 ---
 
 ## Background and Need
 
-The client is a photography company that relies on a team of approximately twenty remote workers located overseas to edit and process images. Currently, there is no centralized system in place to effectively track employee performance, monitor task completion, or measure the time required for images to move through the production cycle.
+The client, Cherished Memories Photography, employs approximately twenty remote workers located overseas. Currently, there is no centralized system to:
 
-One of the primary challenges is the lack of clear performance metrics. The company needs a way to determine how long it takes for images to be processed, how individual employees contribute to overall output, and how to establish realistic performance benchmarks based on collected data. Without this information, it is difficult to identify inefficiencies or optimize workflows.
+- Track employee performance
+- Monitor task completion
+- Measure image processing time
 
-This project introduces a structured tracking and reporting system that provides visibility into operations and improves productivity. :contentReference[oaicite:1]{index=1}
+This lack of visibility makes it difficult to identify inefficiencies and optimize workflows. This project introduces a structured tracking and reporting system to address these challenges.
 
 ---
 
 ## Project Objectives
 
-- Track which employee completed each assigned editing task  
-- Measure time spent on each task and total workflow cycle time  
-- Calculate averages and performance KPIs across individuals and teams  
-- Provide visibility into task distribution and efficiency  
-- Demonstrate the value of a centralized tracking dashboard  
+- Track which employee completes each editing task
+- Measure time spent per task and overall workflow cycle time
+- Calculate averages and key performance indicators (KPIs)
+- Provide insight into task distribution and efficiency
+- Demonstrate the value of a centralized dashboard (proof of concept)
 
 ---
 
@@ -32,40 +34,36 @@ This project introduces a structured tracking and reporting system that provides
 
 ### In Scope
 
-This project focuses on designing and developing a prototype (MVP) dashboard for internal business use. The system will:
-
-- Collect employee task and time data  
-- Display workflow and productivity metrics  
-- Provide basic reporting functionality  
-- Present KPIs such as:
-  - Task completion rates  
-  - Time per task  
-  - Average turnaround time  
-  - Employee productivity trends  
+- Prototype (MVP) web-based dashboard
+- Employee task and time tracking
+- KPI visualization and reporting
+- Metrics including:
+  - Task completion rates
+  - Time per task
+  - Average turnaround time
+  - Employee productivity trends
 
 ### Out of Scope
 
-- Full production deployment  
-- Enterprise-level security implementation  
-- Integration with all existing business systems  
-- Replacement of current operational workflow tools  
-
-This project is a proof of concept intended to demonstrate value rather than serve as a final system. :contentReference[oaicite:2]{index=2}
+- Full production deployment
+- Enterprise-level security
+- Full system integrations
+- Replacement of existing workflow tools
 
 ---
 
 ## Customers and Stakeholders
 
-Primary Customer  
-Cherished Memories Photography  
+**Primary Customer:**  
+Cherished Memories Photography
 
-Key Users  
-- Business owner  
-- Managers  
-- Operations leads  
+**Key Users:**
+- Business owner
+- Managers
+- Operations leads
 
-Other Stakeholders  
-- Employees whose work activity is tracked  
+**Other Stakeholders:**
+- Employees (tracked within the system)
 
 ---
 
@@ -73,111 +71,96 @@ Other Stakeholders
 
 - Jonathon Kennedy – Project Manager / Developer  
 - Jesse Ackley – Developer / Analyst  
-- David Mallett – Developer / Tester  
+- David Mallett – Developer / Tester
 
 ---
 
-## Project Requirements
+## System Requirements
 
 ### Functional Requirements
 
-The system shall:
+The system supports:
 
-Project and Assignment Management  
-- Allow managers to create, update, and delete employee assignments  
+#### Project & Assignment Management
+- Create, update, and delete employee assignments
 
-Task Management  
-- Capture and categorize task types  
-- Assign tasks to employees  
+#### Task Management
+- Define and categorize task types
+- Assign tasks to employees
 
-Time Tracking  
-- Provide start and stop timers  
-- Record time at task and project levels  
-- Store elapsed time data  
+#### Time Tracking
+- Start/stop timers
+- Record time per task and project
 
-Image Metrics Tracking  
-- Store total, completed, and remaining images  
-- Update image counts as work progresses  
+#### Image Metrics Tracking
+- Track total, completed, and remaining images
 
-Employee Data Management  
-- Store and update hourly rates  
-- Associate rates with project cost calculations  
+#### Employee Data Management
+- Store and update hourly rates
+- Link rates to project costs
 
-Reporting  
-- Generate employee activity, project progress, time usage, and image processing reports  
+#### Reporting
+- Employee activity reports
+- Project progress reports
+- Time utilization reports
+- Image processing reports
 
-Performance Metrics  
-- Calculate and display average time per task  
-- Calculate and display average time per image  
-- Calculate and display total hours worked per employee and project  
+#### Performance Metrics
+- Average time per task
+- Average time per image
+- Total hours per employee and project
 
-Analytics and Decision Support  
-- Provide insights for project feasibility  
-- Support decision-making using collected data  
+#### Analytics & Decision Support
+- Project feasibility insights
+- Data-driven decision making
 
-Security and Access Control  
-- Restrict system access to authorized users  
-- Limit dashboards and reports to management-level users  
+#### Security
+- Authentication
+- Role-based access control
+- Management-only dashboard access
 
 ---
 
 ### Non-Functional Requirements
 
-Performance  
-- Dashboards load within 2–5 seconds  
-- Reports generate within 5 seconds  
-- Support concurrent users without performance degradation  
+#### Performance
+- Dashboards load within 2–5 seconds
+- Reports generate within 5 seconds
+- Supports concurrent users
 
-Usability  
-- Intuitive and easy-to-use interface  
-- Clear and professional dashboard layout  
+#### Usability
+- Intuitive UI
+- Clear dashboard design
 
-Reliability and Data Integrity  
-- Maintain accurate and consistent data  
-- Prevent data loss during normal operation  
+#### Reliability
+- Accurate and consistent data
+- Prevent data loss
 
-Security  
-- Enforce authentication  
-- Role-based access control  
-- Protect sensitive business data  
+#### Security
+- Authentication and authorization
+- Protection of sensitive data
 
-Scalability and Flexibility  
-- Support future enhancements  
-- Handle increasing data volume and users  
-- Allow integration with external systems  
+#### Scalability
+- Supports future enhancements
+- Handles increased data and users
 
-Deployment  
-- Web-based application  
-- Accessible through modern browsers  
-- No additional software installation required  
+#### Deployment
+- Web-based application
+- Accessible via modern browsers
+- No installation required
 
 ---
 
 ## Use Case Scenarios
 
-Manage Project Assignments  
-Managers create, update, and delete employee assignments  
-
-Track Task Activity  
-Managers assign tasks and track time using timers  
-
-Monitor Project Progress  
-Managers review image metrics and progress  
-
-Generate Reports  
-Managers analyze system-generated reports  
-
-Analyze Efficiency  
-Managers evaluate performance metrics to identify trends  
-
-Evaluate Project Feasibility  
-Managers determine if projects can be completed within constraints  
-
-Manage Employee Data  
-Managers maintain employee cost and rate data  
-
-Secure System Access  
-The system restricts access to authorized users  
+- Manage project assignments
+- Track task activity with timers
+- Monitor project progress
+- Generate reports
+- Analyze efficiency
+- Evaluate project feasibility
+- Manage employee data
+- Secure system access
 
 ---
 
@@ -185,58 +168,120 @@ The system restricts access to authorized users
 
 ### Assumptions
 
-- Managers are the primary users  
-- Employees do not initially access dashboards  
-- Time tracking is manual  
-- The system is a prototype  
-- Web platform is prioritized  
-- Used for internal analysis  
+- Managers are primary users
+- Employees do not access dashboards initially
+- Time tracking is manual
+- System is a prototype
+- Web platform prioritized
 
 ### Constraints
 
-- Limited project timeline  
-- Small development team  
-- Limited access to real data  
-- No project budget  
-- Scope limited to core functionality  
+- Limited timeline
+- Small team
+- Limited real data
+- No project budget
+- MVP-focused scope
 
 ### Priorities
 
-- Accurate time tracking  
-- Meaningful reporting  
-- Project feasibility insights  
-- Clear dashboard interface  
-- Web-based accessibility  
+- Accurate time tracking
+- Meaningful reporting
+- Clear dashboard interface
+- Web accessibility
+
+---
+
+## Technology Stack
+
+- **Frontend:** React
+- **Backend:** Node.js + Express
+- **Database:** PostgreSQL
+- **Visualization:** Chart.js
+- **Tools:** GitHub, Postman
+
+---
+
+## Architecture
+
+The system follows a **three-tier architecture**:
+
+1. **Presentation Layer (Frontend)** – User interface and dashboards
+2. **Application Layer (Backend)** – Business logic and APIs
+3. **Data Layer (Database)** – Structured data storage
+
+### Core Modules
+
+- Authentication
+- Project Management
+- Task Management
+- Time Tracking
+- Image Metrics
+- Reporting & Analytics
+
+---
+
+## Agile Development Plan
+
+The project is developed using Agile methodology with:
+
+- Daily stand-ups
+- Weekly sprint planning
+- Iterative development (4 iterations)
+
+### Iteration Highlights
+
+1. Setup environment, authentication, project management
+2. Task management and time tracking
+3. KPI calculations and dashboard visuals
+4. Reporting, testing, and deployment
+
+---
+
+## Risks and Mitigation
+
+| Risk | Impact | Mitigation |
+|------|--------|-----------|
+| Limited timeline | High | Focus on MVP features |
+| Small team | Medium | Clear roles and communication |
+| No real data | Medium | Use mock data |
+| Tech inexperience | Medium | Use familiar tools |
+| Scope creep | High | Strict scope control |
 
 ---
 
 ## Project Delivery
 
-The system will be delivered as a web-based application accessible through standard internet browsers.
-
-Users will be able to log in and access dashboards, reports, and project data from any device with internet connectivity. No installation is required.
+- Web-based prototype
+- Accessible via browser
+- No installation required
 
 ### Requirements
 
-- Modern web browser (Chrome, Edge, Safari)  
-- Internet connection  
-- User authentication  
+- Modern browser (Chrome, Edge, Safari)
+- Internet connection
+- User authentication
 
 ---
 
 ## Future Enhancements
 
-- Mobile application support  
-- Integration with external systems  
-- Scalable cloud-based architecture  
+- Mobile application
+- Cloud deployment
+- Integration with external systems
 
 ---
 
 ## Deliverable
 
-The final deliverable is a prototype dashboard that demonstrates how a centralized system can:
+A working prototype dashboard that demonstrates:
 
-- Track employee performance  
-- Measure workflow efficiency  
-- Provide actionable insights  
-- Support better project planning  
+- Employee performance tracking
+- Workflow efficiency measurement
+- KPI reporting and insights
+- Improved project planning capabilities
+
+---
+
+## Conclusion
+
+This project delivers a proof-of-concept system that provides visibility into productivity and workflow performance for a remote photography team. It establishes a strong foundation for future expansion into a full production system.
