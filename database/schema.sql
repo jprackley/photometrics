@@ -2,36 +2,36 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 DROP TYPE IF EXISTS user_role CASCADE;
 CREATE TYPE user_role AS ENUM (
-    'developer',
-    'manager',
-    'employee'
+    'Manager',
+    'Employee'
 );
 
 DROP TYPE IF EXISTS project_status CASCADE;
 CREATE TYPE project_status AS ENUM (
-    'planning',
-    'active',
-    'completed',
-    'archived'
+    'Planning',
+    'Active',
+    'Completed',
+    'Archived'
 );
 
 DROP TYPE IF EXISTS task_status CASCADE;
 CREATE TYPE task_status AS ENUM (
-    'todo',
-    'in_progress',
-    'paused',
-    'completed',
-    'blocked',
-    'cancelled'
+    'To-Do',
+    'In Progress',
+    'Paused',
+    'Completed',
+    'Cancelled'
 );
 
 DROP TYPE IF EXISTS task_category CASCADE;
 CREATE TYPE task_category AS ENUM (
-    'editing',
-    'culling',
-    'quality_control',
-    'exporting',
-    'other'
+    'Ingest',
+    'Cull',
+    'Edit',
+    'Export',
+    'Delivery',
+    'Archive',
+    'Other'
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS projects (
     project_name TEXT NOT NULL UNIQUE,
     client_name TEXT,
     description TEXT,
-    status project_status NOT NULL DEFAULT 'planning',
+    status project_status NOT NULL DEFAULT 'Planning',
     start_time TIMESTAMPTZ NOT NULL ,
     due_time TIMESTAMPTZ NOT NULL ,
     completed_at TIMESTAMPTZ,
@@ -65,9 +65,9 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS tasks(
     task_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
-    task_category task_category NOT NULL DEFAULT 'editing',
+    task_category task_category NOT NULL DEFAULT 'Edit',
     description TEXT,
-    status task_status NOT NULL DEFAULT 'todo',
+    status task_status NOT NULL DEFAULT 'To-Do',
     assigned_to UUID REFERENCES users(user_id) ON DELETE SET NULL,
     assigned_by UUID REFERENCES users(user_id) ON DELETE SET NULL,
     start_time TIMESTAMPTZ,
