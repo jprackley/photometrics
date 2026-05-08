@@ -3,7 +3,7 @@ const index = express()
 const port = 3000
 
 index.get('/', (req, res) => {
-    res.send('Hello World!')
+    res.send('Hello Team Photography!')
 })
 
 index.listen(port, () => {
