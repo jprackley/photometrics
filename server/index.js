@@ -1,11 +1,27 @@
 const express = require('express')
-const index = express()
+const path = require('path')
+const app = express()
 const port = 3000
+const clientDistPath = path.join(__dirname, '..', 'dist');
 
-index.get('/', (req, res) => {
-    res.send('Hello Team Photography!')
-})
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-index.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
-})
+app.use(express.static(clientDistPath));
+
+app.get('/api/health', (req, res) => {
+    res.json({ message: 'Server is running' });
+});
+
+app.get(/.*/, (req, res) => {
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+});
+
+//For local execution
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`App listening on port ${port}`);
+    });
+}
+
+module.exports = app;
