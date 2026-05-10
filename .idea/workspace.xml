@@ -4,12 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6bdc5efb-9ee6-45a9-899e-6ebcb46b027e" name="Changes" comment="Update PostgreSQL Schema&#10;Added documentation directory&#10;uploaded DrawIO class diagrams">
-      <change afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/sqldialects.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/sqldialects.xml" afterDir="false" />
+    <list default="true" id="6bdc5efb-9ee6-45a9-899e-6ebcb46b027e" name="Changes" comment="Linking vercel to react front end">
+      <change afterPath="$PROJECT_DIR$/old_vercel.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/database/schema_init.sql" beforeDir="false" afterPath="$PROJECT_DIR$/server/database/schema_init.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/api/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vercel.json" beforeDir="false" afterPath="$PROJECT_DIR$/vercel.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,6 +53,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\dev\photometrics\server\routes" />
       <recent name="C:\dev\photometrics" />
       <recent name="C:\dev\photometrics\server" />
     </key>
@@ -87,9 +87,22 @@
       <updated>1778262998616</updated>
       <workItem from="1778263001727" duration="5427000" />
     </task>
+    <task id="LOCAL-00001" summary="Linking vercel to react front end">
+      <option name="closed" value="true" />
+      <created>1778382648430</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1778382648430</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Linking vercel to react front end" />
+    <option name="LAST_COMMIT_MESSAGE" value="Linking vercel to react front end" />
   </component>
 </project>
