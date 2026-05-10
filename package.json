@@ -10,11 +10,12 @@
     "server": "node server/api/index.js"
   },
   "dependencies": {
-    "express": "^5.2.1",
-    "lucide-react": "^0.468.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "recharts": "^2.15.0"
+    "@tailwindcss/vite": "^4.2.4",
+    "lucide-react": "^1.14.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "recharts": "^3.8.1",
+    "tailwindcss": "^4.2.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
