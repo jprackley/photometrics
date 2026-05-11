@@ -10,7 +10,6 @@
     "server": "node server/api/index.js"
   },
   "dependencies": {
-    "@neondatabase/auth": "^0.4.1-beta",
     "express": "^5.2.1",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
@@ -19,7 +18,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
-    "tailwindcss": "^4.0.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "tailwindcss": "^4.0.0"
   }
 }
