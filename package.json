@@ -10,6 +10,7 @@
     "server": "node server/api/index.js"
   },
   "dependencies": {
+    "@neondatabase/neon-js": "^0.6.1-beta",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -18,6 +19,7 @@
     "pg": "^8.20.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-router-dom": "^7.15.0",
     "recharts": "^2.15.0"
   },
   "devDependencies": {
