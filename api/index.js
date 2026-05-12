@@ -21,9 +21,12 @@ app.use('/api/users', require('./routers/users'));
 app.use((err, req, res, next) => {
     const status = err.status || 500;
     const code = err.code || 'internal_error';
-    if (process.env.NODE_ENV !== 'production') {
-        console.error(err);
-    }
+    console.error('[error]', {
+        status,
+        code,
+        message: err.message,
+        stack: err.stack,
+    });
     res.status(status).json({ error: { code, message: err.message } });
 });
 
