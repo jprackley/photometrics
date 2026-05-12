@@ -4,7 +4,7 @@ const path = require('path');
 // Load env for local dev; on Vercel, env vars come from the platform
 try {
     // Prefer .env.local if present; otherwise fallback to default .env
-    require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
+    require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
 } catch (_) {
     // noop
 }
