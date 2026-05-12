@@ -28,7 +28,7 @@ router.post(
     })
 );
 
-// READ list with optional search + pagination
+// READ list with optional search and pagination
 router.get(
     '/',
     [paginate],
