@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 // Icons used throughout the UI
 import {
@@ -8,6 +8,8 @@ import {
     LayoutDashboard,
     ListChecks,
     LogOut,
+    ChevronLeft,
+    ChevronRight,
     Search,
     Settings,
     Sparkles,
@@ -118,13 +120,33 @@ function Logo() {
 }
 
 // Left sidebar navigation
-function Sidebar() {
+function Sidebar({ isCollapsed, onToggle }) {
     return (
-        <aside className="flex min-h-screen w-[260px] flex-col border-r border-slate-200 bg-white">
+        <aside
+            className={`flex min-h-screen flex-col border-r border-slate-200 bg-white transition-all duration-300 ${
+                isCollapsed ? "w-[84px]" : "w-[260px]"
+            }`}
+        >
 
             {/* Logo section */}
-            <div className="flex h-[86px] items-center border-b border-slate-200 px-5">
-                <Logo />
+            <div
+                className={`flex h-[86px] items-center border-b border-slate-200 px-4 ${
+                    isCollapsed ? "justify-center" : "justify-between"
+                }`}
+            >
+                {!isCollapsed && <Logo />}
+
+                {/* Collapse menu button */}
+                <button
+                    type="button"
+                    onClick={onToggle}
+                    aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white shadow-sm transition hover:bg-slate-100"
+                >
+                    {isCollapsed
+                        ? <ChevronRight size={22} />
+                        : <ChevronLeft size={22} />}
+                </button>
             </div>
 
             {/* Navigation buttons */}
@@ -132,21 +154,30 @@ function Sidebar() {
                 {navItems.map(({ label, icon: Icon }, index) => (
                     <button
                         key={label}
+                        title={isCollapsed ? label : undefined}
 
                         // Highlight dashboard button
-                        className={`flex w-full items-center gap-4 rounded-xl px-4 py-3 text-left text-lg transition hover:bg-slate-100 ${
+                        className={`flex w-full items-center rounded-xl py-3 text-lg transition hover:bg-slate-100 ${
+                            isCollapsed ? "justify-center px-0" : "gap-4 px-4 text-left"
+                        } ${
                             index === 0 ? "bg-slate-100 font-semibold" : "font-medium"
                         }`}
                     >
                         <Icon size={24} strokeWidth={2} />
-                        {label}
+                        {!isCollapsed && <span>{label}</span>}
                     </button>
                 ))}
             </nav>
 
             {/* Logout button */}
-            <button className="m-4 flex items-center gap-4 rounded-xl px-4 py-3 text-lg font-semibold hover:bg-slate-100">
-                <LogOut size={24} /> Logout
+            <button
+                title={isCollapsed ? "Logout" : undefined}
+                className={`m-4 flex items-center rounded-xl py-3 text-lg font-semibold hover:bg-slate-100 ${
+                    isCollapsed ? "justify-center px-0" : "gap-4 px-4"
+                }`}
+            >
+                <LogOut size={24} />
+                {!isCollapsed && <span>Logout</span>}
             </button>
         </aside>
     );
@@ -645,16 +676,20 @@ export default function App() {
 
     // Temporary page state
     const page = "dashboard";
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-950">
             <div className="flex">
 
                 {/* Sidebar */}
-                <Sidebar />
+                <Sidebar
+                    isCollapsed={isSidebarCollapsed}
+                    onToggle={() => setIsSidebarCollapsed((value) => !value)}
+                />
 
                 {/* Main content */}
-                <main className="flex-1">
+                <main className="min-w-0 flex-1">
 
                     {/* Top header */}
                     <Topbar />
