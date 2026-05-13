@@ -13,7 +13,7 @@ require('dotenv').config();
 const isSSL = (process.env.PGSSLMODE || '').toLowerCase() === 'require';
 
 const pool = new Pool({
-    connectionString: process.env.TEST_DATABASE_URL,
+    connectionString: process.env.DATABASE_URL,
     ssl: isSSL ? { rejectUnauthorized: false } : undefined,
     max: 10,
     idleTimeoutMillis: 30_000,
