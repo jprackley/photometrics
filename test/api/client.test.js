@@ -1,5 +1,6 @@
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
+const supertest = require('supertest');
 const request = require('supertest');
 const app = require('../../api/index');
 const { pool, healthcheck } = require("../../api/db");
