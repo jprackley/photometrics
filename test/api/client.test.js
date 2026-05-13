@@ -36,8 +36,7 @@ describe('POST /api/clients', () => {
                 try {
                     assert.equal(response.statusCode, C_HTTP.STATUS.CREATED);
                 } catch (e) {
-                    console.log(`Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode}
-                    ${response.body}`);
+                    console.log(`Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode}`);
                 }
             })
         })
@@ -45,7 +44,7 @@ describe('POST /api/clients', () => {
         describe("test: client first name missing", () => {
             //should return 400
             test(`should return status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-                const response = await request(app).post('api/clients').send({
+                const response = await request(app).post('/api/clients').send({
                     first_name: "",
                     last_name: "Lowe",
                     company_name: "Testees",
@@ -53,7 +52,8 @@ describe('POST /api/clients', () => {
                     //created_at: "2023-01-01T00:00:00.000Z",
                     //updated_at: "2023-01-01T00:00:00.000Z"
                 })
-                assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST);
+                assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                    `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
             })
         })
         describe("test: client name too large", () => {
