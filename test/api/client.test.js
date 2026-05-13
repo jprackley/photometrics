@@ -3,11 +3,11 @@ const assert = require('node:assert/strict');
 const request = require('supertest');
 const app = require('../../api/index'); // exports the Express app
 
-describe('POST /clients', () => {
+describe('POST /api/clients', () => {
     describe("test: valid entry", () => {
         //should return 200
         test("should return status code 200", async () => {
-            const response = await request(app).post('/clients').send({
+            const response = await request(app).post('/api/clients').send({
                 first_name: "test",
                 last_name: "test",
                 company_name: "test",
