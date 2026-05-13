@@ -35,6 +35,11 @@ jobs:
       - name: Build Vite app
         run: npm run build
 
+      - name: Verify database env exists
+        run: |
+          node -e "console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL)"
+          node -e "console.log('PGSSLMODE:', process.env.PGSSLMODE)"
+
       - name: Run Node tests
         run: npm test
 
