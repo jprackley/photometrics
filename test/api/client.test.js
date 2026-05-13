@@ -31,9 +31,3 @@ describe('POST /clients', () => {
         //should return 400
     })
 })
-
-
-test('adds numbers', () => {
-    const add = (a, b) => a + b;
-    assert.equal(5, 5);
-});
