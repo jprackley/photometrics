@@ -1,18 +1,19 @@
 const express = require('express');
+const CONST = require('../utils/constants');
 const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
 const { query } = require('../db');
 const { body, param } = require('express-validator');
 const { paginate, buildPagination, handleValidation } = require('../utils/validation');
 
-// CREATE
+// CREATE CLient
 router.post(
     '/',
     [
-        body('first_name').isString().isLength({ min: 1, max: 100 }),
-        body('last_name').isString().isLength({ min: 1, max: 100 }),
-        body('company_name').isString().isLength({ min: 1, max: 255 }),
-        body('email').isEmail().isLength({ max: 255 }),
+        body('first_name').isString().isLength({ min: CONST.MIN.FIRST_NAME_LENGTH, max: CONST.MAX.FIRST_NAME_LENGTH }),
+        body('last_name').isString().isLength({ min: CONST.MIN.LAST_NAME_LENGTH, max: CONST.MAX.LAST_NAME_LENGTH }),
+        body('company_name').isString().isLength({ min: CONST.MIN.LAST_NAME_LENGTH, max: CONST.MAX.COMPANY_NAME_LENGTH }),
+        body('email').isEmail().isLength({ max: CONST.MAX.EMAIL_LENGTH }),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req);
@@ -48,13 +49,12 @@ router.get(
             params.push(`%${q}%`);
             where = `WHERE first_name ILIKE $${params.length} OR last_name ILIKE $${params.length} OR company_name ILIKE $${params.length}`;
         }
-
         const sql = `
-      SELECT * FROM clients
-      ${where}
-      ORDER BY ${sortField} ${sortDir}
-      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
-    `;
+            SELECT * FROM clients
+            ${where}
+            ORDER BY ${sortField} ${sortDir}
+            LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+
         params.push(limit, offset);
 
         const { rows } = await query(sql, params);
@@ -67,7 +67,7 @@ router.get(
     })
 );
 
-// READ single
+// READ single client by UUID
 router.get(
     '/:id',
     [param('id').isUUID()],

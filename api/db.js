@@ -1,12 +1,12 @@
 const { Pool } = require('pg');
 const path = require('path');
 
-// Load env for local dev; on Vercel, env vars come from the platform
+// Attempt to load .env.local. If failed to load .env
+//.env.local is an optional local IDE file
 try {
-    // Prefer .env.local if present; otherwise fallback to default .env
-    require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
-} catch (_) {
-    // noop
+    require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
+} catch (log) {
+    console.log('[local:dev log]', log)
 }
 require('dotenv').config();
 
