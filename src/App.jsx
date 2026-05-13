@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 // Icons used throughout the UI
 import {
@@ -13,6 +13,7 @@ import {
     LogOut,
     MoreVertical,
     Pencil,
+    Trash2,
     Plus,
     Search,
     Settings,
@@ -160,6 +161,151 @@ const apiPlaceholders = {
     }),
 };
 
+const PROJECTS_PAGE_SIZE = 5;
+const ASSIGNMENTS_PAGE_SIZE = 5;
+
+const PROJECT_COLUMNS = [
+    { label: "Project Name", key: "name" },
+    { label: "Client", key: "client" },
+    { label: "Start Date", key: "startDate" },
+    { label: "Due Date", key: "dueDate" },
+    { label: "Images", key: "images", align: "center" },
+    { label: "Progress", key: "progress" },
+    { label: "Status", key: "status", align: "center" },
+];
+
+const ASSIGNMENT_COLUMNS = [
+    { label: "Assignment ID", key: "id" },
+    { label: "Project", key: "project" },
+    { label: "Task Type", key: "taskType" },
+    { label: "Assigned To", key: "assignedTo" },
+    { label: "Assigned Date", key: "assignedDate" },
+    { label: "Due Date", key: "dueDate" },
+    { label: "Priority", key: "priority", align: "center" },
+    { label: "Status", key: "status", align: "center" },
+];
+
+function normalizeNumber(value) {
+    if (value === null || value === undefined || value === "") return 0;
+    const numericValue = Number(String(value).replace(/,/g, ""));
+    return Number.isNaN(numericValue) ? 0 : numericValue;
+}
+
+function getSortableValue(row, key) {
+    if (["images", "progress"].includes(key)) {
+        return normalizeNumber(row[key]);
+    }
+
+    if (["startDate", "dueDate", "assignedDate"].includes(key)) {
+        const parsedDate = Date.parse(row[key]);
+        return Number.isNaN(parsedDate) ? String(row[key] || "").toLowerCase() : parsedDate;
+    }
+
+    return String(row[key] || "").toLowerCase();
+}
+
+function sortRows(rows, sortConfig) {
+    if (!sortConfig?.key) return rows;
+
+    return [...rows].sort((leftRow, rightRow) => {
+        const leftValue = getSortableValue(leftRow, sortConfig.key);
+        const rightValue = getSortableValue(rightRow, sortConfig.key);
+
+        if (leftValue < rightValue) return sortConfig.direction === "asc" ? -1 : 1;
+        if (leftValue > rightValue) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+    });
+}
+
+function getNextSort(currentSort, columnKey) {
+    if (currentSort.key !== columnKey) {
+        return { key: columnKey, direction: "asc" };
+    }
+
+    return {
+        key: columnKey,
+        direction: currentSort.direction === "asc" ? "desc" : "asc",
+    };
+}
+
+function paginateRows(rows, currentPage, pageSize) {
+    const startIndex = (currentPage - 1) * pageSize;
+    return rows.slice(startIndex, startIndex + pageSize);
+}
+
+function getTotalPages(totalRows, pageSize) {
+    return Math.max(1, Math.ceil(totalRows / pageSize));
+}
+
+function buildPageNumbers(totalPages) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+}
+
+function getRangeText(currentPage, pageSize, totalRows, label) {
+    if (totalRows === 0) return `Showing 0 to 0 of 0 ${label}`;
+
+    const start = (currentPage - 1) * pageSize + 1;
+    const end = Math.min(currentPage * pageSize, totalRows);
+    return `Showing ${start} to ${end} of ${totalRows} ${label}`;
+}
+
+function csvEscape(value) {
+    const stringValue = String(value ?? "");
+    return `"${stringValue.replace(/"/g, '""')}"`;
+}
+
+function createCsv(headers, rows, keys) {
+    const headerLine = headers.map(csvEscape).join(",");
+    const dataLines = rows.map((row) => keys.map((key) => csvEscape(row[key])).join(","));
+    return [headerLine, ...dataLines].join("\n");
+}
+
+function downloadTextFile(filename, contents, mimeType = "text/csv;charset=utf-8;") {
+    const blob = new Blob([contents], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function downloadProjectsReport(projectRows, assignmentRows) {
+    const projectCsv = createCsv(
+        ["Project ID", "Project Name", "Client", "Start Date", "Due Date", "Images", "Progress", "Status"],
+        projectRows,
+        ["id", "name", "client", "startDate", "dueDate", "images", "progress", "status"]
+    );
+
+    const assignmentCsv = createCsv(
+        ["Assignment ID", "Project", "Task Type", "Assigned To", "Assigned Date", "Due Date", "Priority", "Status"],
+        assignmentRows,
+        ["id", "project", "taskType", "assignedTo", "assignedDate", "dueDate", "priority", "status"]
+    );
+
+    downloadTextFile(
+        "photometrics-projects-report.csv",
+        `Projects\n${projectCsv}\n\nAssignments\n${assignmentCsv}`
+    );
+}
+
+function getUniqueOptions(rows, key, defaultLabel) {
+    const values = [...new Set(rows.map((row) => row[key]).filter(Boolean))].sort();
+    return [defaultLabel, ...values];
+}
+
+function generateNextId(prefix, rows) {
+    const highestNumber = rows.reduce((highest, row) => {
+        const numericPart = Number(String(row.id || "").replace(/\D/g, ""));
+        return Number.isNaN(numericPart) ? highest : Math.max(highest, numericPart);
+    }, 0);
+
+    return `${prefix}-${highestNumber + 1}`;
+}
+
 // Sidebar menu items
 const navItems = [
     { label: "Dashboard", page: "dashboard", icon: LayoutDashboard },
@@ -270,6 +416,76 @@ const projects = [
         progress: 50,
         status: "In Progress",
     },
+    {
+        id: "PRJ-1240",
+        name: "Wedding - Smith",
+        client: "Amanda Smith",
+        startDate: "May 03, 2026",
+        dueDate: "May 22, 2026",
+        images: "1200",
+        progress: 75,
+        status: "In Progress",
+    },
+    {
+        id: "PRJ-1241",
+        name: "Wedding - Johnson",
+        client: "Beth Johnson",
+        startDate: "May 04, 2026",
+        dueDate: "May 24, 2026",
+        images: "950",
+        progress: 65,
+        status: "Review",
+    },
+    {
+        id: "PRJ-1242",
+        name: "Portrait - Sampson",
+        client: "Elena Sampson",
+        startDate: "May 05, 2026",
+        dueDate: "May 18, 2026",
+        images: "600",
+        progress: 75,
+        status: "Completed",
+    },
+    {
+        id: "PRJ-1243",
+        name: "Event - Johnson",
+        client: "Mark Johnson",
+        startDate: "May 06, 2026",
+        dueDate: "May 25, 2026",
+        images: "800",
+        progress: 81,
+        status: "In Progress",
+    },
+    {
+        id: "PRJ-1244",
+        name: "Graduation - Hathaway",
+        client: "Lynn Hathaway",
+        startDate: "May 07, 2026",
+        dueDate: "May 26, 2026",
+        images: "1000",
+        progress: 80,
+        status: "Review",
+    },
+    {
+        id: "PRJ-1245",
+        name: "Family - Peterson",
+        client: "Nora Peterson",
+        startDate: "May 08, 2026",
+        dueDate: "May 31, 2026",
+        images: "500",
+        progress: 25,
+        status: "In Progress",
+    },
+    {
+        id: "PRJ-1246",
+        name: "Corporate - Acme",
+        client: "Acme Co.",
+        startDate: "May 09, 2026",
+        dueDate: "Jun 02, 2026",
+        images: "700",
+        progress: 10,
+        status: "In Progress",
+    },
 ];
 
 // Assignment table data
@@ -322,6 +538,106 @@ const assignments = [
         assignedDate: "May 01, 2026",
         dueDate: "May 8, 2026",
         priority: "High",
+        status: "Completed",
+    },
+    {
+        id: "ASG-2584",
+        project: "Graduation - Smith",
+        taskType: "Review",
+        assignedTo: "John Freeman",
+        assignedDate: "May 02, 2026",
+        dueDate: "May 19, 2026",
+        priority: "Medium",
+        status: "In Progress",
+    },
+    {
+        id: "ASG-2585",
+        project: "Wedding - Johnson",
+        taskType: "Photo Editing",
+        assignedTo: "Susan Conner",
+        assignedDate: "May 02, 2026",
+        dueDate: "May 21, 2026",
+        priority: "High",
+        status: "Review",
+    },
+    {
+        id: "ASG-2586",
+        project: "Portrait - Sampson",
+        taskType: "Final Export",
+        assignedTo: "Sarah Conner",
+        assignedDate: "May 03, 2026",
+        dueDate: "May 17, 2026",
+        priority: "Low",
+        status: "Completed",
+    },
+    {
+        id: "ASG-2587",
+        project: "Event - Johnson",
+        taskType: "Culling",
+        assignedTo: "Larry Waymer",
+        assignedDate: "May 03, 2026",
+        dueDate: "May 19, 2026",
+        priority: "Medium",
+        status: "In Progress",
+    },
+    {
+        id: "ASG-2588",
+        project: "Graduation - Hathaway",
+        taskType: "Retouching",
+        assignedTo: "John Doe",
+        assignedDate: "May 04, 2026",
+        dueDate: "May 23, 2026",
+        priority: "High",
+        status: "Review",
+    },
+    {
+        id: "ASG-2589",
+        project: "Family - Peterson",
+        taskType: "Photo Editing",
+        assignedTo: "John Freeman",
+        assignedDate: "May 04, 2026",
+        dueDate: "May 24, 2026",
+        priority: "Medium",
+        status: "In Progress",
+    },
+    {
+        id: "ASG-2590",
+        project: "Corporate - Acme",
+        taskType: "Culling",
+        assignedTo: "Susan Conner",
+        assignedDate: "May 05, 2026",
+        dueDate: "May 26, 2026",
+        priority: "Low",
+        status: "In Progress",
+    },
+    {
+        id: "ASG-2591",
+        project: "Graduation - Franklen",
+        taskType: "Review",
+        assignedTo: "Sarah Conner",
+        assignedDate: "May 05, 2026",
+        dueDate: "May 27, 2026",
+        priority: "Medium",
+        status: "Review",
+    },
+    {
+        id: "ASG-2592",
+        project: "Graduation - Dunkan",
+        taskType: "Color Correction",
+        assignedTo: "Larry Waymer",
+        assignedDate: "May 06, 2026",
+        dueDate: "May 28, 2026",
+        priority: "High",
+        status: "In Progress",
+    },
+    {
+        id: "ASG-2593",
+        project: "Graduation - Smith",
+        taskType: "Final Export",
+        assignedTo: "John Doe",
+        assignedDate: "May 06, 2026",
+        dueDate: "May 29, 2026",
+        priority: "Low",
         status: "Completed",
     },
 ];
@@ -500,64 +816,111 @@ function ProgressBar({ value }) {
 }
 
 // Action buttons used in the Projects tab tables
-function RowActions() {
+function RowActions({ onEdit, onDelete }) {
     return (
         <div className="flex items-center justify-center gap-3 text-slate-700">
             <button
                 type="button"
+                onClick={onEdit}
                 className="rounded-md p-1 hover:bg-slate-100"
                 aria-label="Edit row"
+                title="Edit"
             >
                 <Pencil size={18} />
             </button>
 
             <button
                 type="button"
-                className="rounded-md p-1 hover:bg-slate-100"
-                aria-label="More actions"
+                onClick={onDelete}
+                className="rounded-md p-1 hover:bg-red-50 hover:text-red-700"
+                aria-label="Delete row"
+                title="Delete"
             >
-                <MoreVertical size={18} />
+                <Trash2 size={18} />
             </button>
         </div>
     );
 }
 
 // Select control used in the Projects tab filter bar
-function FilterSelect({ label }) {
+function FilterSelect({ value, onChange, options }) {
     return (
         <select
-            className="h-10 min-w-[150px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none"
-            defaultValue={label}
+            className="h-10 min-w-[150px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none hover:bg-slate-50"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
         >
-            <option>{label}</option>
+            {options.map((option) => (
+                <option key={option} value={option}>{option}</option>
+            ))}
         </select>
     );
 }
 
+function SortableHeader({ column, sortConfig, onSort }) {
+    const isActive = sortConfig.key === column.key;
+    const sortIcon = isActive
+        ? sortConfig.direction === "asc" ? "↑" : "↓"
+        : "↕";
+
+    return (
+        <th className="border border-slate-300 px-4 py-3 text-left font-bold">
+            <button
+                type="button"
+                onClick={() => onSort(column.key)}
+                className={`flex w-full items-center gap-2 ${column.align === "center" ? "justify-center" : "justify-start"}`}
+                title={`Sort by ${column.label}`}
+            >
+                <span>{column.label}</span>
+                <span className={`text-xs ${isActive ? "text-violet-700" : "text-slate-400"}`}>
+                    {sortIcon}
+                </span>
+            </button>
+        </th>
+    );
+}
+
 // Pagination footer used by the Projects tab tables
-function TableFooter({ text, pages }) {
+function TableFooter({ text, currentPage, totalPages, onPageChange }) {
+    const pages = buildPageNumbers(totalPages);
+
     return (
         <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-600">
             <span>{text}</span>
 
             <div className="flex items-center gap-2">
-                <button type="button" className="rounded-md p-1 hover:bg-slate-100">
+                <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                    className="rounded-md p-1 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Previous page"
+                >
                     <ChevronLeft size={16} />
                 </button>
 
-                {pages.map((page) => (
+                {pages.map((pageNumber) => (
                     <button
-                        key={page}
+                        key={pageNumber}
                         type="button"
+                        onClick={() => onPageChange(pageNumber)}
                         className={`h-7 w-7 rounded-md text-xs font-semibold ${
-                            page === 1 ? "bg-violet-600 text-white" : "text-slate-700 hover:bg-slate-100"
+                            pageNumber === currentPage
+                                ? "bg-violet-600 text-white"
+                                : "text-slate-700 hover:bg-slate-100"
                         }`}
                     >
-                        {page}
+                        {pageNumber}
                     </button>
                 ))}
 
-                <button type="button" className="rounded-md p-1 hover:bg-slate-100">
+                <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                    className="rounded-md p-1 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Next page"
+                >
                     <ChevronRight size={16} />
                 </button>
             </div>
@@ -565,7 +928,222 @@ function TableFooter({ text, pages }) {
     );
 }
 
-// Creates colored chart line segments
+function FormField({ label, children }) {
+    return (
+        <label className="space-y-1 text-sm font-semibold text-slate-700">
+            <span>{label}</span>
+            {children}
+        </label>
+    );
+}
+
+function TextInput({ value, onChange, placeholder, type = "text" }) {
+    return (
+        <input
+            type={type}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+        />
+    );
+}
+
+function Modal({ title, children, onClose }) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
+            <div className="w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                    <h3 className="text-xl font-bold">{title}</h3>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-lg px-3 py-1 text-2xl leading-none hover:bg-slate-100"
+                        aria-label="Close modal"
+                    >
+                        ×
+                    </button>
+                </div>
+                {children}
+            </div>
+        </div>
+    );
+}
+
+function ProjectForm({ initialProject, onCancel, onSave }) {
+    const [form, setForm] = useState(initialProject);
+
+    const updateField = (field, value) => {
+        setForm((current) => ({ ...current, [field]: value }));
+    };
+
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        onSave({
+            ...form,
+            images: String(form.images || "0"),
+            progress: Math.max(0, Math.min(100, normalizeNumber(form.progress))),
+        });
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
+            <div className="grid grid-cols-2 gap-4">
+                <FormField label="Project Name">
+                    <TextInput value={form.name} onChange={(value) => updateField("name", value)} placeholder="Graduation - Smith" />
+                </FormField>
+
+                <FormField label="Client">
+                    <TextInput value={form.client} onChange={(value) => updateField("client", value)} placeholder="Client name" />
+                </FormField>
+
+                <FormField label="Start Date">
+                    <TextInput value={form.startDate} onChange={(value) => updateField("startDate", value)} placeholder="May 01, 2026" />
+                </FormField>
+
+                <FormField label="Due Date">
+                    <TextInput value={form.dueDate} onChange={(value) => updateField("dueDate", value)} placeholder="May 27, 2026" />
+                </FormField>
+
+                <FormField label="Images">
+                    <TextInput value={form.images} onChange={(value) => updateField("images", value)} placeholder="1200" type="number" />
+                </FormField>
+
+                <FormField label="Progress">
+                    <TextInput value={form.progress} onChange={(value) => updateField("progress", value)} placeholder="50" type="number" />
+                </FormField>
+
+                <FormField label="Status">
+                    <select
+                        value={form.status}
+                        onChange={(event) => updateField("status", event.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    >
+                        <option>In Progress</option>
+                        <option>Review</option>
+                        <option>Completed</option>
+                    </select>
+                </FormField>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+                >
+                    Save Project
+                </button>
+            </div>
+        </form>
+    );
+}
+
+function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, onCancel, onSave }) {
+    const [form, setForm] = useState(initialAssignment);
+
+    const updateField = (field, value) => {
+        setForm((current) => ({ ...current, [field]: value }));
+    };
+
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        onSave(form);
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
+            <div className="grid grid-cols-2 gap-4">
+                <FormField label="Project">
+                    <select
+                        value={form.project}
+                        onChange={(event) => updateField("project", event.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    >
+                        {projectOptions.filter((option) => option !== "All Projects").map((project) => (
+                            <option key={project}>{project}</option>
+                        ))}
+                    </select>
+                </FormField>
+
+                <FormField label="Task Type">
+                    <TextInput value={form.taskType} onChange={(value) => updateField("taskType", value)} placeholder="Photo Editing" />
+                </FormField>
+
+                <FormField label="Assigned To">
+                    <input
+                        list="employee-options"
+                        value={form.assignedTo}
+                        onChange={(event) => updateField("assignedTo", event.target.value)}
+                        placeholder="Employee name"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    />
+                    <datalist id="employee-options">
+                        {employeeOptions.filter((option) => option !== "All Employees").map((employee) => (
+                            <option key={employee} value={employee} />
+                        ))}
+                    </datalist>
+                </FormField>
+
+                <FormField label="Assigned Date">
+                    <TextInput value={form.assignedDate} onChange={(value) => updateField("assignedDate", value)} placeholder="May 01, 2026" />
+                </FormField>
+
+                <FormField label="Due Date">
+                    <TextInput value={form.dueDate} onChange={(value) => updateField("dueDate", value)} placeholder="May 18, 2026" />
+                </FormField>
+
+                <FormField label="Priority">
+                    <select
+                        value={form.priority}
+                        onChange={(event) => updateField("priority", event.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    >
+                        <option>High</option>
+                        <option>Medium</option>
+                        <option>Low</option>
+                    </select>
+                </FormField>
+
+                <FormField label="Status">
+                    <select
+                        value={form.status}
+                        onChange={(event) => updateField("status", event.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    >
+                        <option>In Progress</option>
+                        <option>Review</option>
+                        <option>Completed</option>
+                    </select>
+                </FormField>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+                >
+                    Save Assignment
+                </button>
+            </div>
+        </form>
+    );
+}
+
+// Creates colored chart line segments// Creates colored chart line segments
 function ColoredLineSegment({ data, segment, index }) {
 
     // Skip last item
@@ -903,11 +1481,217 @@ function ProjectProgressPanel({ rows = projectProgress }) {
 
 // Projects + assignments page
 function ProjectsAndAssignments() {
-    const { data: projectRows } = useApiPlaceholder(API_ENDPOINTS.projects, projects);
-    const { data: assignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, assignments);
+    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projects, projects);
+    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, assignments);
 
-    const handleApiPlaceholder = (actionName) => {
-        console.info(`${actionName} API holder is ready to connect.`, apiPlaceholders);
+    const [projectRows, setProjectRows] = useState(projects);
+    const [assignmentRows, setAssignmentRows] = useState(assignments);
+    const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
+    const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
+    const [projectPage, setProjectPage] = useState(1);
+    const [assignmentPage, setAssignmentPage] = useState(1);
+    const [projectFilter, setProjectFilter] = useState("All Projects");
+    const [employeeFilter, setEmployeeFilter] = useState("All Employees");
+    const [statusFilter, setStatusFilter] = useState("All Status");
+    const [projectModal, setProjectModal] = useState(null);
+    const [assignmentModal, setAssignmentModal] = useState(null);
+
+    useEffect(() => {
+        if (Array.isArray(loadedProjectRows)) {
+            setProjectRows(loadedProjectRows);
+        }
+    }, [loadedProjectRows]);
+
+    useEffect(() => {
+        if (Array.isArray(loadedAssignmentRows)) {
+            setAssignmentRows(loadedAssignmentRows);
+        }
+    }, [loadedAssignmentRows]);
+
+    const projectOptions = useMemo(
+        () => getUniqueOptions(assignmentRows, "project", "All Projects"),
+        [assignmentRows]
+    );
+
+    const employeeOptions = useMemo(
+        () => getUniqueOptions(assignmentRows, "assignedTo", "All Employees"),
+        [assignmentRows]
+    );
+
+    const statusOptions = useMemo(
+        () => getUniqueOptions(assignmentRows, "status", "All Status"),
+        [assignmentRows]
+    );
+
+    const filteredAssignmentRows = useMemo(() => {
+        return assignmentRows.filter((assignment) => {
+            const matchesProject = projectFilter === "All Projects" || assignment.project === projectFilter;
+            const matchesEmployee = employeeFilter === "All Employees" || assignment.assignedTo === employeeFilter;
+            const matchesStatus = statusFilter === "All Status" || assignment.status === statusFilter;
+            return matchesProject && matchesEmployee && matchesStatus;
+        });
+    }, [assignmentRows, projectFilter, employeeFilter, statusFilter]);
+
+    const sortedProjectRows = useMemo(
+        () => sortRows(projectRows, projectSort),
+        [projectRows, projectSort]
+    );
+
+    const sortedAssignmentRows = useMemo(
+        () => sortRows(filteredAssignmentRows, assignmentSort),
+        [filteredAssignmentRows, assignmentSort]
+    );
+
+    const projectTotalPages = getTotalPages(sortedProjectRows.length, PROJECTS_PAGE_SIZE);
+    const assignmentTotalPages = getTotalPages(sortedAssignmentRows.length, ASSIGNMENTS_PAGE_SIZE);
+
+    const visibleProjectRows = paginateRows(sortedProjectRows, projectPage, PROJECTS_PAGE_SIZE);
+    const visibleAssignmentRows = paginateRows(sortedAssignmentRows, assignmentPage, ASSIGNMENTS_PAGE_SIZE);
+
+    useEffect(() => {
+        if (projectPage > projectTotalPages) {
+            setProjectPage(projectTotalPages);
+        }
+    }, [projectPage, projectTotalPages]);
+
+    useEffect(() => {
+        if (assignmentPage > assignmentTotalPages) {
+            setAssignmentPage(assignmentTotalPages);
+        }
+    }, [assignmentPage, assignmentTotalPages]);
+
+    const openNewProjectModal = () => {
+        setProjectModal({
+            mode: "create",
+            data: {
+                id: generateNextId("PRJ", projectRows),
+                name: "",
+                client: "",
+                startDate: "May 01, 2026",
+                dueDate: "May 30, 2026",
+                images: "0",
+                progress: 0,
+                status: "In Progress",
+            },
+        });
+    };
+
+    const openNewAssignmentModal = () => {
+        const firstProjectName = projectRows[0]?.name || "";
+
+        setAssignmentModal({
+            mode: "create",
+            data: {
+                id: generateNextId("ASG", assignmentRows),
+                project: firstProjectName,
+                taskType: "",
+                assignedTo: "",
+                assignedDate: "May 01, 2026",
+                dueDate: "May 30, 2026",
+                priority: "Medium",
+                status: "In Progress",
+            },
+        });
+    };
+
+    const saveProject = async (project) => {
+        const cleanProject = {
+            ...project,
+            id: project.id || generateNextId("PRJ", projectRows),
+            name: project.name.trim() || "Untitled Project",
+            client: project.client.trim() || "Unassigned Client",
+        };
+
+        if (USE_API_DATA) {
+            try {
+                if (projectModal.mode === "create") {
+                    await apiPlaceholders.createProject(cleanProject);
+                } else {
+                    await apiPlaceholders.updateProject(cleanProject.id, cleanProject);
+                }
+            } catch (apiError) {
+                console.warn("Project API holder is not connected yet. Saving locally.", apiError);
+            }
+        }
+
+        setProjectRows((currentRows) => {
+            if (projectModal.mode === "create") {
+                return [cleanProject, ...currentRows];
+            }
+
+            return currentRows.map((row) => row.id === cleanProject.id ? cleanProject : row);
+        });
+        setProjectPage(1);
+        setProjectModal(null);
+    };
+
+    const saveAssignment = async (assignment) => {
+        const cleanAssignment = {
+            ...assignment,
+            id: assignment.id || generateNextId("ASG", assignmentRows),
+            taskType: assignment.taskType.trim() || "General Task",
+            assignedTo: assignment.assignedTo.trim() || "Unassigned",
+        };
+
+        if (USE_API_DATA) {
+            try {
+                if (assignmentModal.mode === "create") {
+                    await apiPlaceholders.createAssignment(cleanAssignment);
+                } else {
+                    await apiPlaceholders.updateAssignment(cleanAssignment.id, cleanAssignment);
+                }
+            } catch (apiError) {
+                console.warn("Assignment API holder is not connected yet. Saving locally.", apiError);
+            }
+        }
+
+        setAssignmentRows((currentRows) => {
+            if (assignmentModal.mode === "create") {
+                return [cleanAssignment, ...currentRows];
+            }
+
+            return currentRows.map((row) => row.id === cleanAssignment.id ? cleanAssignment : row);
+        });
+        setAssignmentPage(1);
+        setAssignmentModal(null);
+    };
+
+    const deleteProject = async (project) => {
+        if (!window.confirm(`Delete ${project.name}?`)) return;
+
+        if (USE_API_DATA) {
+            try {
+                await apiPlaceholders.deleteProject(project.id);
+            } catch (apiError) {
+                console.warn("Project delete API holder is not connected yet. Deleting locally.", apiError);
+            }
+        }
+
+        setProjectRows((currentRows) => currentRows.filter((row) => row.id !== project.id));
+    };
+
+    const deleteAssignment = async (assignment) => {
+        if (!window.confirm(`Delete ${assignment.id}?`)) return;
+
+        if (USE_API_DATA) {
+            try {
+                await apiPlaceholders.deleteAssignment(assignment.id);
+            } catch (apiError) {
+                console.warn("Assignment delete API holder is not connected yet. Deleting locally.", apiError);
+            }
+        }
+
+        setAssignmentRows((currentRows) => currentRows.filter((row) => row.id !== assignment.id));
+    };
+
+    const handleProjectSort = (columnKey) => {
+        setProjectSort((currentSort) => getNextSort(currentSort, columnKey));
+        setProjectPage(1);
+    };
+
+    const handleAssignmentSort = (columnKey) => {
+        setAssignmentSort((currentSort) => getNextSort(currentSort, columnKey));
+        setAssignmentPage(1);
     };
 
     return (
@@ -923,7 +1707,7 @@ function ProjectsAndAssignments() {
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
-                            onClick={() => handleApiPlaceholder("Export report")}
+                            onClick={() => downloadProjectsReport(projectRows, assignmentRows)}
                             className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
                         >
                             <Download size={16} /> Export Report
@@ -931,7 +1715,7 @@ function ProjectsAndAssignments() {
 
                         <button
                             type="button"
-                            onClick={() => handleApiPlaceholder("Create project")}
+                            onClick={openNewProjectModal}
                             className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
                         >
                             <Plus size={16} /> New Project
@@ -942,17 +1726,20 @@ function ProjectsAndAssignments() {
                 <table className="w-full border-collapse text-sm">
                     <thead className="bg-slate-200 text-slate-800">
                     <tr>
-                        {["Project Name", "Client", "Start Date", "Due Date", "Images", "Progress", "Status", "Actions"]
-                            .map((h) => (
-                                <th key={h} className="border border-slate-300 px-4 py-3 text-left font-bold">
-                                    {h}
-                                </th>
-                            ))}
+                        {PROJECT_COLUMNS.map((column) => (
+                            <SortableHeader
+                                key={column.key}
+                                column={column}
+                                sortConfig={projectSort}
+                                onSort={handleProjectSort}
+                            />
+                        ))}
+                        <th className="border border-slate-300 px-4 py-3 text-center font-bold">Actions</th>
                     </tr>
                     </thead>
 
                     <tbody>
-                    {projectRows.map((project) => (
+                    {visibleProjectRows.map((project) => (
                         <tr key={project.id} className="hover:bg-slate-50">
                             <td className="border border-slate-300 px-4 py-3">
                                 <div className="font-semibold text-slate-900">{project.name}</div>
@@ -973,14 +1760,30 @@ function ProjectsAndAssignments() {
                             </td>
 
                             <td className="border border-slate-300 px-4 py-3">
-                                <RowActions />
+                                <RowActions
+                                    onEdit={() => setProjectModal({ mode: "edit", data: project })}
+                                    onDelete={() => deleteProject(project)}
+                                />
                             </td>
                         </tr>
                     ))}
+
+                    {visibleProjectRows.length === 0 && (
+                        <tr>
+                            <td colSpan={8} className="border border-slate-300 px-4 py-8 text-center text-slate-500">
+                                No projects found.
+                            </td>
+                        </tr>
+                    )}
                     </tbody>
                 </table>
 
-                <TableFooter text={`Showing 1 to ${projectRows.length} of ${projectRows.length} projects`} pages={[1, 2, 3]} />
+                <TableFooter
+                    text={getRangeText(projectPage, PROJECTS_PAGE_SIZE, sortedProjectRows.length, "projects")}
+                    currentPage={projectPage}
+                    totalPages={projectTotalPages}
+                    onPageChange={setProjectPage}
+                />
             </div>
 
             {/* Assignments table */}
@@ -991,13 +1794,34 @@ function ProjectsAndAssignments() {
                     </h2>
 
                     <div className="flex items-center gap-3">
-                        <FilterSelect label="All Projects" />
-                        <FilterSelect label="All Employees" />
-                        <FilterSelect label="All Status" />
+                        <FilterSelect
+                            value={projectFilter}
+                            onChange={(value) => {
+                                setProjectFilter(value);
+                                setAssignmentPage(1);
+                            }}
+                            options={projectOptions}
+                        />
+                        <FilterSelect
+                            value={employeeFilter}
+                            onChange={(value) => {
+                                setEmployeeFilter(value);
+                                setAssignmentPage(1);
+                            }}
+                            options={employeeOptions}
+                        />
+                        <FilterSelect
+                            value={statusFilter}
+                            onChange={(value) => {
+                                setStatusFilter(value);
+                                setAssignmentPage(1);
+                            }}
+                            options={statusOptions}
+                        />
 
                         <button
                             type="button"
-                            onClick={() => handleApiPlaceholder("Create assignment")}
+                            onClick={openNewAssignmentModal}
                             className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
                         >
                             <Plus size={16} /> New Assignment
@@ -1008,17 +1832,20 @@ function ProjectsAndAssignments() {
                 <table className="w-full border-collapse text-sm">
                     <thead className="bg-slate-200 text-slate-800">
                     <tr>
-                        {["Assignment ID", "Project", "Task Type", "Assigned To", "Assigned Date", "Due Date", "Priority", "Status", "Actions"]
-                            .map((h) => (
-                                <th key={h} className="border border-slate-300 px-4 py-3 text-left font-bold">
-                                    {h}
-                                </th>
-                            ))}
+                        {ASSIGNMENT_COLUMNS.map((column) => (
+                            <SortableHeader
+                                key={column.key}
+                                column={column}
+                                sortConfig={assignmentSort}
+                                onSort={handleAssignmentSort}
+                            />
+                        ))}
+                        <th className="border border-slate-300 px-4 py-3 text-center font-bold">Actions</th>
                     </tr>
                     </thead>
 
                     <tbody>
-                    {assignmentRows.map((assignment) => (
+                    {visibleAssignmentRows.map((assignment) => (
                         <tr key={assignment.id} className="hover:bg-slate-50">
                             <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">
                                 {assignment.id}
@@ -1038,15 +1865,59 @@ function ProjectsAndAssignments() {
                             </td>
 
                             <td className="border border-slate-300 px-4 py-3">
-                                <RowActions />
+                                <RowActions
+                                    onEdit={() => setAssignmentModal({ mode: "edit", data: assignment })}
+                                    onDelete={() => deleteAssignment(assignment)}
+                                />
                             </td>
                         </tr>
                     ))}
+
+                    {visibleAssignmentRows.length === 0 && (
+                        <tr>
+                            <td colSpan={9} className="border border-slate-300 px-4 py-8 text-center text-slate-500">
+                                No assignments found for the selected filters.
+                            </td>
+                        </tr>
+                    )}
                     </tbody>
                 </table>
 
-                <TableFooter text={`Showing 1 to ${assignmentRows.length} of ${assignmentRows.length} assignments`} pages={[1, 2, 3, 4, 5]} />
+                <TableFooter
+                    text={getRangeText(assignmentPage, ASSIGNMENTS_PAGE_SIZE, sortedAssignmentRows.length, "assignments")}
+                    currentPage={assignmentPage}
+                    totalPages={assignmentTotalPages}
+                    onPageChange={setAssignmentPage}
+                />
             </div>
+
+            {projectModal && (
+                <Modal
+                    title={projectModal.mode === "create" ? "New Project" : "Edit Project"}
+                    onClose={() => setProjectModal(null)}
+                >
+                    <ProjectForm
+                        initialProject={projectModal.data}
+                        onCancel={() => setProjectModal(null)}
+                        onSave={saveProject}
+                    />
+                </Modal>
+            )}
+
+            {assignmentModal && (
+                <Modal
+                    title={assignmentModal.mode === "create" ? "New Assignment" : "Edit Assignment"}
+                    onClose={() => setAssignmentModal(null)}
+                >
+                    <AssignmentForm
+                        initialAssignment={assignmentModal.data}
+                        projectOptions={["All Projects", ...projectRows.map((project) => project.name)]}
+                        employeeOptions={employeeOptions}
+                        onCancel={() => setAssignmentModal(null)}
+                        onSave={saveAssignment}
+                    />
+                </Modal>
+            )}
         </section>
     );
 }
