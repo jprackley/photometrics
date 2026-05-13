@@ -1,15 +1,19 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 // Icons used throughout the UI
 import {
-    Bell,
     BarChart3,
+    Bell,
+    ChevronLeft,
+    ChevronRight,
+    Download,
     Folder,
     LayoutDashboard,
     ListChecks,
     LogOut,
-    ChevronLeft,
-    ChevronRight,
+    MoreVertical,
+    Pencil,
+    Plus,
     Search,
     Settings,
     Sparkles,
@@ -30,15 +34,141 @@ import {
     ResponsiveContainer,
 } from "recharts";
 
+
+// -----------------------------------------------------------------------------
+// API PLACEHOLDERS
+// -----------------------------------------------------------------------------
+// The app is currently using the mock data below so the UI can keep working while
+// the backend database is being built. When the backend is ready, set
+// VITE_USE_API_DATA=true in your .env file and update VITE_API_BASE_URL if needed.
+// Expected API response format can be either a plain array/object or { data: ... }.
+const USE_API_DATA = import.meta.env.VITE_USE_API_DATA === "true";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+
+const API_ENDPOINTS = {
+    dashboard: {
+        kpis: "/dashboard/kpis",
+        productivity: "/dashboard/productivity",
+        workflow: "/dashboard/workflow",
+        employeeActivity: "/dashboard/employee-activity",
+        projectProgress: "/dashboard/project-progress",
+    },
+    projects: "/projects",
+    assignments: "/assignments",
+    employees: "/employees",
+    tasks: "/tasks",
+    reports: "/reports",
+    analytics: "/analytics",
+    settings: "/settings",
+};
+
+async function apiRequest(endpoint, options = {}) {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+        },
+        ...options,
+    });
+
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+}
+
+function unwrapApiPayload(payload) {
+    if (Array.isArray(payload)) return payload;
+    if (payload?.data !== undefined) return payload.data;
+    if (payload?.items !== undefined) return payload.items;
+    return payload;
+}
+
+function useApiPlaceholder(endpoint, fallbackData) {
+    const [data, setData] = useState(fallbackData);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        if (!USE_API_DATA || !endpoint) {
+            setData(fallbackData);
+            return undefined;
+        }
+
+        async function loadData() {
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const payload = await apiRequest(endpoint);
+                const nextData = unwrapApiPayload(payload);
+
+                if (isMounted && nextData !== undefined) {
+                    setData(nextData);
+                }
+            } catch (apiError) {
+                if (isMounted) {
+                    setError(apiError.message);
+                    setData(fallbackData);
+                }
+
+                console.warn(`Using mock data for ${endpoint}.`, apiError);
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        }
+
+        loadData();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [endpoint, fallbackData]);
+
+    return { data, isLoading, error };
+}
+
+// These functions are not wired to forms yet. They are API holders for the
+// backend team to connect later when Create, Edit, Delete, and Export are built.
+const apiPlaceholders = {
+    createProject: (project) => apiRequest(API_ENDPOINTS.projects, {
+        method: "POST",
+        body: JSON.stringify(project),
+    }),
+    updateProject: (projectId, project) => apiRequest(`${API_ENDPOINTS.projects}/${projectId}`, {
+        method: "PUT",
+        body: JSON.stringify(project),
+    }),
+    deleteProject: (projectId) => apiRequest(`${API_ENDPOINTS.projects}/${projectId}`, {
+        method: "DELETE",
+    }),
+    createAssignment: (assignment) => apiRequest(API_ENDPOINTS.assignments, {
+        method: "POST",
+        body: JSON.stringify(assignment),
+    }),
+    updateAssignment: (assignmentId, assignment) => apiRequest(`${API_ENDPOINTS.assignments}/${assignmentId}`, {
+        method: "PUT",
+        body: JSON.stringify(assignment),
+    }),
+    deleteAssignment: (assignmentId) => apiRequest(`${API_ENDPOINTS.assignments}/${assignmentId}`, {
+        method: "DELETE",
+    }),
+};
+
 // Sidebar menu items
 const navItems = [
-    { label: "Dashboard", icon: LayoutDashboard },
-    { label: "Projects", icon: Folder },
-    { label: "Employees", icon: Users },
-    { label: "Tasks", icon: ListChecks },
-    { label: "Reports", icon: BarChart3 },
-    { label: "Analytics", icon: Sparkles },
-    { label: "Settings", icon: Settings },
+    { label: "Dashboard", page: "dashboard", icon: LayoutDashboard },
+    { label: "Projects", page: "projects", icon: Folder },
+    { label: "Employees", page: "employees", icon: Users },
+    { label: "Tasks", page: "tasks", icon: ListChecks },
+    { label: "Reports", page: "reports", icon: BarChart3 },
+    { label: "Analytics", page: "analytics", icon: Sparkles },
+    { label: "Settings", page: "settings", icon: Settings },
 ];
 
 // KPI card data
@@ -90,21 +220,119 @@ const projectProgress = [
 
 // Projects table data
 const projects = [
-    ["Graduation - Smith", "John Smith", "May 01, 2026", "May 27, 2026", "1200", 50, "In Progress"],
-    ["Graduation - Miller", "Steve Miller", "May 01, 2026", "May 28, 2026", "800", 50, "In Progress"],
-    ["Graduation - Franklen", "Jo Franklen", "May 01, 2026", "May 29, 2026", "450", 50, "Review"],
-    ["Graduation - Mcdougal", "Joe Mcdougal", "May 01, 2026", "May 29, 2026", "600", 100, "Completed"],
-    ["Graduation - Dunkan", "Fred Dunkan", "May 01, 2026", "May 30, 2026", "300", 50, "In Progress"],
+    {
+        id: "PRJ-1235",
+        name: "Graduation - Smith",
+        client: "John Smith",
+        startDate: "May 01, 2026",
+        dueDate: "May 27, 2026",
+        images: "1200",
+        progress: 50,
+        status: "In Progress",
+    },
+    {
+        id: "PRJ-1236",
+        name: "Graduation - Miller",
+        client: "Steve Miller",
+        startDate: "May 01, 2026",
+        dueDate: "May 28, 2026",
+        images: "800",
+        progress: 50,
+        status: "In Progress",
+    },
+    {
+        id: "PRJ-1237",
+        name: "Graduation - Franklen",
+        client: "Jo Franklen",
+        startDate: "May 01, 2026",
+        dueDate: "May 29, 2026",
+        images: "450",
+        progress: 50,
+        status: "Review",
+    },
+    {
+        id: "PRJ-1238",
+        name: "Graduation - Mcdougal",
+        client: "Joe Mcdougal",
+        startDate: "May 01, 2026",
+        dueDate: "May 29, 2026",
+        images: "600",
+        progress: 100,
+        status: "Completed",
+    },
+    {
+        id: "PRJ-1239",
+        name: "Graduation - Dunkan",
+        client: "Fred Dunkan",
+        startDate: "May 01, 2026",
+        dueDate: "May 30, 2026",
+        images: "300",
+        progress: 50,
+        status: "In Progress",
+    },
 ];
 
 // Assignment table data
 const assignments = [
-    ["ASG-2579", "Wedding - Smith", "Photo Editing", "John Freeman", "May 01, 2026", "May 18, 2026", "High", "In Progress"],
-    ["ASG-2580", "Wedding - Smith", "Culling", "Larry Waymer", "May 01, 2026", "May 16, 2026", "Medium", "Completed"],
-    ["ASG-2581", "Graduation - Mcdougal", "Photo Editing", "John Doe", "May 01, 2026", "May 20, 2026", "High", "In Progress"],
-    ["ASG-2582", "Graduation - Duncan", "Retouching", "Sarah Conner", "May 01, 2026", "May 15, 2026", "Medium", "Review"],
-    ["ASG-2583", "Graduation - Miller", "Color Correction", "Susan Conner", "May 01, 2026", "May 8, 2026", "High", "Completed"],
+    {
+        id: "ASG-2579",
+        project: "Wedding - Smith",
+        taskType: "Photo Editing",
+        assignedTo: "John Freeman",
+        assignedDate: "May 01, 2026",
+        dueDate: "May 18, 2026",
+        priority: "High",
+        status: "In Progress",
+    },
+    {
+        id: "ASG-2580",
+        project: "Wedding - Smith",
+        taskType: "Culling",
+        assignedTo: "Larry Waymer",
+        assignedDate: "May 01, 2026",
+        dueDate: "May 16, 2026",
+        priority: "Medium",
+        status: "Completed",
+    },
+    {
+        id: "ASG-2581",
+        project: "Graduation - Mcdougal",
+        taskType: "Photo Editing",
+        assignedTo: "John Doe",
+        assignedDate: "May 01, 2026",
+        dueDate: "May 20, 2026",
+        priority: "High",
+        status: "In Progress",
+    },
+    {
+        id: "ASG-2582",
+        project: "Graduation - Duncan",
+        taskType: "Retouching",
+        assignedTo: "Sarah Conner",
+        assignedDate: "May 01, 2026",
+        dueDate: "May 15, 2026",
+        priority: "Medium",
+        status: "Review",
+    },
+    {
+        id: "ASG-2583",
+        project: "Graduation - Miller",
+        taskType: "Color Correction",
+        assignedTo: "Susan Conner",
+        assignedDate: "May 01, 2026",
+        dueDate: "May 8, 2026",
+        priority: "High",
+        status: "Completed",
+    },
 ];
+
+const placeholderPages = {
+    employees: "Employees",
+    tasks: "Tasks",
+    reports: "Reports",
+    analytics: "Analytics",
+    settings: "Settings",
+};
 
 // Company logo component
 function Logo() {
@@ -120,7 +348,7 @@ function Logo() {
 }
 
 // Left sidebar navigation
-function Sidebar({ isCollapsed, onToggle }) {
+function Sidebar({ isCollapsed, activePage, onPageChange, onToggle }) {
     return (
         <aside
             className={`flex min-h-screen flex-col border-r border-slate-200 bg-white transition-all duration-300 ${
@@ -151,16 +379,20 @@ function Sidebar({ isCollapsed, onToggle }) {
 
             {/* Navigation buttons */}
             <nav className="flex-1 space-y-3 p-4 pt-6">
-                {navItems.map(({ label, icon: Icon }, index) => (
+                {navItems.map(({ label, page, icon: Icon }) => (
                     <button
                         key={label}
+                        type="button"
                         title={isCollapsed ? label : undefined}
+                        onClick={() => onPageChange(page)}
 
-                        // Highlight dashboard button
+                        // Highlight active page button
                         className={`flex w-full items-center rounded-xl py-3 text-lg transition hover:bg-slate-100 ${
                             isCollapsed ? "justify-center px-0" : "gap-4 px-4 text-left"
                         } ${
-                            index === 0 ? "bg-slate-100 font-semibold" : "font-medium"
+                            activePage === page
+                                ? "bg-slate-100 font-semibold text-violet-700"
+                                : "font-medium text-slate-800"
                         }`}
                     >
                         <Icon size={24} strokeWidth={2} />
@@ -231,11 +463,113 @@ function Badge({ value }) {
     );
 }
 
+// Priority badge component
+function PriorityBadge({ value }) {
+
+    // Set badge colors based on priority
+    const style =
+        value === "High"
+            ? "bg-red-100 text-red-700"
+            : value === "Medium"
+                ? "bg-orange-100 text-orange-700"
+                : "bg-slate-100 text-slate-700";
+
+    return (
+        <span className={`rounded-md px-3 py-1 text-xs font-medium ${style}`}>
+            {value}
+        </span>
+    );
+}
+
+// Reusable progress bar component
+function ProgressBar({ value }) {
+    return (
+        <div className="flex items-center gap-3">
+            <div className="h-3 flex-1 rounded-full border border-slate-300 bg-white">
+                <div
+                    className="h-full rounded-full bg-violet-600"
+                    style={{ width: `${value}%` }}
+                />
+            </div>
+
+            <span className="w-10 text-xs font-semibold text-slate-700">
+                {value}%
+            </span>
+        </div>
+    );
+}
+
+// Action buttons used in the Projects tab tables
+function RowActions() {
+    return (
+        <div className="flex items-center justify-center gap-3 text-slate-700">
+            <button
+                type="button"
+                className="rounded-md p-1 hover:bg-slate-100"
+                aria-label="Edit row"
+            >
+                <Pencil size={18} />
+            </button>
+
+            <button
+                type="button"
+                className="rounded-md p-1 hover:bg-slate-100"
+                aria-label="More actions"
+            >
+                <MoreVertical size={18} />
+            </button>
+        </div>
+    );
+}
+
+// Select control used in the Projects tab filter bar
+function FilterSelect({ label }) {
+    return (
+        <select
+            className="h-10 min-w-[150px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none"
+            defaultValue={label}
+        >
+            <option>{label}</option>
+        </select>
+    );
+}
+
+// Pagination footer used by the Projects tab tables
+function TableFooter({ text, pages }) {
+    return (
+        <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-600">
+            <span>{text}</span>
+
+            <div className="flex items-center gap-2">
+                <button type="button" className="rounded-md p-1 hover:bg-slate-100">
+                    <ChevronLeft size={16} />
+                </button>
+
+                {pages.map((page) => (
+                    <button
+                        key={page}
+                        type="button"
+                        className={`h-7 w-7 rounded-md text-xs font-semibold ${
+                            page === 1 ? "bg-violet-600 text-white" : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                    >
+                        {page}
+                    </button>
+                ))}
+
+                <button type="button" className="rounded-md p-1 hover:bg-slate-100">
+                    <ChevronRight size={16} />
+                </button>
+            </div>
+        </div>
+    );
+}
+
 // Creates colored chart line segments
-function ColoredLineSegment({ segment, index }) {
+function ColoredLineSegment({ data, segment, index }) {
 
     // Skip last item
-    if (index === productivity.length - 1) return null;
+    if (index === data.length - 1) return null;
 
     return (
         <Line
@@ -243,7 +577,7 @@ function ColoredLineSegment({ segment, index }) {
 
             // Only render current + next data point
             dataKey={(row) => {
-                const currentIndex = productivity.findIndex(
+                const currentIndex = data.findIndex(
                     (item) => item.day === row.day
                 );
 
@@ -265,12 +599,18 @@ function ColoredLineSegment({ segment, index }) {
 
 // Main dashboard page
 function Dashboard() {
+    const { data: dashboardKpis } = useApiPlaceholder(API_ENDPOINTS.dashboard.kpis, kpis);
+    const { data: productivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.productivity, productivity);
+    const { data: workflowData } = useApiPlaceholder(API_ENDPOINTS.dashboard.workflow, workflow);
+    const { data: employeeActivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.employeeActivity, employeeActivity);
+    const { data: projectProgressData } = useApiPlaceholder(API_ENDPOINTS.dashboard.projectProgress, projectProgress);
+
     return (
         <section className="space-y-5 bg-slate-50 p-6">
 
             {/* KPI cards */}
             <div className="grid grid-cols-6 gap-4">
-                {kpis.map(([label, value]) => (
+                {dashboardKpis.map(([label, value]) => (
                     <div
                         key={label}
                         className="rounded-xl border border-slate-300 bg-white px-5 py-7 text-center shadow-sm"
@@ -302,7 +642,7 @@ function Dashboard() {
 
                     <ResponsiveContainer width="100%" height={230}>
                         <LineChart
-                            data={productivity}
+                            data={productivityData}
                             margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
                         >
                             <CartesianGrid
@@ -328,9 +668,10 @@ function Dashboard() {
                             <Tooltip />
 
                             {/* Colored chart segments */}
-                            {productivity.map((item, index) => (
+                            {productivityData.map((item, index) => (
                                 <ColoredLineSegment
                                     key={item.day}
+                                    data={productivityData}
                                     segment={item}
                                     index={index}
                                 />
@@ -350,7 +691,7 @@ function Dashboard() {
 
                                 // Custom dots
                                 dot={(props) => {
-                                    const item = productivity[props.index];
+                                    const item = productivityData[props.index];
 
                                     return (
                                         <circle
@@ -380,7 +721,7 @@ function Dashboard() {
                         <ResponsiveContainer width="40%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={workflow}
+                                    data={workflowData}
                                     dataKey="value"
                                     nameKey="name"
                                     cx="50%"
@@ -391,7 +732,7 @@ function Dashboard() {
                                     stroke="white"
                                     strokeWidth={4}
                                 >
-                                    {workflow.map((item) => (
+                                    {workflowData.map((item) => (
                                         <Cell
                                             key={item.name}
                                             fill={item.color}
@@ -403,7 +744,7 @@ function Dashboard() {
 
                         {/* Legend */}
                         <div className="w-64 space-y-5">
-                            {workflow.map((item) => (
+                            {workflowData.map((item) => (
                                 <div
                                     key={item.name}
                                     className="grid grid-cols-[1fr_auto] items-center gap-8"
@@ -436,15 +777,15 @@ function Dashboard() {
 
             {/* Bottom tables */}
             <div className="grid grid-cols-[0.95fr_1.05fr] gap-5">
-                <EmployeeActivityPanel />
-                <ProjectProgressPanel />
+                <EmployeeActivityPanel rows={employeeActivityData} />
+                <ProjectProgressPanel rows={projectProgressData} />
             </div>
         </section>
     );
 }
 
 // Employee activity table
-function EmployeeActivityPanel() {
+function EmployeeActivityPanel({ rows = employeeActivity }) {
     return (
         <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
             <h2 className="mb-3 text-2xl font-bold">
@@ -470,7 +811,7 @@ function EmployeeActivityPanel() {
 
                 {/* Table rows */}
                 <tbody>
-                {employeeActivity.map((row) => (
+                {rows.map((row) => (
                     <tr key={row[0]}>
                         <td className="border border-slate-300 px-3 py-2">
                             {row[0]}
@@ -500,7 +841,7 @@ function EmployeeActivityPanel() {
 }
 
 // Project progress table
-function ProjectProgressPanel() {
+function ProjectProgressPanel({ rows = projectProgress }) {
     return (
         <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
             <h2 className="mb-3 text-2xl font-bold">
@@ -526,7 +867,7 @@ function ProjectProgressPanel() {
 
                 {/* Table rows */}
                 <tbody>
-                {projectProgress.map((row) => (
+                {rows.map((row) => (
                     <tr key={row[0]}>
                         <td className="border border-slate-300 px-3 py-2">
                             {row[0]}
@@ -546,17 +887,7 @@ function ProjectProgressPanel() {
 
                         {/* Progress bar */}
                         <td className="border border-slate-300 px-3 py-2">
-                            <div className="flex items-center gap-3">
-
-                                <div className="h-3 flex-1 rounded bg-slate-100">
-                                    <div
-                                        className="h-full rounded bg-violet-600"
-                                        style={{ width: `${row[4]}%` }}
-                                    />
-                                </div>
-
-                                <span>{row[4]}%</span>
-                            </div>
+                            <ProgressBar value={row[4]} />
                         </td>
                     </tr>
                 ))}
@@ -572,100 +903,163 @@ function ProjectProgressPanel() {
 
 // Projects + assignments page
 function ProjectsAndAssignments() {
+    const { data: projectRows } = useApiPlaceholder(API_ENDPOINTS.projects, projects);
+    const { data: assignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, assignments);
+
+    const handleApiPlaceholder = (actionName) => {
+        console.info(`${actionName} API holder is ready to connect.`, apiPlaceholders);
+    };
+
     return (
-        <section className="space-y-4 p-4">
+        <section className="space-y-5 bg-slate-50 p-6">
 
             {/* Projects table */}
-            <div className="rounded-xl border bg-white p-3 shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                    <h2 className="flex items-center gap-3 text-2xl font-bold">
+                        <Folder size={26} /> Projects
+                    </h2>
 
-                <h2 className="flex items-center gap-2 text-xl font-semibold">
-                    <Folder /> Projects
-                </h2>
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => handleApiPlaceholder("Export report")}
+                            className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                        >
+                            <Download size={16} /> Export Report
+                        </button>
 
-                <table className="mt-3 w-full text-sm">
+                        <button
+                            type="button"
+                            onClick={() => handleApiPlaceholder("Create project")}
+                            className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+                        >
+                            <Plus size={16} /> New Project
+                        </button>
+                    </div>
+                </div>
 
-                    <thead className="bg-slate-200">
+                <table className="w-full border-collapse text-sm">
+                    <thead className="bg-slate-200 text-slate-800">
                     <tr>
-                        {[
-                            "Project Name",
-                            "Client",
-                            "Start Date",
-                            "Due Date",
-                            "Images",
-                            "Progress",
-                            "Status",
-                        ].map((h) => (
-                            <th key={h} className="p-3 text-left">
-                                {h}
-                            </th>
-                        ))}
+                        {["Project Name", "Client", "Start Date", "Due Date", "Images", "Progress", "Status", "Actions"]
+                            .map((h) => (
+                                <th key={h} className="border border-slate-300 px-4 py-3 text-left font-bold">
+                                    {h}
+                                </th>
+                            ))}
                     </tr>
                     </thead>
 
                     <tbody>
-                    {projects.map((row) => (
-                        <tr key={row[0]} className="border-b">
+                    {projectRows.map((project) => (
+                        <tr key={project.id} className="hover:bg-slate-50">
+                            <td className="border border-slate-300 px-4 py-3">
+                                <div className="font-semibold text-slate-900">{project.name}</div>
+                                <div className="text-xs text-slate-500">{project.id}</div>
+                            </td>
 
-                            {row.map((cell, i) => (
-                                <td key={i} className="p-3">
+                            <td className="border border-slate-300 px-4 py-3">{project.client}</td>
+                            <td className="border border-slate-300 px-4 py-3">{project.startDate}</td>
+                            <td className="border border-slate-300 px-4 py-3">{project.dueDate}</td>
+                            <td className="border border-slate-300 px-4 py-3 text-center">{project.images}</td>
 
-                                    {/* Show badge for status column */}
-                                    {i === 6
-                                        ? <Badge value={cell} />
-                                        : cell}
-                                </td>
-                            ))}
+                            <td className="border border-slate-300 px-4 py-3">
+                                <ProgressBar value={project.progress} />
+                            </td>
+
+                            <td className="border border-slate-300 px-4 py-3 text-center">
+                                <Badge value={project.status} />
+                            </td>
+
+                            <td className="border border-slate-300 px-4 py-3">
+                                <RowActions />
+                            </td>
                         </tr>
                     ))}
                     </tbody>
                 </table>
+
+                <TableFooter text={`Showing 1 to ${projectRows.length} of ${projectRows.length} projects`} pages={[1, 2, 3]} />
             </div>
 
             {/* Assignments table */}
-            <div className="rounded-xl border bg-white p-3 shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                    <h2 className="flex items-center gap-3 text-2xl font-bold">
+                        <ListChecks size={26} /> Assignments
+                    </h2>
 
-                <h2 className="flex items-center gap-2 text-xl font-semibold">
-                    <Users /> Assignments
-                </h2>
+                    <div className="flex items-center gap-3">
+                        <FilterSelect label="All Projects" />
+                        <FilterSelect label="All Employees" />
+                        <FilterSelect label="All Status" />
 
-                <table className="mt-3 w-full text-sm">
+                        <button
+                            type="button"
+                            onClick={() => handleApiPlaceholder("Create assignment")}
+                            className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+                        >
+                            <Plus size={16} /> New Assignment
+                        </button>
+                    </div>
+                </div>
 
-                    <thead className="bg-slate-200">
+                <table className="w-full border-collapse text-sm">
+                    <thead className="bg-slate-200 text-slate-800">
                     <tr>
-                        {[
-                            "Assignment ID",
-                            "Project",
-                            "Task Type",
-                            "Assigned To",
-                            "Assigned Date",
-                            "Due Date",
-                            "Priority",
-                            "Status",
-                        ].map((h) => (
-                            <th key={h} className="p-3 text-left">
-                                {h}
-                            </th>
-                        ))}
+                        {["Assignment ID", "Project", "Task Type", "Assigned To", "Assigned Date", "Due Date", "Priority", "Status", "Actions"]
+                            .map((h) => (
+                                <th key={h} className="border border-slate-300 px-4 py-3 text-left font-bold">
+                                    {h}
+                                </th>
+                            ))}
                     </tr>
                     </thead>
 
                     <tbody>
-                    {assignments.map((row) => (
-                        <tr key={row[0]} className="border-b">
+                    {assignmentRows.map((assignment) => (
+                        <tr key={assignment.id} className="hover:bg-slate-50">
+                            <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">
+                                {assignment.id}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.project}</td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.taskType}</td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.assignedTo}</td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.assignedDate}</td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.dueDate}</td>
 
-                            {row.map((cell, i) => (
-                                <td key={i} className="p-3">
+                            <td className="border border-slate-300 px-4 py-3 text-center">
+                                <PriorityBadge value={assignment.priority} />
+                            </td>
 
-                                    {/* Status badge */}
-                                    {i === 7
-                                        ? <Badge value={cell} />
-                                        : cell}
-                                </td>
-                            ))}
+                            <td className="border border-slate-300 px-4 py-3 text-center">
+                                <Badge value={assignment.status} />
+                            </td>
+
+                            <td className="border border-slate-300 px-4 py-3">
+                                <RowActions />
+                            </td>
                         </tr>
                     ))}
                     </tbody>
                 </table>
+
+                <TableFooter text={`Showing 1 to ${assignmentRows.length} of ${assignmentRows.length} assignments`} pages={[1, 2, 3, 4, 5]} />
+            </div>
+        </section>
+    );
+}
+
+// Placeholder pages for tabs that are not yet built
+function PlaceholderPage({ title }) {
+    return (
+        <section className="bg-slate-50 p-6">
+            <div className="rounded-xl border border-slate-300 bg-white p-8 text-center shadow-sm">
+                <h1 className="text-3xl font-bold">{title}</h1>
+                <p className="mt-3 text-slate-600">
+                    This page is ready for future content.
+                </p>
             </div>
         </section>
     );
@@ -674,8 +1068,8 @@ function ProjectsAndAssignments() {
 // Root app component
 export default function App() {
 
-    // Temporary page state
-    const page = "dashboard";
+    // Page state controls the sidebar tabs
+    const [page, setPage] = useState("dashboard");
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     return (
@@ -685,6 +1079,8 @@ export default function App() {
                 {/* Sidebar */}
                 <Sidebar
                     isCollapsed={isSidebarCollapsed}
+                    activePage={page}
+                    onPageChange={setPage}
                     onToggle={() => setIsSidebarCollapsed((value) => !value)}
                 />
 
@@ -694,10 +1090,10 @@ export default function App() {
                     {/* Top header */}
                     <Topbar />
 
-                    {/* Render page */}
-                    {page === "dashboard"
-                        ? <Dashboard />
-                        : <ProjectsAndAssignments />}
+                    {/* Render selected page */}
+                    {page === "dashboard" && <Dashboard />}
+                    {page === "projects" && <ProjectsAndAssignments />}
+                    {placeholderPages[page] && <PlaceholderPage title={placeholderPages[page]} />}
                 </main>
             </div>
         </div>
