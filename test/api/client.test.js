@@ -5,6 +5,9 @@ const app = require('../../api/index');
 const { pool, healthcheck } = require("../../api/db");
 const C_HTTP = require('../../api/utils/httpStatus');
 
+// Will hold client IDs collected from GET /api/clients
+let clientIds = [];
+
 describe('POST /api/clients', () => {
 
     describe('test: database connection', () => {
@@ -53,7 +56,23 @@ describe('POST /api/clients', () => {
     //       READ CLIENT TESTS            //
     //------------------------------------//
     describe('api: read client', () => {
+        test(`should return status code ${C_HTTP.STATUS.OK} and collect client IDs`, async () => {
+            const response = await request(app).get('/api/clients');
+            assert.equal(response.statusCode, C_HTTP.STATUS.OK);
 
+            // The GET /api/clients endpoint returns an object: { data: [...], page, limit, total }
+            const clients = response.body.data;
+
+            // Extract and store client UUIDs
+            clientIds = clients.map(c => c.client_id).filter(Boolean);
+
+            // Basic sanity checks
+            assert.ok(Array.isArray(clientIds));
+            if (clients.length > 0) {
+                assert.ok(typeof clientIds[0] === 'string');
+            }
+            console.log('Collected client IDs:', clientIds);
+        })
     })
 
     //------------------------------------//
