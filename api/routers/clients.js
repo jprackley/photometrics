@@ -6,7 +6,7 @@ const { query } = require('../db');
 const { body, param } = require('express-validator');
 const { paginate, buildPagination, handleValidation } = require('../utils/validation');
 
-// CREATE CLient
+// CREATE Client
 router.post(
     '/',
     [
