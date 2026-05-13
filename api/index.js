@@ -1,5 +1,6 @@
 const express = require('express')
 const cors = require('cors')
+const C_HTTP = require('./utils/httpStatus')
 const app = express()
 
 app.use(cors());
@@ -19,7 +20,7 @@ app.use('/api/users', require('./routers/users'));
 
 // Error handler MUST BE LAST
 app.use((err, req, res, next) => {
-    const status = err.status || 500;
+    const status = err.status || C_HTTP.STATUS.INTERNAL_SERVER_ERROR;
     const code = err.code || 'internal_error';
     console.error('[error]', {
         status,

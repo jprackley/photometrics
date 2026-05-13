@@ -14,12 +14,13 @@ function buildPagination({ page = 1, limit = 20 }) {
     return { limit, offset };
 }
 
-function handleValidation(req) {
+function handleValidation(req, desc) {
     const { validationResult } = require('express-validator');
+    const C_HTTP = require('./httpStatus');
     const result = validationResult(req);
     if (!result.isEmpty()) {
-        const error = new Error('Validation failed');
-        error.status = 400;
+        const error = new Error(desc + 'Validation failed');
+        error.status = C_HTTP.STATUS.BAD_REQUEST;
         error.details = result.array();
         throw error;
     }

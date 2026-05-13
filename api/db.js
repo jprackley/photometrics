@@ -47,4 +47,4 @@ async function healthcheck() {
     }
 }
 
-module.exports = { pool, query };
+module.exports = { pool, query, healthcheck };

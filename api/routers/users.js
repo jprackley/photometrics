@@ -1,5 +1,6 @@
 const express = require('express');
 const CONST = require('../utils/constants');
+const C_HTTP = require('../utils/httpStatus');
 const asyncHandler = require('../utils/asyncHandler');
 const { query } = require('../db');
 const { body } = require("express-validator");
@@ -25,7 +26,7 @@ router.post(
       RETURNING *
     `;
         const { rows } = await query(sql, [first_name, last_name, company_name, email]);
-        res.status(201).json(rows[0]);
+        res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
     })
 );
 
