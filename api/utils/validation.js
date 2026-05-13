@@ -1,5 +1,6 @@
 const { param, body, query } = require('express-validator');
 
+//Verrifies that the id is a valid UUID
 const isUUID = () => param('id').isUUID().withMessage('Invalid UUID');
 
 const paginate = [
@@ -14,9 +15,11 @@ function buildPagination({ page = 1, limit = 20 }) {
     return { limit, offset };
 }
 
+//Handles validation for Node.js Express requests
 function handleValidation(req, desc) {
-    const { validationResult } = require('express-validator');
     const C_HTTP = require('./httpStatus');
+    const { validationResult } = require('express-validator');
+
     const result = validationResult(req);
     if (!result.isEmpty()) {
         const error = new Error(desc + 'Validation failed');

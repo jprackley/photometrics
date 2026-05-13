@@ -21,8 +21,8 @@ router.post(
         const { first_name, last_name, company_name, email } = req.body;
 
         const sql = `
-      INSERT INTO users (first_name, last_name, email)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO users (first_name, last_name, email, password_hash, account_role)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
         const { rows } = await query(sql, [first_name, last_name, company_name, email]);

@@ -17,8 +17,6 @@ router.post(
         body('last_name').isString().isLength({ min: C.MIN.LAST_NAME_LENGTH, max: C.MAX.LAST_NAME_LENGTH }),
         body('company_name').isString().isLength({ min: C.MIN.LAST_NAME_LENGTH, max: C.MAX.COMPANY_NAME_LENGTH }),
         body('email').isEmail().isLength({ max: C.MAX.EMAIL_LENGTH }),
-        //body('created_at').isISO8601(),
-        //body('updated_at').isISO8601(),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE Client - ');
