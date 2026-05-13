@@ -7,7 +7,7 @@ describe('POST /clients', () => {
     describe("test: valid entry", () => {
         //should return 200
         test("should return status code 200", async () => {
-            const response = await request.post('/clients').send({
+            const response = await request(app).post('/clients').send({
                 first_name: "test",
                 last_name: "test",
                 company_name: "test",
