@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
     BarChart3,
     Bell,
+    Clock,
     ChevronLeft,
     ChevronRight,
     Download,
@@ -13,6 +14,8 @@ import {
     LogOut,
     MoreVertical,
     Pencil,
+    Play,
+    Square,
     Trash2,
     Plus,
     Search,
@@ -58,6 +61,7 @@ const API_ENDPOINTS = {
     assignments: "/assignments",
     employees: "/employees",
     tasks: "/tasks",
+    timeEntries: "/time-entries",
     reports: "/reports",
     analytics: "/analytics",
     settings: "/settings",
@@ -159,10 +163,30 @@ const apiPlaceholders = {
     deleteAssignment: (assignmentId) => apiRequest(`${API_ENDPOINTS.assignments}/${assignmentId}`, {
         method: "DELETE",
     }),
+    createTask: (task) => apiRequest(API_ENDPOINTS.tasks, {
+        method: "POST",
+        body: JSON.stringify(task),
+    }),
+    updateTask: (taskId, task) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}`, {
+        method: "PUT",
+        body: JSON.stringify(task),
+    }),
+    deleteTask: (taskId) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}`, {
+        method: "DELETE",
+    }),
+    startTaskTimer: (taskId, startedAt) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}/timer/start`, {
+        method: "POST",
+        body: JSON.stringify({ startedAt }),
+    }),
+    stopTaskTimer: (taskId, timeEntry) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}/timer/stop`, {
+        method: "POST",
+        body: JSON.stringify(timeEntry),
+    }),
 };
 
 const PROJECTS_PAGE_SIZE = 5;
 const ASSIGNMENTS_PAGE_SIZE = 5;
+const TASKS_PAGE_SIZE = 6;
 
 const PROJECT_COLUMNS = [
     { label: "Project Name", key: "name" },
@@ -185,6 +209,17 @@ const ASSIGNMENT_COLUMNS = [
     { label: "Status", key: "status", align: "center" },
 ];
 
+const TASK_COLUMNS = [
+    { label: "Task ID", key: "id" },
+    { label: "Task Name", key: "taskName" },
+    { label: "Project", key: "project" },
+    { label: "Assigned To", key: "assignedTo" },
+    { label: "Due Date", key: "dueDate" },
+    { label: "Priority", key: "priority", align: "center" },
+    { label: "Tracked Time", key: "trackedSeconds", align: "center" },
+    { label: "Status", key: "status", align: "center" },
+];
+
 function normalizeNumber(value) {
     if (value === null || value === undefined || value === "") return 0;
     const numericValue = Number(String(value).replace(/,/g, ""));
@@ -192,7 +227,7 @@ function normalizeNumber(value) {
 }
 
 function getSortableValue(row, key) {
-    if (["images", "progress"].includes(key)) {
+    if (["images", "progress", "trackedSeconds", "estimatedHours"].includes(key)) {
         return normalizeNumber(row[key]);
     }
 
@@ -304,6 +339,41 @@ function generateNextId(prefix, rows) {
     }, 0);
 
     return `${prefix}-${highestNumber + 1}`;
+}
+
+function formatDuration(totalSeconds = 0) {
+    const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = safeSeconds % 60;
+
+    return [hours, minutes, seconds]
+        .map((unit) => String(unit).padStart(2, "0"))
+        .join(":");
+}
+
+function getLiveTrackedSeconds(task, currentTime) {
+    const savedSeconds = normalizeNumber(task?.trackedSeconds);
+
+    if (!task?.timerStartedAt) {
+        return savedSeconds;
+    }
+
+    return savedSeconds + Math.floor((currentTime - task.timerStartedAt) / 1000);
+}
+
+function downloadTasksReport(taskRows) {
+    const taskCsv = createCsv(
+        ["Task ID", "Task Name", "Project", "Assigned To", "Due Date", "Priority", "Estimated Hours", "Tracked Time", "Status", "Last Stopped"],
+        taskRows.map((task) => ({
+            ...task,
+            trackedTime: formatDuration(normalizeNumber(task.trackedSeconds)),
+            lastStoppedAt: task.lastStoppedAt || "",
+        })),
+        ["id", "taskName", "project", "assignedTo", "dueDate", "priority", "estimatedHours", "trackedTime", "status", "lastStoppedAt"]
+    );
+
+    downloadTextFile("photometrics-task-time-report.csv", taskCsv);
 }
 
 // Sidebar menu items
@@ -642,9 +712,116 @@ const assignments = [
     },
 ];
 
+// Task management and time tracking data
+const taskItems = [
+    {
+        id: "TSK-3001",
+        taskName: "Photo Editing Batch 1",
+        project: "Wedding - Smith",
+        assignedTo: "John Freeman",
+        dueDate: "May 18, 2026",
+        priority: "High",
+        estimatedHours: 8,
+        trackedSeconds: 8115,
+        status: "In Progress",
+        timerStartedAt: null,
+        lastStoppedAt: "May 13, 2026 4:15 PM",
+    },
+    {
+        id: "TSK-3002",
+        taskName: "Culling Gallery",
+        project: "Wedding - Smith",
+        assignedTo: "Larry Waymer",
+        dueDate: "May 16, 2026",
+        priority: "Medium",
+        estimatedHours: 4,
+        trackedSeconds: 3900,
+        status: "Completed",
+        timerStartedAt: null,
+        lastStoppedAt: "May 13, 2026 11:30 AM",
+    },
+    {
+        id: "TSK-3003",
+        taskName: "Senior Portrait Retouching",
+        project: "Graduation - Mcdougal",
+        assignedTo: "John Doe",
+        dueDate: "May 20, 2026",
+        priority: "High",
+        estimatedHours: 6,
+        trackedSeconds: 5400,
+        status: "In Progress",
+        timerStartedAt: null,
+        lastStoppedAt: "May 12, 2026 2:40 PM",
+    },
+    {
+        id: "TSK-3004",
+        taskName: "Color Correction Review",
+        project: "Graduation - Miller",
+        assignedTo: "Susan Conner",
+        dueDate: "May 08, 2026",
+        priority: "High",
+        estimatedHours: 3,
+        trackedSeconds: 7200,
+        status: "Completed",
+        timerStartedAt: null,
+        lastStoppedAt: "May 08, 2026 3:10 PM",
+    },
+    {
+        id: "TSK-3005",
+        taskName: "Final Export Prep",
+        project: "Portrait - Sampson",
+        assignedTo: "Sarah Conner",
+        dueDate: "May 17, 2026",
+        priority: "Low",
+        estimatedHours: 2,
+        trackedSeconds: 1800,
+        status: "Review",
+        timerStartedAt: null,
+        lastStoppedAt: "May 13, 2026 9:20 AM",
+    },
+    {
+        id: "TSK-3006",
+        taskName: "Event Gallery Culling",
+        project: "Event - Johnson",
+        assignedTo: "Larry Waymer",
+        dueDate: "May 19, 2026",
+        priority: "Medium",
+        estimatedHours: 5,
+        trackedSeconds: 2400,
+        status: "In Progress",
+        timerStartedAt: null,
+        lastStoppedAt: "May 13, 2026 1:05 PM",
+    },
+    {
+        id: "TSK-3007",
+        taskName: "Graduation Review Set",
+        project: "Graduation - Franklen",
+        assignedTo: "Sarah Conner",
+        dueDate: "May 27, 2026",
+        priority: "Medium",
+        estimatedHours: 4,
+        trackedSeconds: 0,
+        status: "Not Started",
+        timerStartedAt: null,
+        lastStoppedAt: "",
+    },
+    {
+        id: "TSK-3008",
+        taskName: "Corporate Image Cleanup",
+        project: "Corporate - Acme",
+        assignedTo: "Susan Conner",
+        dueDate: "May 26, 2026",
+        priority: "Low",
+        estimatedHours: 6,
+        trackedSeconds: 3600,
+        status: "In Progress",
+        timerStartedAt: null,
+        lastStoppedAt: "May 11, 2026 10:45 AM",
+    },
+];
+
 const placeholderPages = {
     employees: "Employees",
-    tasks: "Tasks",
     reports: "Reports",
     analytics: "Analytics",
     settings: "Settings",
@@ -2028,6 +2205,575 @@ function ProjectsAndAssignments() {
     );
 }
 
+
+function TaskForm({ initialTask, projectOptions, employeeOptions, onCancel, onSave }) {
+    const [form, setForm] = useState(initialTask);
+
+    const updateField = (field, value) => {
+        setForm((current) => ({ ...current, [field]: value }));
+    };
+
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        onSave({
+            ...form,
+            taskName: form.taskName.trim() || "Untitled Task",
+            assignedTo: form.assignedTo.trim() || "Unassigned",
+            estimatedHours: normalizeNumber(form.estimatedHours),
+            trackedSeconds: normalizeNumber(form.trackedSeconds),
+        });
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
+            <div className="grid grid-cols-2 gap-4">
+                <FormField label="Task Name">
+                    <TextInput value={form.taskName} onChange={(value) => updateField("taskName", value)} placeholder="Photo Editing Batch 1" />
+                </FormField>
+
+                <FormField label="Project">
+                    <select
+                        value={form.project}
+                        onChange={(event) => updateField("project", event.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    >
+                        {projectOptions.map((project) => (
+                            <option key={project}>{project}</option>
+                        ))}
+                    </select>
+                </FormField>
+
+                <FormField label="Assigned To">
+                    <input
+                        list="task-employee-options"
+                        value={form.assignedTo}
+                        onChange={(event) => updateField("assignedTo", event.target.value)}
+                        placeholder="Employee name"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    />
+                    <datalist id="task-employee-options">
+                        {employeeOptions.map((employee) => (
+                            <option key={employee} value={employee} />
+                        ))}
+                    </datalist>
+                </FormField>
+
+                <FormField label="Due Date">
+                    <TextInput value={form.dueDate} onChange={(value) => updateField("dueDate", value)} placeholder="May 18, 2026" />
+                </FormField>
+
+                <FormField label="Estimated Hours">
+                    <TextInput value={form.estimatedHours} onChange={(value) => updateField("estimatedHours", value)} placeholder="8" type="number" />
+                </FormField>
+
+                <FormField label="Saved Time In Seconds">
+                    <TextInput value={form.trackedSeconds} onChange={(value) => updateField("trackedSeconds", value)} placeholder="0" type="number" />
+                </FormField>
+
+                <FormField label="Priority">
+                    <select
+                        value={form.priority}
+                        onChange={(event) => updateField("priority", event.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    >
+                        <option>High</option>
+                        <option>Medium</option>
+                        <option>Low</option>
+                    </select>
+                </FormField>
+
+                <FormField label="Status">
+                    <select
+                        value={form.status}
+                        onChange={(event) => updateField("status", event.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    >
+                        <option>Not Started</option>
+                        <option>In Progress</option>
+                        <option>Review</option>
+                        <option>Completed</option>
+                    </select>
+                </FormField>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+                >
+                    Save Task
+                </button>
+            </div>
+        </form>
+    );
+}
+
+function TimerControl({ task, currentTime, onStart, onStop, isAnotherTimerRunning }) {
+    const isRunning = Boolean(task.timerStartedAt);
+
+    return (
+        <div className="flex items-center justify-center gap-2">
+            <button
+                type="button"
+                onClick={() => isRunning ? onStop(task) : onStart(task)}
+                disabled={!isRunning && isAnotherTimerRunning}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                    isRunning
+                        ? "bg-red-600 text-white hover:bg-red-700"
+                        : "bg-violet-600 text-white hover:bg-violet-700"
+                }`}
+                title={isRunning ? "Stop timer" : "Start timer"}
+            >
+                {isRunning ? <Square size={14} /> : <Play size={14} />}
+                {isRunning ? "Stop" : "Start"}
+            </button>
+
+            <span className={`min-w-[76px] text-xs font-bold ${isRunning ? "text-violet-700" : "text-slate-700"}`}>
+                {formatDuration(getLiveTrackedSeconds(task, currentTime))}
+            </span>
+        </div>
+    );
+}
+
+function TaskManagementPage() {
+    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasks, taskItems);
+    const [taskRows, setTaskRows] = useState(taskItems);
+    const [taskSort, setTaskSort] = useState({ key: "dueDate", direction: "asc" });
+    const [taskPage, setTaskPage] = useState(1);
+    const [projectFilter, setProjectFilter] = useState("All Projects");
+    const [employeeFilter, setEmployeeFilter] = useState("All Employees");
+    const [statusFilter, setStatusFilter] = useState("All Status");
+    const [taskModal, setTaskModal] = useState(null);
+    const [activeTimerTaskId, setActiveTimerTaskId] = useState(null);
+    const [timerTick, setTimerTick] = useState(Date.now());
+
+    useEffect(() => {
+        if (Array.isArray(loadedTaskRows)) {
+            setTaskRows(loadedTaskRows.map((task) => ({ ...task, timerStartedAt: task.timerStartedAt || null })));
+        }
+    }, [loadedTaskRows]);
+
+    useEffect(() => {
+        if (!activeTimerTaskId) return undefined;
+
+        const intervalId = window.setInterval(() => {
+            setTimerTick(Date.now());
+        }, 1000);
+
+        return () => window.clearInterval(intervalId);
+    }, [activeTimerTaskId]);
+
+    const projectOptions = useMemo(
+        () => getUniqueOptions(taskRows, "project", "All Projects"),
+        [taskRows]
+    );
+
+    const employeeOptions = useMemo(
+        () => getUniqueOptions(taskRows, "assignedTo", "All Employees"),
+        [taskRows]
+    );
+
+    const statusOptions = useMemo(
+        () => getUniqueOptions(taskRows, "status", "All Status"),
+        [taskRows]
+    );
+
+    const filteredTaskRows = useMemo(() => {
+        return taskRows.filter((task) => {
+            const matchesProject = projectFilter === "All Projects" || task.project === projectFilter;
+            const matchesEmployee = employeeFilter === "All Employees" || task.assignedTo === employeeFilter;
+            const matchesStatus = statusFilter === "All Status" || task.status === statusFilter;
+            return matchesProject && matchesEmployee && matchesStatus;
+        });
+    }, [taskRows, projectFilter, employeeFilter, statusFilter]);
+
+    const sortedTaskRows = useMemo(
+        () => sortRows(filteredTaskRows, taskSort),
+        [filteredTaskRows, taskSort]
+    );
+
+    const taskTotalPages = getTotalPages(sortedTaskRows.length, TASKS_PAGE_SIZE);
+    const visibleTaskRows = paginateRows(sortedTaskRows, taskPage, TASKS_PAGE_SIZE);
+    const activeTask = taskRows.find((task) => task.id === activeTimerTaskId);
+    const totalTrackedSeconds = taskRows.reduce((total, task) => total + getLiveTrackedSeconds(task, timerTick), 0);
+    const completedTasks = taskRows.filter((task) => task.status === "Completed").length;
+    const reviewTasks = taskRows.filter((task) => task.status === "Review").length;
+    const openTasks = taskRows.filter((task) => task.status !== "Completed").length;
+
+    useEffect(() => {
+        if (taskPage > taskTotalPages) {
+            setTaskPage(taskTotalPages);
+        }
+    }, [taskPage, taskTotalPages]);
+
+    const handleTaskSort = (columnKey) => {
+        setTaskSort((currentSort) => getNextSort(currentSort, columnKey));
+        setTaskPage(1);
+    };
+
+    const openNewTaskModal = () => {
+        const projectNames = projectRowsForTasks();
+
+        setTaskModal({
+            mode: "create",
+            data: {
+                id: generateNextId("TSK", taskRows),
+                taskName: "",
+                project: projectNames[0] || "Unassigned Project",
+                assignedTo: "",
+                dueDate: "May 30, 2026",
+                priority: "Medium",
+                estimatedHours: 1,
+                trackedSeconds: 0,
+                status: "Not Started",
+                timerStartedAt: null,
+                lastStoppedAt: "",
+            },
+        });
+    };
+
+    const projectRowsForTasks = () => {
+        const taskProjects = taskRows.map((task) => task.project).filter(Boolean);
+        const masterProjects = projects.map((project) => project.name).filter(Boolean);
+        return [...new Set([...masterProjects, ...taskProjects])].sort();
+    };
+
+    const saveTask = async (task) => {
+        const cleanTask = {
+            ...task,
+            id: task.id || generateNextId("TSK", taskRows),
+            taskName: task.taskName.trim() || "Untitled Task",
+            assignedTo: task.assignedTo.trim() || "Unassigned",
+            timerStartedAt: task.timerStartedAt || null,
+            trackedSeconds: normalizeNumber(task.trackedSeconds),
+        };
+
+        if (USE_API_DATA) {
+            try {
+                if (taskModal.mode === "create") {
+                    await apiPlaceholders.createTask(cleanTask);
+                } else {
+                    await apiPlaceholders.updateTask(cleanTask.id, cleanTask);
+                }
+            } catch (apiError) {
+                console.warn("Task API holder is not connected yet. Saving locally.", apiError);
+            }
+        }
+
+        setTaskRows((currentRows) => {
+            if (taskModal.mode === "create") {
+                return [cleanTask, ...currentRows];
+            }
+
+            return currentRows.map((row) => row.id === cleanTask.id ? cleanTask : row);
+        });
+        setTaskPage(1);
+        setTaskModal(null);
+    };
+
+    const deleteTask = async (task) => {
+        if (!window.confirm(`Delete ${task.taskName}?`)) return;
+
+        if (USE_API_DATA) {
+            try {
+                await apiPlaceholders.deleteTask(task.id);
+            } catch (apiError) {
+                console.warn("Task delete API holder is not connected yet. Deleting locally.", apiError);
+            }
+        }
+
+        if (activeTimerTaskId === task.id) {
+            setActiveTimerTaskId(null);
+        }
+
+        setTaskRows((currentRows) => currentRows.filter((row) => row.id !== task.id));
+    };
+
+    const startTimer = async (task) => {
+        if (activeTimerTaskId && activeTimerTaskId !== task.id) {
+            window.alert("Please stop the active timer before starting another task.");
+            return;
+        }
+
+        const startedAt = Date.now();
+
+        if (USE_API_DATA) {
+            try {
+                await apiPlaceholders.startTaskTimer(task.id, new Date(startedAt).toISOString());
+            } catch (apiError) {
+                console.warn("Start timer API holder is not connected yet. Starting locally.", apiError);
+            }
+        }
+
+        setTaskRows((currentRows) => currentRows.map((row) => (
+            row.id === task.id
+                ? { ...row, timerStartedAt: startedAt, status: row.status === "Completed" ? "In Progress" : row.status }
+                : row
+        )));
+        setActiveTimerTaskId(task.id);
+        setTimerTick(startedAt);
+    };
+
+    const stopTimer = async (task) => {
+        if (!task.timerStartedAt) return;
+
+        const stoppedAt = Date.now();
+        const elapsedSeconds = Math.max(0, Math.floor((stoppedAt - task.timerStartedAt) / 1000));
+        const nextTrackedSeconds = normalizeNumber(task.trackedSeconds) + elapsedSeconds;
+        const lastStoppedAt = new Date(stoppedAt).toLocaleString([], {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+        });
+
+        if (USE_API_DATA) {
+            try {
+                await apiPlaceholders.stopTaskTimer(task.id, {
+                    stoppedAt: new Date(stoppedAt).toISOString(),
+                    elapsedSeconds,
+                    totalTrackedSeconds: nextTrackedSeconds,
+                });
+            } catch (apiError) {
+                console.warn("Stop timer API holder is not connected yet. Stopping locally.", apiError);
+            }
+        }
+
+        setTaskRows((currentRows) => currentRows.map((row) => (
+            row.id === task.id
+                ? { ...row, trackedSeconds: nextTrackedSeconds, timerStartedAt: null, lastStoppedAt }
+                : row
+        )));
+        setActiveTimerTaskId(null);
+        setTimerTick(stoppedAt);
+    };
+
+    return (
+        <section className="space-y-5 bg-slate-50 p-6">
+            <div className="grid grid-cols-4 gap-4">
+                {[
+                    ["Open Tasks", openTasks],
+                    ["Completed Tasks", completedTasks],
+                    ["In Review", reviewTasks],
+                    ["Total Tracked Time", formatDuration(totalTrackedSeconds)],
+                ].map(([label, value]) => (
+                    <div key={label} className="rounded-xl border border-slate-300 bg-white px-5 py-6 text-center shadow-sm">
+                        <div className="text-sm font-bold">{label}</div>
+                        <div className={`mt-4 text-3xl ${label === "Total Tracked Time" ? "text-violet-700" : "text-black"}`}>
+                            {value}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="grid grid-cols-[0.72fr_1.28fr] gap-5">
+                <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
+                    <h2 className="flex items-center gap-3 text-2xl font-bold">
+                        <Clock size={26} /> Active Time Tracker
+                    </h2>
+
+                    <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-5 text-center">
+                        {activeTask ? (
+                            <>
+                                <div className="text-sm font-semibold text-slate-500">Currently Tracking</div>
+                                <div className="mt-2 text-xl font-bold text-slate-900">{activeTask.taskName}</div>
+                                <div className="mt-1 text-sm text-slate-600">{activeTask.project}</div>
+                                <div className="mt-5 text-5xl font-bold text-violet-700">
+                                    {formatDuration(getLiveTrackedSeconds(activeTask, timerTick))}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => stopTimer(activeTask)}
+                                    className="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
+                                >
+                                    <Square size={16} /> Stop Timer
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="text-sm font-semibold text-slate-500">No Active Timer</div>
+                                <div className="mt-3 text-4xl font-bold text-slate-900">00:00:00</div>
+                                <p className="mt-3 text-sm text-slate-600">
+                                    Select Start on any task below to begin tracking time.
+                                </p>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="mt-5 space-y-3 text-sm text-slate-700">
+                        <div className="flex justify-between border-b border-slate-200 pb-2">
+                            <span className="font-semibold">Active Task ID</span>
+                            <span>{activeTask?.id || "None"}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-200 pb-2">
+                            <span className="font-semibold">Assigned To</span>
+                            <span>{activeTask?.assignedTo || "None"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-semibold">Last Stop</span>
+                            <span>{activeTask?.lastStoppedAt || "Not recorded"}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
+                    <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                        <h2 className="flex items-center gap-3 text-2xl font-bold">
+                            <ListChecks size={26} /> Task Management
+                        </h2>
+
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => downloadTasksReport(taskRows)}
+                                className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                            >
+                                <Download size={16} /> Export Time Report
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={openNewTaskModal}
+                                className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+                            >
+                                <Plus size={16} /> New Task
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-4">
+                        <FilterSelect
+                            value={projectFilter}
+                            onChange={(value) => {
+                                setProjectFilter(value);
+                                setTaskPage(1);
+                            }}
+                            options={projectOptions}
+                        />
+                        <FilterSelect
+                            value={employeeFilter}
+                            onChange={(value) => {
+                                setEmployeeFilter(value);
+                                setTaskPage(1);
+                            }}
+                            options={employeeOptions}
+                        />
+                        <FilterSelect
+                            value={statusFilter}
+                            onChange={(value) => {
+                                setStatusFilter(value);
+                                setTaskPage(1);
+                            }}
+                            options={statusOptions}
+                        />
+                    </div>
+
+                    <table className="w-full border-collapse text-sm">
+                        <thead className="bg-slate-200 text-slate-800">
+                        <tr>
+                            {TASK_COLUMNS.map((column) => (
+                                <SortableHeader
+                                    key={column.key}
+                                    column={column}
+                                    sortConfig={taskSort}
+                                    onSort={handleTaskSort}
+                                />
+                            ))}
+                            <th className="border border-slate-300 px-4 py-3 text-center font-bold">Timer</th>
+                            <th className="border border-slate-300 px-4 py-3 text-center font-bold">Actions</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        {visibleTaskRows.map((task) => {
+                            const liveTask = taskRows.find((row) => row.id === task.id) || task;
+                            const isAnotherTimerRunning = Boolean(activeTimerTaskId && activeTimerTaskId !== liveTask.id);
+
+                            return (
+                                <tr key={liveTask.id} className="hover:bg-slate-50">
+                                    <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">
+                                        {liveTask.id}
+                                    </td>
+                                    <td className="border border-slate-300 px-4 py-3">
+                                        <div className="font-semibold text-slate-900">{liveTask.taskName}</div>
+                                        <div className="text-xs text-slate-500">Est. {liveTask.estimatedHours}h</div>
+                                    </td>
+                                    <td className="border border-slate-300 px-4 py-3">{liveTask.project}</td>
+                                    <td className="border border-slate-300 px-4 py-3">{liveTask.assignedTo}</td>
+                                    <td className="border border-slate-300 px-4 py-3">{liveTask.dueDate}</td>
+                                    <td className="border border-slate-300 px-4 py-3 text-center">
+                                        <PriorityBadge value={liveTask.priority} />
+                                    </td>
+                                    <td className="border border-slate-300 px-4 py-3 text-center font-semibold text-slate-800">
+                                        {formatDuration(getLiveTrackedSeconds(liveTask, timerTick))}
+                                    </td>
+                                    <td className="border border-slate-300 px-4 py-3 text-center">
+                                        <Badge value={liveTask.status} />
+                                    </td>
+                                    <td className="border border-slate-300 px-4 py-3">
+                                        <TimerControl
+                                            task={liveTask}
+                                            currentTime={timerTick}
+                                            onStart={startTimer}
+                                            onStop={stopTimer}
+                                            isAnotherTimerRunning={isAnotherTimerRunning}
+                                        />
+                                    </td>
+                                    <td className="border border-slate-300 px-4 py-3">
+                                        <RowActions
+                                            onEdit={() => setTaskModal({ mode: "edit", data: liveTask })}
+                                            onDelete={() => deleteTask(liveTask)}
+                                        />
+                                    </td>
+                                </tr>
+                            );
+                        })}
+
+                        {visibleTaskRows.length === 0 && (
+                            <tr>
+                                <td colSpan={10} className="border border-slate-300 px-4 py-8 text-center text-slate-500">
+                                    No tasks found for the selected filters.
+                                </td>
+                            </tr>
+                        )}
+                        </tbody>
+                    </table>
+
+                    <TableFooter
+                        text={getRangeText(taskPage, TASKS_PAGE_SIZE, sortedTaskRows.length, "tasks")}
+                        currentPage={taskPage}
+                        totalPages={taskTotalPages}
+                        onPageChange={setTaskPage}
+                    />
+                </div>
+            </div>
+
+            {taskModal && (
+                <Modal
+                    title={taskModal.mode === "create" ? "New Task" : "Edit Task"}
+                    onClose={() => setTaskModal(null)}
+                >
+                    <TaskForm
+                        initialTask={taskModal.data}
+                        projectOptions={projectRowsForTasks()}
+                        employeeOptions={employeeOptions.filter((option) => option !== "All Employees")}
+                        onCancel={() => setTaskModal(null)}
+                        onSave={saveTask}
+                    />
+                </Modal>
+            )}
+        </section>
+    );
+}
+
 // Placeholder pages for tabs that are not yet built
 function PlaceholderPage({ title }) {
     return (
@@ -2070,6 +2816,7 @@ export default function App() {
                     {/* Render selected page */}
                     {page === "dashboard" && <Dashboard onPageChange={setPage} />}
                     {page === "projects" && <ProjectsAndAssignments />}
+                    {page === "tasks" && <TaskManagementPage />}
                     {placeholderPages[page] && <PlaceholderPage title={placeholderPages[page]} />}
                 </main>
             </div>
