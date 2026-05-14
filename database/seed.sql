@@ -249,8 +249,7 @@ WITH cfg AS (
 )
 INSERT INTO projects (
     client_id,
-    manager_id,
-    created_by,
+    managed_by,
     project_name,
     description,
     status,
@@ -260,8 +259,7 @@ INSERT INTO projects (
 )
 SELECT
     client_id,
-    manager_id,
-    manager_id AS created_by,
+    manager_id AS managed_by,
     project_prefix || ' ' || project_subject || ' ' || lpad(project_num::TEXT, 3, '0') AS project_name,
     'Seeded project for testing dashboard, task, image, and time entry workflows.' AS description,
     project_status,
@@ -286,7 +284,7 @@ WITH cfg AS (
 ), task_rows AS (
     SELECT
         p.project_id,
-        p.manager_id,
+        p.managed_by AS manager_id,
         task_num,
         employee_pick.user_id AS employee_id,
         cfg.task_categories[1 + floor(random() * array_length(cfg.task_categories, 1))::INT] AS category,

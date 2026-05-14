@@ -8,15 +8,25 @@ const STATUS = {
     IMAGE: ['Pending', 'In Progress', 'Completed', 'Rejected']
 }
 const MIN = {
+    //For Clients
     FIRST_NAME_LENGTH: 1,
     LAST_NAME_LENGTH: 1,
-    COMPANY_NAME_LENGTH: 1
+    COMPANY_NAME_LENGTH: 1,
+
+    //For Projects
+    PROJECT_NAME_LENGTH: 1,
+    PROJECT_DESC_LENGTH: 0,
 }
 const MAX = {
+    //For Clients
     FIRST_NAME_LENGTH: 100,
     LAST_NAME_LENGTH: 100,
     COMPANY_NAME_LENGTH: 255,
-    EMAIL_LENGTH: 255
+    EMAIL_LENGTH: 255,
+
+    //For Projects
+    PROJECT_NAME_LENGTH: 255,
+    PROJECT_DESC_LENGTH: 500,
 }
 
 module.exports = { USER_ROLES, TASK_CATEGORIES, STATUS, MIN, MAX  };

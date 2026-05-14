@@ -74,8 +74,7 @@ CREATE TABLE IF NOT EXISTS clients (
 CREATE TABLE projects (
     project_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     client_id UUID NOT NULL,
-    manager_id UUID,
-    created_by UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    managed_by UUID REFERENCES users(user_id) ON DELETE SET NULL,
     project_name VARCHAR(255) NOT NULL,
     description TEXT,
     status project_status DEFAULT 'To-Do',
@@ -89,7 +88,7 @@ CREATE TABLE projects (
         REFERENCES clients(client_id)
         ON DELETE CASCADE,
     CONSTRAINT fk_projects_manager
-        FOREIGN KEY (manager_id)
+        FOREIGN KEY (managed_by)
         REFERENCES users(user_id)
         ON DELETE SET NULL,
     CONSTRAINT chk_project_due_after_start

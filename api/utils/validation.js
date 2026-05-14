@@ -1,7 +1,9 @@
 const { param, body, query } = require('express-validator');
+const C = require('./constants');
 
-//Verrifies that the id is a valid UUID
+//Custom validators
 const isUUID = () => param('id').isUUID().withMessage('Invalid UUID');
+const isProjectStatus =() => param('status').isIn(C.STATUS.PROJECT).withMessage('Invalid project status');
 
 const paginate = [
     query('page').optional().toInt().isInt({ min: 1 }).withMessage('page must be >= 1'),
@@ -29,4 +31,4 @@ function handleValidation(req, desc) {
     }
 }
 
-module.exports = { isUUID, paginate, buildPagination, handleValidation };
+module.exports = { isUUID, isProjectStatus, paginate, buildPagination, handleValidation };

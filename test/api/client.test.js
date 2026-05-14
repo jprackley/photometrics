@@ -14,7 +14,7 @@ let clientIds = [];
 
 describe('POST /api/clients', () => {
 
-    describe('test: database connection', () => {
+    describe('[test]: database connection', () => {
         test('db healthcheck returns ok', async () => {
             const response = await healthcheck();
             console.log(response);
@@ -26,7 +26,7 @@ describe('POST /api/clients', () => {
     //         CREATE CLIENT TESTS        //
     //------------------------------------//
     describe('api: create client', () => {
-        describe("test: valid entry", () => {
+        describe("[test]: valid entry", () => {
             test(`should return status code ${C_HTTP.STATUS.CREATED}`, async () => {
                 const testcases = [
                     {
@@ -74,7 +74,7 @@ describe('POST /api/clients', () => {
             })
         })
 
-        describe("test: required client field is missing", () => {
+        describe("[test]: required client field is missing", () => {
             test(`should return status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
                 const testcases = [
                     {
@@ -123,7 +123,7 @@ describe('POST /api/clients', () => {
         })
         // This will test if the client's first_name, last_name, company_name, and email are all less than
         // the maximum length specified in the constants file.
-        describe("test: client string size", () => {
+        describe("[test]: client string size", () => {
             const testcases = [
                 {
                     name: "first_name is longer than 100 characters",
@@ -176,7 +176,7 @@ describe('POST /api/clients', () => {
     //       READ CLIENT TESTS            //
     //------------------------------------//
     describe('api: read client', () => {
-        describe("test: read by default pagination", () => {
+        describe("[test]: read by default pagination", () => {
             test(`should return status code ${C_HTTP.STATUS.OK}`, async () => {
                 const response = await request(app).get('/api/clients');
                 assert.equal(response.statusCode, C_HTTP.STATUS.OK,
@@ -188,7 +188,7 @@ describe('POST /api/clients', () => {
             })
         })
 
-        describe("test: read by ID", () => {
+        describe("[test]: read by ID", () => {
             test(`valid id: should return status code ${C_HTTP.STATUS.OK}`, async () => {
                 const response = await request(app).get(`/api/clients/${clientIds[0]}`);
                 assert.equal(response.statusCode, C_HTTP.STATUS.OK,
@@ -201,7 +201,7 @@ describe('POST /api/clients', () => {
             })
         })
 
-        describe("test: read by search", () => {
+        describe("[test]: read by search", () => {
             test(`valid search: should return status code ${C_HTTP.STATUS.OK}`, async () => {
                 const response = await request(app).get('/api/clients?q=Johnny');
                 console.log("STATUS:", response.statusCode);
@@ -261,42 +261,44 @@ describe('POST /api/clients', () => {
             }
         })
 
-        test(`test client string sizes: should return status ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            let testcases;
-            testcases = [
-                {
-                    name: "first_name is longer than 100 characters",
-                    body: {
-                        first_name: "C".repeat(C.MAX.FIRST_NAME_LENGTH + 1)
+        describe("[test]: UPDATE client fields with invalid data length", () => {
+            test(`[expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+                let testcases;
+                testcases = [
+                    {
+                        name: "first_name is longer than 100 characters",
+                        body: {
+                            first_name: "C".repeat(C.MAX.FIRST_NAME_LENGTH + 1)
+                        }
+                    },
+                    {
+                        name: "last_name is longer than 100 characters",
+                        body: {
+                            last_name: "T".repeat(C.MAX.LAST_NAME_LENGTH + 1)
+                        }
+                    },
+                    {
+                        name: "company_name is longer than 255 characters",
+                        body: {
+                            company_name: "S".repeat(C.MAX.COMPANY_NAME_LENGTH + 1)
+                        }
+                    },
+                    {
+                        name: "email is longer than 255 characters",
+                        body: {
+                            email: "c".repeat(C.MAX.EMAIL_LENGTH) + "@testees.com"
+                        }
                     }
-                },
-                {
-                    name: "last_name is longer than 100 characters",
-                    body: {
-                        last_name: "T".repeat(C.MAX.LAST_NAME_LENGTH + 1)
-                    }
-                },
-                {
-                    name: "company_name is longer than 255 characters",
-                    body: {
-                        company_name: "S".repeat(C.MAX.COMPANY_NAME_LENGTH + 1)
-                    }
-                },
-                {
-                    name: "email is longer than 255 characters",
-                    body: {
-                        email: "c".repeat(C.MAX.EMAIL_LENGTH) + "@testees.com"
-                    }
+                ];
+                for (const testcase of testcases) {
+                    const response = await request(app).patch(`/api/clients/${clientIds[0]}`).send(testcase.body);
+                    console.log(response.statusCode);
+                    console.log(response.body);
+                    console.log(response.text);
+                    assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                        `${testcase.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
                 }
-            ];
-            for (const testcase of testcases) {
-                const response = await request(app).patch(`/api/clients/${clientIds[0]}`).send(testcase.body);
-                console.log(response.statusCode);
-                console.log(response.body);
-                console.log(response.text);
-                assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                    `${testcase.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
-            }
+            })
         })
 
     })
@@ -304,10 +306,10 @@ describe('POST /api/clients', () => {
     //------------------------------------//
     //        DELETE CLIENT TESTS         //
     //------------------------------------//
-    describe('api: delete client', () => {
+    describe('[api]: DELETE client', () => {
         //Will delete all clients
-        describe("test: delete by ID", () => {
-            test(`should return status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
+        describe("[test]: DELETE by ID", () => {
+            test(`[expected]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
                 for (const id of clientIds) {
                     const response = await request(app).delete(`/api/clients/${id}`);
                     assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT);
