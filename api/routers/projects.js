@@ -55,13 +55,12 @@ router.get(
         let where = '';
         if (q) {
             params.push(`%${q}%`);
-            where = `WHERE project_name ILIKE ${params.length} 
-                OR status ILIKE ${params.length} 
-                OR created_at ILIKE ${params.length}
-                OR updated_at ILIKE ${params.length}
-                OR completed_at ILIKE ${params.length}
-                OR due_time ILIKE ${params.length}
-                OR start_time ILIKE ${params.length}`;
+            where = `WHERE project_name ILIKE $${params.length} 
+                OR created_at ILIKE $${params.length}
+                OR updated_at ILIKE $${params.length}
+                OR completed_at ILIKE $${params.length}
+                OR due_time ILIKE $${params.length}
+                OR start_time ILIKE $${params.length}`;
         }
         const sql = `
             SELECT * FROM projects
