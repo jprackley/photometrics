@@ -139,5 +139,4 @@ router.delete(
         res.status(C_HTTP.STATUS.NO_CONTENT).send();
     })
 );
-
 module.exports = router;

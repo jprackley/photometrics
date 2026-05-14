@@ -7,6 +7,7 @@ const { pool, healthcheck } = require("../../api/db");
 const C_HTTP = require('../../api/utils/httpStatus');
 const C = require('../../api/utils/constants');
 const {rows} = require("pg/lib/defaults");
+const {response} = require("express");
 
 let clients = [];
 let clientIds = [];
@@ -27,18 +28,48 @@ describe('POST /api/clients', () => {
     describe('api: create client', () => {
         describe("test: valid entry", () => {
             test(`should return status code ${C_HTTP.STATUS.CREATED}`, async () => {
-                const response = await request(app).post('/api/clients').send({
-                    first_name: "Johnny",
-                    last_name: "Tester",
-                    company_name: "Testees",
-                    email: "j.tester@testees.com",
-                    //created_at: "2023-01-01T00:00:00.000Z",
-                    //updated_at: "2023-01-01T00:00:00.000Z"
-                })
-                try {
-                    assert.equal(response.statusCode, C_HTTP.STATUS.CREATED);
-                } catch (e) {
-                    console.log(`Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode}`);
+                const testcases = [
+                    {
+                        id: 1,
+                        body: {
+                            first_name: "Johnny",
+                            last_name: "Tester",
+                            company_name: "Testees",
+                            email: "j.tester@testees.com",
+                        }
+                    },
+                    {
+                        id: 2,
+                        body: {
+                            first_name: "Susie",
+                            last_name: "Tester",
+                            company_name: "Testees",
+                            email: "s.tester@testees.com",
+                        }
+                    },
+                    {
+                        id: 3,
+                        body: {
+                            first_name: "Wonka",
+                            last_name: "Tester",
+                            company_name: "Testees",
+                            email: "w.tester@testees.com",
+                        }
+                    },
+                    {
+                        id: 4,
+                        body: {
+                            first_name: "Luis",
+                            last_name: "Tester",
+                            company_name: "Testees",
+                            email: "l.tester@testees.com",
+                        }
+                    }
+                ]
+                for (const testcase of testcases) {
+                    const response = await request(app).post('/api/clients').send(testcase.body);
+                    assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
+                        `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode}`);
                 }
             })
         })
@@ -204,6 +235,69 @@ describe('POST /api/clients', () => {
     //      UPDATE CLIENT TESTS           //
     //------------------------------------//
     describe('api: update client', () => {
+        test(`update client fields: should return status code ${C_HTTP.STATUS.OK}`, async () => {
+            const testcases = [
+                {
+                    name: "first_name",
+                    body: { first_name: "Steve" }
+                },
+                {
+                    name: "last_name",
+                    body: { last_name: "Jobs" }
+                },
+                {
+                    name: "company_name",
+                    body: { company_name: "Apple" }
+                },
+                {
+                    name: "email",
+                    body: { email: "s.jobs@apple.com" }
+                }
+            ];
+            for (const testcase of testcases) {
+                const response = await request(app).patch(`/api/clients/${clientIds[0]}`).send(testcase.body);
+                assert.equal(response.statusCode, C_HTTP.STATUS.OK,
+                    `${testcase.name}: Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
+            }
+        })
+
+        test(`test client string sizes: should return status ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            let testcases;
+            testcases = [
+                {
+                    name: "first_name is longer than 100 characters",
+                    body: {
+                        first_name: "C".repeat(C.MAX.FIRST_NAME_LENGTH + 1)
+                    }
+                },
+                {
+                    name: "last_name is longer than 100 characters",
+                    body: {
+                        last_name: "T".repeat(C.MAX.LAST_NAME_LENGTH + 1)
+                    }
+                },
+                {
+                    name: "company_name is longer than 255 characters",
+                    body: {
+                        company_name: "S".repeat(C.MAX.COMPANY_NAME_LENGTH + 1)
+                    }
+                },
+                {
+                    name: "email is longer than 255 characters",
+                    body: {
+                        email: "c".repeat(C.MAX.EMAIL_LENGTH) + "@testees.com"
+                    }
+                }
+            ];
+            for (const testcase of testcases) {
+                const response = await request(app).patch(`/api/clients/${clientIds[0]}`).send(testcase.body);
+                console.log(response.statusCode);
+                console.log(response.body);
+                console.log(response.text);
+                assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                    `${testcase.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            }
+        })
 
     })
 
