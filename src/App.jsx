@@ -2574,8 +2574,8 @@ function TaskManagementPage() {
                 ))}
             </div>
 
-            <div className="grid grid-cols-[0.72fr_1.28fr] gap-5">
-                <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
+            <div className="grid grid-cols-[380px_1fr] items-start gap-5">
+                <div className="self-start rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
                     <h2 className="flex items-center gap-3 text-2xl font-bold">
                         <Clock size={26} /> Active Time Tracker
                     </h2>
