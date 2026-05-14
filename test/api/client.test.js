@@ -172,7 +172,7 @@ describe('POST /api/clients', () => {
 
         describe("test: read by search", () => {
             test(`valid search: should return status code ${C_HTTP.STATUS.OK}`, async () => {
-                const response = await request(app).get('/api/clients?q=Jordan');
+                const response = await request(app).get('/api/clients?q=Johnny');
                 console.log("STATUS:", response.statusCode);
                 console.log("BODY:", JSON.stringify(response.body, null, 2));
                 console.log("DATA LENGTH:", response.body.data.length);
@@ -184,9 +184,12 @@ describe('POST /api/clients', () => {
             })
             test(`empty search: should return status code ${C_HTTP.STATUS.OK} and data is empty`, async () => {
                 const response = await request(app).get('/api/clients?q=spiderman');
+                console.log("STATUS:", response.statusCode);
+                console.log("BODY:", JSON.stringify(response.body, null, 2));
+                console.log("DATA LENGTH:", response.body.data.length);
                 assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                     `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
-                assert.equal(response.body.data.isEmpty, true,
+                assert.ok(response.body.data.length == 0, true,
                     `Expected data to be empty, got ${response.body.data.length} entries`);
                 }
             )
