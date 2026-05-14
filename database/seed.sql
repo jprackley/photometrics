@@ -1,90 +1,169 @@
 BEGIN;
 
+-- =========================================================
+-- Photometrics seed data
+-- Edit only the INSERT into seed_config section to change counts.
+-- This script expects schema.sql to already be run.
+-- =========================================================
+
 CREATE TEMP TABLE seed_config (
-    client_count INTEGER NOT NULL,
-    manager_count INTEGER NOT NULL,
-    employee_count INTEGER NOT NULL,
-    project_count INTEGER NOT NULL,
-    tasks_per_project INTEGER NOT NULL,
-    images_per_project INTEGER NOT NULL,
-    time_entries_per_user INTEGER NOT NULL,
-    seed_start_time TIMESTAMPTZ NOT NULL,
-    due_offset INTERVAL NOT NULL
+                                  config_id INT PRIMARY KEY,
+                                  manager_count INT NOT NULL,
+                                  employee_count INT NOT NULL,
+                                  client_count INT NOT NULL,
+                                  project_count INT NOT NULL,
+                                  tasks_per_project INT NOT NULL,
+                                  images_per_project INT NOT NULL,
+                                  time_entries_per_task INT NOT NULL DEFAULT 5,
+                                  internal_company_name TEXT NOT NULL,
+                                  default_password_hash TEXT NOT NULL,
+                                  first_names TEXT[] NOT NULL,
+                                  last_names TEXT[] NOT NULL,
+                                  company_names TEXT[] NOT NULL,
+                                  project_prefixes TEXT[] NOT NULL,
+                                  project_subjects TEXT[] NOT NULL,
+                                  task_categories task_category[] NOT NULL,
+                                  project_statuses project_status[] NOT NULL,
+                                  task_statuses task_status[] NOT NULL,
+                                  image_statuses image_status[] NOT NULL
 ) ON COMMIT DROP;
 
 INSERT INTO seed_config (
-    client_count,
+    config_id,
     manager_count,
     employee_count,
+    client_count,
     project_count,
     tasks_per_project,
     images_per_project,
-    time_entries_per_user,
-    seed_start_time,
-    due_offset
+    time_entries_per_task,
+    internal_company_name,
+    default_password_hash,
+    first_names,
+    last_names,
+    company_names,
+    project_prefixes,
+    project_subjects,
+    task_categories,
+    project_statuses,
+    task_statuses,
+    image_statuses
 )
 VALUES (
-    20,                          -- clients
-    4,                         -- managers
-    15,                       -- employees
-    20,                         -- projects, one per client
-    5,                       -- tasks per project
-    20,                     -- images per project
-    5,                    -- time entries per user
-    TIMESTAMPTZ '2026-05-01 09:00:00-06',
-    INTERVAL '3 months'
-);
+           1,
+           4,     -- managers to create
+           15,    -- employees to create
+           197,    -- clients to create
+           250,    -- projects to create
+           10,     -- tasks per project
+           900,    -- images per project
+           5,     -- time entries per task
+           'Photometrics',
+           'seed_password_hash',
+           ARRAY[
+               'Alex', 'Jordan', 'Taylor', 'Morgan', 'Casey',
+               'Riley', 'Jamie', 'Cameron', 'Avery', 'Quinn',
+               'Parker', 'Reese', 'Dakota', 'Skyler', 'Rowan',
+               'Emerson', 'Finley', 'Harper', 'Kendall', 'Logan'
+               ],
+           ARRAY[
+               'Smith', 'Johnson', 'Williams', 'Brown', 'Jones',
+               'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez',
+               'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson',
+               'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'
+               ],
+           ARRAY[
+               'Aperture Studio', 'Bright Lens', 'Cedar Gallery', 'Dawn Creative', 'Evergreen Media',
+               'Frame House', 'Golden Hour', 'Harbor Portraits', 'Indigo Imaging', 'Juniper Photo',
+               'Keystone Studio', 'Lumen Works', 'Maple Media', 'North Star Photo', 'Oak Street Studio',
+               'Pixel Forge', 'Quartz Creative', 'Riverbend Gallery', 'Silverline Media', 'True North Studio'
+               ],
+           ARRAY[
+               'Wedding', 'Portrait', 'Event', 'Product', 'Commercial',
+               'Editorial', 'Graduation', 'Family', 'Branding', 'Real Estate'
+               ],
+           ARRAY[
+               'Photo Session', 'Image Delivery', 'Editing Workflow', 'Gallery Build', 'Client Package',
+               'Campaign Assets', 'Album Production', 'Retouching Batch', 'Studio Package', 'Digital Collection'
+               ],
+           ARRAY['Import', 'Cull', 'Edit', 'Quality Review', 'Export', 'Delivery', 'Other']::task_category[],
+           ARRAY['To-Do', 'In Progress', 'On Hold', 'Completed', 'Cancelled', 'Archived']::project_status[],
+           ARRAY['To-Do', 'Assigned', 'In Progress', 'Paused', 'Completed', 'Cancelled']::task_status[],
+           ARRAY['Pending', 'In Progress', 'Completed', 'Rejected']::image_status[]
+       );
 
 DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1
+    DECLARE
+        cfg seed_config%ROWTYPE;
+        available_user_name_count INT;
+    BEGIN
+        SELECT * INTO cfg
         FROM seed_config
-        WHERE project_count > client_count
-    ) THEN
-        RAISE EXCEPTION 'project_count cannot be greater than client_count because this seed creates one project per client.';
-    END IF;
+        WHERE config_id = 1;
 
-    IF EXISTS (
-        SELECT 1
-        FROM seed_config
-        WHERE project_count > 0
-          AND manager_count < 1
-    ) THEN
-        RAISE EXCEPTION 'manager_count must be at least 1 when project_count is greater than 0.';
-    END IF;
+        IF cfg.manager_count < 1 THEN
+            RAISE EXCEPTION 'manager_count must be at least 1';
+        END IF;
 
-    IF EXISTS (
-        SELECT 1
-        FROM seed_config
-        WHERE project_count > 0
-          AND tasks_per_project > 0
-          AND employee_count < 1
-    ) THEN
-        RAISE EXCEPTION 'employee_count must be at least 1 when tasks are being created.';
-    END IF;
+        IF cfg.employee_count < 1 THEN
+            RAISE EXCEPTION 'employee_count must be at least 1';
+        END IF;
 
-    IF EXISTS (
-        SELECT 1
-        FROM seed_config
-        WHERE time_entries_per_user > 0
-          AND project_count * tasks_per_project < 1
-    ) THEN
-        RAISE EXCEPTION 'At least one task is required when time entries are being created.';
-    END IF;
-END $$;
+        IF cfg.client_count < 1 THEN
+            RAISE EXCEPTION 'client_count must be at least 1';
+        END IF;
 
-TRUNCATE TABLE
-    time_entries,
-    images,
-    tasks,
-    projects,
-    clients,
-    users
-    RESTART IDENTITY CASCADE;
+        IF cfg.project_count < 1 THEN
+            RAISE EXCEPTION 'project_count must be at least 1';
+        END IF;
 
+        IF cfg.tasks_per_project < 1 THEN
+            RAISE EXCEPTION 'tasks_per_project must be at least 1';
+        END IF;
+
+        IF cfg.images_per_project < 0 THEN
+            RAISE EXCEPTION 'images_per_project cannot be negative';
+        END IF;
+
+        IF cfg.time_entries_per_task <> 5 THEN
+            RAISE EXCEPTION 'time_entries_per_task must be 5 for this assignment requirement';
+        END IF;
+
+        available_user_name_count := array_length(cfg.first_names, 1) * array_length(cfg.last_names, 1);
+
+        IF cfg.manager_count + cfg.employee_count > available_user_name_count THEN
+            RAISE EXCEPTION 'Not enough unique first name and last name combinations for % users. Add more names to the arrays.',
+                cfg.manager_count + cfg.employee_count;
+        END IF;
+    END $$;
+
+-- Make the seed file repeatable.
+TRUNCATE TABLE time_entries, images, tasks, projects, clients, users CASCADE;
+
+-- =========================================================
+-- Users: managers and employees
+-- Email format: firstname.lastname@companyname.com
+-- =========================================================
+
+WITH cfg AS (
+    SELECT *
+    FROM seed_config
+    WHERE config_id = 1
+), user_rows AS (
+    SELECT
+        user_num,
+        CASE
+            WHEN user_num <= cfg.manager_count THEN 'Manager'::user_role
+            ELSE 'Employee'::user_role
+            END AS account_role,
+        cfg.first_names[((user_num - 1) % array_length(cfg.first_names, 1)) + 1] AS first_name,
+        cfg.last_names[(((user_num - 1) / array_length(cfg.first_names, 1)) % array_length(cfg.last_names, 1)) + 1] AS last_name,
+        lower(regexp_replace(cfg.internal_company_name, '[^a-zA-Z0-9]+', '', 'g')) AS company_domain,
+        cfg.default_password_hash AS password_hash
+    FROM cfg
+             CROSS JOIN generate_series(1, cfg.manager_count + cfg.employee_count) AS user_series(user_num)
+)
 INSERT INTO users (
-    user_id,
     first_name,
     last_name,
     email,
@@ -92,60 +171,83 @@ INSERT INTO users (
     account_role
 )
 SELECT
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD(manager_num::TEXT, 12, '0')
-    )::UUID AS user_id,
-    'Manager' || manager_num AS first_name,
-    'User' AS last_name,
-    'manager' || LPAD(manager_num::TEXT, 2, '0') || '@photometrics.dev' AS email,
-    '00000000-0000-0000-0000-000000000001' AS password_hash,
-    'Manager'::user_role AS account_role
-FROM seed_config cfg
-CROSS JOIN GENERATE_SERIES(1, cfg.manager_count) AS gs(manager_num);
-
-INSERT INTO users (
-    user_id,
     first_name,
     last_name,
-    email,
+    lower(first_name) || '.' || lower(last_name) || '@' || company_domain || '.com' AS email,
     password_hash,
     account_role
-)
-SELECT
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((cfg.manager_count + employee_num)::TEXT, 12, '0')
-    )::UUID AS user_id,
-    'Employee' || employee_num AS first_name,
-    'User' AS last_name,
-    'employee' || LPAD(employee_num::TEXT, 2, '0') || '@photometrics.dev' AS email,
-    '00000000-0000-0000-0000-000000000001' AS password_hash,
-    'Employee'::user_role AS account_role
-FROM seed_config cfg
-CROSS JOIN GENERATE_SERIES(1, cfg.employee_count) AS gs(employee_num);
+FROM user_rows;
 
+-- =========================================================
+-- Clients
+-- Email format: firstname.lastname@companyname.com
+-- Company names are numbered so client email domains stay unique.
+-- =========================================================
+
+WITH cfg AS (
+    SELECT *
+    FROM seed_config
+    WHERE config_id = 1
+), client_rows AS (
+    SELECT
+        client_num,
+        cfg.first_names[((client_num - 1) % array_length(cfg.first_names, 1)) + 1] AS first_name,
+        cfg.last_names[(((client_num - 1) / array_length(cfg.first_names, 1)) % array_length(cfg.last_names, 1)) + 1] AS last_name,
+        cfg.company_names[((client_num - 1) % array_length(cfg.company_names, 1)) + 1] AS company_name
+    FROM cfg
+             CROSS JOIN generate_series(1, cfg.client_count) AS client_series(client_num)
+)
 INSERT INTO clients (
-    client_id,
     first_name,
     last_name,
     company_name,
     email
 )
 SELECT
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((100 + client_num)::TEXT, 12, '0')
-    )::UUID AS client_id,
-    'Client' || client_num AS first_name,
-    'Contact' AS last_name,
-    'Client Company ' || LPAD(client_num::TEXT, 2, '0') AS company_name,
-    'client' || LPAD(client_num::TEXT, 2, '0') || '@example.com' AS email
-FROM seed_config cfg
-CROSS JOIN GENERATE_SERIES(1, cfg.client_count) AS gs(client_num);
+    first_name,
+    last_name,
+    company_name,
+    lower(first_name) || '.' || lower(last_name) || '@' || lower(regexp_replace(company_name, '[^a-zA-Z0-9]+', '', 'g')) || '.com' AS email
+FROM client_rows;
 
+-- =========================================================
+-- Projects
+-- Each project gets a random client and random manager.
+-- =========================================================
+
+WITH cfg AS (
+    SELECT *
+    FROM seed_config
+    WHERE config_id = 1
+), project_rows AS (
+    SELECT
+        project_num,
+        client_pick.client_id,
+        manager_pick.user_id AS manager_id,
+        cfg.project_prefixes[1 + floor(random() * array_length(cfg.project_prefixes, 1))::INT] AS project_prefix,
+        cfg.project_subjects[1 + floor(random() * array_length(cfg.project_subjects, 1))::INT] AS project_subject,
+        cfg.project_statuses[1 + floor(random() * array_length(cfg.project_statuses, 1))::INT] AS project_status,
+        CURRENT_TIMESTAMP + ((floor(random() * 14)::INT) * INTERVAL '1 day') AS start_time,
+        CURRENT_TIMESTAMP + ((30 + floor(random() * 90)::INT) * INTERVAL '1 day') AS due_time
+    FROM cfg
+             CROSS JOIN generate_series(1, cfg.project_count) AS project_series(project_num)
+             CROSS JOIN LATERAL (
+        SELECT client_id
+        FROM clients
+        WHERE project_num IS NOT NULL
+        ORDER BY random()
+        LIMIT 1
+        ) AS client_pick
+             CROSS JOIN LATERAL (
+        SELECT user_id
+        FROM users
+        WHERE account_role = 'Manager'
+          AND project_num IS NOT NULL
+        ORDER BY random()
+        LIMIT 1
+        ) AS manager_pick
+)
 INSERT INTO projects (
-    project_id,
     client_id,
     manager_id,
     created_by,
@@ -153,39 +255,57 @@ INSERT INTO projects (
     description,
     status,
     start_time,
-    due_time
+    due_time,
+    completed_at
 )
 SELECT
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((1000 + project_num)::TEXT, 12, '0')
-    )::UUID AS project_id,
+    client_id,
+    manager_id,
+    manager_id AS created_by,
+    project_prefix || ' ' || project_subject || ' ' || lpad(project_num::TEXT, 3, '0') AS project_name,
+    'Seeded project for testing dashboard, task, image, and time entry workflows.' AS description,
+    project_status,
+    start_time,
+    due_time,
+    CASE
+        WHEN project_status = 'Completed' THEN due_time - INTERVAL '1 day'
+        ELSE NULL
+        END AS completed_at
+FROM project_rows;
 
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((100 + project_num)::TEXT, 12, '0')
-    )::UUID AS client_id,
+-- =========================================================
+-- Tasks
+-- Each task is assigned by the project manager and assigned to a random employee.
+-- This is the schema supported way to assign employees to project work.
+-- =========================================================
 
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((((project_num - 1) % cfg.manager_count) + 1)::TEXT, 12, '0')
-    )::UUID AS manager_id,
-
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((((project_num - 1) % cfg.manager_count) + 1)::TEXT, 12, '0')
-    )::UUID AS created_by,
-
-    'PROJECT-' || LPAD(project_num::TEXT, 3, '0') AS project_name,
-    'Generated seed project ' || project_num AS description,
-    'To-Do'::project_status AS status,
-    cfg.seed_start_time + ((project_num - 1) * INTERVAL '1 day') AS start_time,
-    cfg.seed_start_time + ((project_num - 1) * INTERVAL '1 day') + cfg.due_offset AS due_time
-FROM seed_config cfg
-CROSS JOIN GENERATE_SERIES(1, cfg.project_count) AS gs(project_num);
-
+WITH cfg AS (
+    SELECT *
+    FROM seed_config
+    WHERE config_id = 1
+), task_rows AS (
+    SELECT
+        p.project_id,
+        p.manager_id,
+        task_num,
+        employee_pick.user_id AS employee_id,
+        cfg.task_categories[1 + floor(random() * array_length(cfg.task_categories, 1))::INT] AS category,
+        cfg.task_statuses[1 + floor(random() * array_length(cfg.task_statuses, 1))::INT] AS task_status,
+        p.start_time + ((task_num - 1) * INTERVAL '2 days') AS start_time,
+        p.start_time + ((task_num - 1) * INTERVAL '2 days') + ((3 + floor(random() * 14)::INT) * INTERVAL '1 day') AS due_time
+    FROM cfg
+             CROSS JOIN projects p
+             CROSS JOIN generate_series(1, cfg.tasks_per_project) AS task_series(task_num)
+             CROSS JOIN LATERAL (
+        SELECT user_id
+        FROM users
+        WHERE account_role = 'Employee'
+          AND task_num IS NOT NULL
+        ORDER BY random()
+        LIMIT 1
+        ) AS employee_pick
+)
 INSERT INTO tasks (
-    task_id,
     project_id,
     category,
     description,
@@ -194,245 +314,117 @@ INSERT INTO tasks (
     due_time,
     completed_at,
     assigned_by,
-    assigned_to,
-    created_at,
-    updated_at
-)
-WITH task_rows AS (
-    SELECT
-        cfg.manager_count,
-        cfg.employee_count,
-        cfg.seed_start_time,
-        cfg.due_offset,
-        project_num,
-        task_num,
-        ((project_num - 1) * cfg.tasks_per_project + task_num) AS task_num_global
-    FROM seed_config cfg
-    CROSS JOIN GENERATE_SERIES(1, cfg.project_count) AS p(project_num)
-    CROSS JOIN GENERATE_SERIES(1, cfg.tasks_per_project) AS t(task_num)
-),
-calculated_tasks AS (
-    SELECT
-        *,
-        seed_start_time
-            + ((project_num - 1) * INTERVAL '1 day')
-            + ((task_num - 1) * INTERVAL '4 hours') AS calculated_start_time
-    FROM task_rows
+    assigned_to
 )
 SELECT
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((2000 + task_num_global)::TEXT, 12, '0')
-    )::UUID AS task_id,
-
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((1000 + project_num)::TEXT, 12, '0')
-    )::UUID AS project_id,
-
-    CASE ((task_num - 1) % 7) + 1
-        WHEN 1 THEN 'Import'::task_category
-        WHEN 2 THEN 'Cull'::task_category
-        WHEN 3 THEN 'Edit'::task_category
-        WHEN 4 THEN 'Quality Review'::task_category
-        WHEN 5 THEN 'Export'::task_category
-        WHEN 6 THEN 'Delivery'::task_category
-        ELSE 'Other'::task_category
-    END AS category,
-
-    CASE ((task_num - 1) % 7) + 1
-        WHEN 1 THEN 'Import project files'
-        WHEN 2 THEN 'Cull unusable images'
-        WHEN 3 THEN 'Edit selected images'
-        WHEN 4 THEN 'Perform quality review'
-        WHEN 5 THEN 'Export final images'
-        WHEN 6 THEN 'Deliver completed gallery'
-        ELSE 'Other project task'
-    END AS description,
-
-    CASE ((task_num - 1) % 5) + 1
-        WHEN 1 THEN 'Completed'::task_status
-        WHEN 2 THEN 'In Progress'::task_status
-        WHEN 3 THEN 'Assigned'::task_status
-        ELSE 'To-Do'::task_status
-    END AS status,
-
-    calculated_start_time AS start_time,
-    calculated_start_time + due_offset AS due_time,
-
+    project_id,
+    category,
+    category::TEXT || ' task ' || task_num || ' for seeded project workflow testing.' AS description,
+    task_status,
+    start_time,
+    due_time,
     CASE
-        WHEN ((task_num - 1) % 5) + 1 = 1 THEN calculated_start_time + INTERVAL '1 day'
+        WHEN task_status = 'Completed' THEN due_time - INTERVAL '12 hours'
         ELSE NULL
-    END AS completed_at,
+        END AS completed_at,
+    manager_id AS assigned_by,
+    employee_id AS assigned_to
+FROM task_rows;
 
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((((project_num - 1) % manager_count) + 1)::TEXT, 12, '0')
-    )::UUID AS assigned_by,
+-- =========================================================
+-- Images
+-- Each image is connected to a random task in the same project.
+-- =========================================================
 
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((manager_count + (((task_num_global - 1) % employee_count) + 1))::TEXT, 12, '0')
-    )::UUID AS assigned_to,
-
-    CURRENT_TIMESTAMP AS created_at,
-    CURRENT_TIMESTAMP AS updated_at
-FROM calculated_tasks;
-
+WITH cfg AS (
+    SELECT *
+    FROM seed_config
+    WHERE config_id = 1
+), image_rows AS (
+    SELECT
+        p.project_id,
+        image_num,
+        task_pick.task_id,
+        cfg.image_statuses[1 + floor(random() * array_length(cfg.image_statuses, 1))::INT] AS image_status
+    FROM cfg
+             CROSS JOIN projects p
+             CROSS JOIN generate_series(1, cfg.images_per_project) AS image_series(image_num)
+             CROSS JOIN LATERAL (
+        SELECT task_id
+        FROM tasks
+        WHERE tasks.project_id = p.project_id
+          AND image_num IS NOT NULL
+        ORDER BY random()
+        LIMIT 1
+        ) AS task_pick
+)
 INSERT INTO images (
-    image_id,
     project_id,
     task_id,
     name,
     url,
     status,
-    completed,
-    created_at,
-    updated_at
-)
-WITH image_rows AS (
-    SELECT
-        cfg.tasks_per_project,
-        project_num,
-        image_num,
-        ((project_num - 1) * cfg.images_per_project + image_num) AS image_num_global,
-        CASE
-            WHEN cfg.tasks_per_project > 0 THEN ((image_num - 1) % cfg.tasks_per_project) + 1
-            ELSE NULL
-        END AS task_num_for_image
-    FROM seed_config cfg
-    CROSS JOIN GENERATE_SERIES(1, cfg.project_count) AS p(project_num)
-    CROSS JOIN GENERATE_SERIES(1, cfg.images_per_project) AS i(image_num)
+    completed
 )
 SELECT
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((3000 + image_num_global)::TEXT, 12, '0')
-    )::UUID AS image_id,
-
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((1000 + project_num)::TEXT, 12, '0')
-    )::UUID AS project_id,
-
-    CASE
-        WHEN task_num_for_image IS NULL THEN NULL
-        ELSE (
-            '00000000-0000-0000-0000-' ||
-            LPAD((2000 + ((project_num - 1) * tasks_per_project + task_num_for_image))::TEXT, 12, '0')
-        )::UUID
-    END AS task_id,
-
-    'project_' ||
-    LPAD(project_num::TEXT, 3, '0') ||
-    '_image_' ||
-    LPAD(image_num::TEXT, 3, '0') ||
-    '.jpg' AS name,
-
-    'https://example.com/images/project_' ||
-    LPAD(project_num::TEXT, 3, '0') ||
-    '/image_' ||
-    LPAD(image_num::TEXT, 3, '0') ||
-    '.jpg' AS url,
-
-    CASE
-        WHEN image_num % 20 <= 8 AND image_num % 20 <> 0 THEN 'Completed'::image_status
-        WHEN image_num % 20 <= 14 AND image_num % 20 <> 0 THEN 'In Progress'::image_status
-        WHEN image_num % 20 <= 18 AND image_num % 20 <> 0 THEN 'Pending'::image_status
-        ELSE 'Rejected'::image_status
-    END AS status,
-
-    CASE
-        WHEN image_num % 20 <= 8 AND image_num % 20 <> 0 THEN TRUE
-        ELSE FALSE
-    END AS completed,
-
-    CURRENT_TIMESTAMP AS created_at,
-    CURRENT_TIMESTAMP AS updated_at
+    project_id,
+    task_id,
+    'image_' || replace(project_id::TEXT, '-', '') || '_' || lpad(image_num::TEXT, 4, '0') || '.jpg' AS name,
+    'https://example.com/images/' || replace(project_id::TEXT, '-', '') || '/' || lpad(image_num::TEXT, 4, '0') || '.jpg' AS url,
+    image_status,
+    image_status = 'Completed' AS completed
 FROM image_rows;
 
+-- =========================================================
+-- Time entries
+-- Exactly five time entries are created for each task.
+-- =========================================================
+
+WITH cfg AS (
+    SELECT *
+    FROM seed_config
+    WHERE config_id = 1
+), time_entry_rows AS (
+    SELECT
+        t.task_id,
+        t.assigned_to AS employee_id,
+        entry_num,
+        t.start_time + ((entry_num - 1) * INTERVAL '1 day') + ((floor(random() * 8)::INT) * INTERVAL '1 hour') AS entry_start,
+        (30 + floor(random() * 210)::INT) AS minutes_worked
+    FROM cfg
+             CROSS JOIN tasks t
+             CROSS JOIN generate_series(1, cfg.time_entries_per_task) AS entry_series(entry_num)
+)
 INSERT INTO time_entries (
-    time_entry_id,
     task_id,
     employee_id,
     start_time,
     end_time,
-    total_time,
-    created_at
-)
-WITH time_entry_rows AS (
-    SELECT
-        cfg.manager_count,
-        cfg.employee_count,
-        cfg.project_count,
-        cfg.tasks_per_project,
-        cfg.seed_start_time,
-        user_num,
-        entry_num,
-        ((user_num - 1) * cfg.time_entries_per_user + entry_num) AS time_entry_num
-    FROM seed_config cfg
-    CROSS JOIN GENERATE_SERIES(1, cfg.manager_count + cfg.employee_count) AS u(user_num)
-    CROSS JOIN GENERATE_SERIES(1, cfg.time_entries_per_user) AS e(entry_num)
-),
-calculated_time_entries AS (
-    SELECT
-        *,
-        seed_start_time + ((time_entry_num - 1) * INTERVAL '6 hours') AS calculated_start_time,
-        ((project_count * tasks_per_project)) AS total_task_count
-    FROM time_entry_rows
+    total_time
 )
 SELECT
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((5000 + time_entry_num)::TEXT, 12, '0')
-    )::UUID AS time_entry_id,
-
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD((2000 + (((time_entry_num - 1) % total_task_count) + 1))::TEXT, 12, '0')
-    )::UUID AS task_id,
-
-    (
-        '00000000-0000-0000-0000-' ||
-        LPAD(user_num::TEXT, 12, '0')
-    )::UUID AS employee_id,
-
-    calculated_start_time AS start_time,
-
-    calculated_start_time +
-    CASE entry_num
-        WHEN 1 THEN INTERVAL '1 hour'
-        WHEN 2 THEN INTERVAL '1.5 hours'
-        WHEN 3 THEN INTERVAL '2 hours'
-        WHEN 4 THEN INTERVAL '2.5 hours'
-        ELSE INTERVAL '3 hours'
-    END AS end_time,
-
-    CASE entry_num
-        WHEN 1 THEN 1.00
-        WHEN 2 THEN 1.50
-        WHEN 3 THEN 2.00
-        WHEN 4 THEN 2.50
-        ELSE 3.00
-    END AS total_time,
-
-    CURRENT_TIMESTAMP AS created_at
-FROM calculated_time_entries;
-
-SELECT
-    (SELECT client_count FROM seed_config) AS configured_clients,
-    (SELECT COUNT(*) FROM clients) AS inserted_clients,
-    (SELECT manager_count FROM seed_config) AS configured_managers,
-    (SELECT COUNT(*) FROM users WHERE account_role = 'Manager') AS inserted_managers,
-    (SELECT employee_count FROM seed_config) AS configured_employees,
-    (SELECT COUNT(*) FROM users WHERE account_role = 'Employee') AS inserted_employees,
-    (SELECT project_count FROM seed_config) AS configured_projects,
-    (SELECT COUNT(*) FROM projects) AS inserted_projects,
-    (SELECT project_count * tasks_per_project FROM seed_config) AS configured_tasks,
-    (SELECT COUNT(*) FROM tasks) AS inserted_tasks,
-    (SELECT project_count * images_per_project FROM seed_config) AS configured_images,
-    (SELECT COUNT(*) FROM images) AS inserted_images,
-    (SELECT (manager_count + employee_count) * time_entries_per_user FROM seed_config) AS configured_time_entries,
-    (SELECT COUNT(*) FROM time_entries) AS inserted_time_entries;
+    task_id,
+    employee_id,
+    entry_start,
+    entry_start + (minutes_worked * INTERVAL '1 minute') AS end_time,
+    round(minutes_worked::NUMERIC / 60.0, 2) AS total_time
+FROM time_entry_rows;
 
 COMMIT;
+
+-- =========================================================
+-- Seed summary
+-- =========================================================
+
+SELECT 'users' AS table_name, count(*) AS row_count FROM users
+UNION ALL
+SELECT 'clients', count(*) FROM clients
+UNION ALL
+SELECT 'projects', count(*) FROM projects
+UNION ALL
+SELECT 'tasks', count(*) FROM tasks
+UNION ALL
+SELECT 'images', count(*) FROM images
+UNION ALL
+SELECT 'time_entries', count(*) FROM time_entries
+ORDER BY table_name;
