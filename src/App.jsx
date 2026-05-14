@@ -46,7 +46,7 @@ import {
 // Jesse is building the backend database. When the backend is ready, set
 // VITE_USE_API_DATA=true in your .env file and update VITE_API_BASE_URL if needed.
 // Expected API response format can be either a plain array/object or { data: ... }.
-const USE_API_DATA = import.meta.env.VITE_USE_API_DATA;// === "true";
+const USE_API_DATA = import.meta.env.VITE_USE_API_DATA === "true";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 const API_ENDPOINTS = {
