@@ -40,7 +40,7 @@ import {
 // API PLACEHOLDERS
 // -----------------------------------------------------------------------------
 // The app is currently using the mock data below so the UI can keep working while
-// the backend database is being built. When the backend is ready, set
+// Jesse is building the backend database. When the backend is ready, set
 // VITE_USE_API_DATA=true in your .env file and update VITE_API_BASE_URL if needed.
 // Expected API response format can be either a plain array/object or { data: ... }.
 const USE_API_DATA = import.meta.env.VITE_USE_API_DATA === "true";
@@ -134,8 +134,8 @@ function useApiPlaceholder(endpoint, fallbackData) {
     return { data, isLoading, error };
 }
 
-// These functions are not wired to forms yet. They are API holders for the
-// backend team to connect later when Create, Edit, Delete, and Export are built.
+// These functions are not wired to forms yet. They are API holders for Jesse
+//  to connect later when Create, Edit, Delete, and Export are built.
 const apiPlaceholders = {
     createProject: (project) => apiRequest(API_ENDPOINTS.projects, {
         method: "POST",
@@ -732,9 +732,28 @@ function Sidebar({ isCollapsed, activePage, onPageChange, onToggle }) {
 }
 
 // Top header bar
-function Topbar() {
+function Topbar({ onPageChange }) {
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [isManagerMenuOpen, setIsManagerMenuOpen] = useState(false);
+
+    const notifications = [
+        "3 projects are due this week",
+        "2 assignments are ready for review",
+        "Project export is available from the Projects tab",
+    ];
+
+    const closeMenus = () => {
+        setIsNotificationsOpen(false);
+        setIsManagerMenuOpen(false);
+    };
+
+    const goToPage = (nextPage) => {
+        closeMenus();
+        onPageChange?.(nextPage);
+    };
+
     return (
-        <header className="flex h-[86px] items-center justify-between border-b border-slate-200 bg-white px-8">
+        <header className="relative flex h-[86px] items-center justify-between border-b border-slate-200 bg-white px-8">
 
             {/* Search bar */}
             <div className="flex w-[380px] items-center gap-3 rounded-xl border border-slate-300 px-4 py-3 shadow-sm">
@@ -743,19 +762,103 @@ function Topbar() {
             </div>
 
             {/* User info area */}
-            <div className="flex items-center gap-6 pr-2">
-                <Bell size={24} />
+            <div className="flex items-center gap-5 pr-2">
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsNotificationsOpen((value) => !value);
+                            setIsManagerMenuOpen(false);
+                        }}
+                        className="relative rounded-xl p-2 transition hover:bg-slate-100"
+                        aria-label="Open notifications"
+                        title="Notifications"
+                    >
+                        <Bell size={24} />
+                        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-violet-600" />
+                    </button>
 
-                {/* User profile image */}
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-slate-300 bg-slate-100 shadow-sm">
-                    <img
-                        src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQI6QNyB22A2rTJfdHWecRsPWOH4OlbAUGIhQ&s"
-                        alt="Logged in manager"
-                        className="h-full w-full object-cover"
-                    />
+                    {isNotificationsOpen && (
+                        <div className="absolute right-0 z-40 mt-3 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                            <div className="border-b border-slate-200 px-4 py-3 font-bold">
+                                Notifications
+                            </div>
+
+                            <div className="divide-y divide-slate-100">
+                                {notifications.map((notification) => (
+                                    <button
+                                        key={notification}
+                                        type="button"
+                                        onClick={() => goToPage("projects")}
+                                        className="block w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
+                                    >
+                                        {notification}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => goToPage("reports")}
+                                className="w-full border-t border-slate-200 px-4 py-3 text-sm font-semibold text-violet-700 hover:bg-violet-50"
+                            >
+                                View notification report
+                            </button>
+                        </div>
+                    )}
                 </div>
 
-                <div className="text-lg font-bold">Manager⌄</div>
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsManagerMenuOpen((value) => !value);
+                            setIsNotificationsOpen(false);
+                        }}
+                        className="flex items-center gap-4 rounded-xl px-2 py-1 transition hover:bg-slate-100"
+                        aria-label="Open manager menu"
+                        title="Manager menu"
+                    >
+                        {/* User profile image */}
+                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-slate-300 bg-slate-100 shadow-sm">
+                            <img
+                                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQI6QNyB22A2rTJfdHWecRsPWOH4OlbAUGIhQ&s"
+                                alt="Logged in manager"
+                                className="h-full w-full object-cover"
+                            />
+                        </div>
+
+                        <span className="text-lg font-bold">Manager⌄</span>
+                    </button>
+
+                    {isManagerMenuOpen && (
+                        <div className="absolute right-0 z-40 mt-3 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                            <button
+                                type="button"
+                                onClick={() => goToPage("employees")}
+                                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold hover:bg-slate-50"
+                            >
+                                <Users size={18} /> Manager Profile
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => goToPage("settings")}
+                                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold hover:bg-slate-50"
+                            >
+                                <Settings size={18} /> Account Settings
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={closeMenus}
+                                className="flex w-full items-center gap-3 border-t border-slate-200 px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+                            >
+                                <LogOut size={18} /> Sign Out
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         </header>
     );
@@ -1176,7 +1279,7 @@ function ColoredLineSegment({ data, segment, index }) {
 }
 
 // Main dashboard page
-function Dashboard() {
+function Dashboard({ onPageChange }) {
     const { data: dashboardKpis } = useApiPlaceholder(API_ENDPOINTS.dashboard.kpis, kpis);
     const { data: productivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.productivity, productivity);
     const { data: workflowData } = useApiPlaceholder(API_ENDPOINTS.dashboard.workflow, workflow);
@@ -1245,29 +1348,18 @@ function Dashboard() {
 
                             <Tooltip />
 
-                            {/* Colored chart segments */}
-                            {productivityData.map((item, index) => (
-                                <ColoredLineSegment
-                                    key={item.day}
-                                    data={productivityData}
-                                    segment={item}
-                                    index={index}
-                                />
-                            ))}
-
-                            {/* Invisible line for chart dots */}
+                            {/* Visible trend line with custom colored data points */}
                             <Line
                                 type="monotone"
                                 dataKey="value"
-                                stroke="transparent"
-                                strokeWidth={0}
+                                stroke="#7c3aed"
+                                strokeWidth={4}
+                                activeDot={{ r: 7 }}
                                 label={{
                                     position: "top",
                                     fill: "#111827",
                                     fontSize: 14
                                 }}
-
-                                // Custom dots
                                 dot={(props) => {
                                     const item = productivityData[props.index];
 
@@ -1277,7 +1369,7 @@ function Dashboard() {
                                             cy={props.cy}
                                             r={5}
                                             fill="white"
-                                            stroke={item.color}
+                                            stroke={item?.color || "#7c3aed"}
                                             strokeWidth={3}
                                         />
                                     );
@@ -1355,15 +1447,21 @@ function Dashboard() {
 
             {/* Bottom tables */}
             <div className="grid grid-cols-[0.95fr_1.05fr] gap-5">
-                <EmployeeActivityPanel rows={employeeActivityData} />
-                <ProjectProgressPanel rows={projectProgressData} />
+                <EmployeeActivityPanel
+                    rows={employeeActivityData}
+                    onViewAll={() => onPageChange?.("employees")}
+                />
+                <ProjectProgressPanel
+                    rows={projectProgressData}
+                    onViewAll={() => onPageChange?.("projects")}
+                />
             </div>
         </section>
     );
 }
 
 // Employee activity table
-function EmployeeActivityPanel({ rows = employeeActivity }) {
+function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
     return (
         <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
             <h2 className="mb-3 text-2xl font-bold">
@@ -1411,7 +1509,11 @@ function EmployeeActivityPanel({ rows = employeeActivity }) {
                 </tbody>
             </table>
 
-            <button className="mt-4 font-semibold text-blue-600">
+            <button
+                type="button"
+                onClick={onViewAll}
+                className="mt-4 font-semibold text-blue-600 hover:text-blue-800"
+            >
                 View all employees →
             </button>
         </div>
@@ -1419,7 +1521,7 @@ function EmployeeActivityPanel({ rows = employeeActivity }) {
 }
 
 // Project progress table
-function ProjectProgressPanel({ rows = projectProgress }) {
+function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
     return (
         <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
             <h2 className="mb-3 text-2xl font-bold">
@@ -1472,7 +1574,11 @@ function ProjectProgressPanel({ rows = projectProgress }) {
                 </tbody>
             </table>
 
-            <button className="mt-4 font-semibold text-blue-600">
+            <button
+                type="button"
+                onClick={onViewAll}
+                className="mt-4 font-semibold text-blue-600 hover:text-blue-800"
+            >
                 View all projects →
             </button>
         </div>
@@ -1959,10 +2065,10 @@ export default function App() {
                 <main className="min-w-0 flex-1">
 
                     {/* Top header */}
-                    <Topbar />
+                    <Topbar onPageChange={setPage} />
 
                     {/* Render selected page */}
-                    {page === "dashboard" && <Dashboard />}
+                    {page === "dashboard" && <Dashboard onPageChange={setPage} />}
                     {page === "projects" && <ProjectsAndAssignments />}
                     {placeholderPages[page] && <PlaceholderPage title={placeholderPages[page]} />}
                 </main>
