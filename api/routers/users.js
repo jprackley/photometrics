@@ -64,7 +64,7 @@ router.post(
 //        READ User           //
 //------------------------------//
 router.get(
-    `/id`,
+    `/:id`,
     [param('id').isUUID()],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ User:id - ');
