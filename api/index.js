@@ -1,6 +1,6 @@
 const express = require('express')
 const cors = require('cors')
-const C_HTTP = require('./utils/httpStatus')
+const C_HTTP = require('./utils/cHTTP')
 const app = express()
 
 app.use(cors());

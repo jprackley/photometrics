@@ -2,8 +2,8 @@ const { describe, test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const app = require('../../api/index');
-const C_HTTPS = require('../../api/utils/httpStatus');
-const C_HTTP = require("../../api/utils/httpStatus");
+const C_HTTPS = require('../../api/utils/cHTTP');
+const C_HTTP = require("../../api/utils/cHTTP");
 
 describe('Testing /api/projects', () => {
   /*

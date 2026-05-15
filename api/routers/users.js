@@ -1,11 +1,11 @@
 const express = require('express');
-const CONST = require('../utils/constants');
-const C_HTTP = require('../utils/httpStatus');
+const CONST = require('../utils/cSchema');
+const C_HTTP = require('../utils/cHTTP');
 const asyncHandler = require('../utils/asyncHandler');
 const { query } = require('../db');
 const { body, param} = require("express-validator");
 const {handleValidation} = require("../utils/validation");
-const crypto = require("node:crypto");
+const hashPassword = require("../utils/hashString");
 const router = express.Router();
 
 const safeUserColumns = `
@@ -17,7 +17,6 @@ const safeUserColumns = `
     created_at,
     updated_at,
     account_role`;
-
 
 //------------------------------//
 //        CREATE User           //
@@ -35,11 +34,7 @@ router.post(
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE User - ');
-        console.log("Encrypting secrets....");
-        const hashedPassword = crypto
-            .createHash("sha256")
-            .update(req.body.password_hash)
-            .digest("hex");
+        const hashedPassword = hashPassword(req.body.password_hash);
         const { first_name, last_name, email, account_role } = req.body;
 
         const sql = `
@@ -61,8 +56,16 @@ router.post(
 );
 
 //------------------------------//
-//        READ User           //
+//        READ User             //
 //------------------------------//
+router.get(
+    `/`,
+    asyncHandler(async (req, res) => {
+        handleValidation(req, 'READ Users - ');
+        const { rows } = await query(`SELECT ${safeUserColumns} FROM users`);
+        res.json(rows);
+    })
+)
 router.get(
     `/:id`,
     [param('id').isUUID()],
@@ -72,6 +75,38 @@ router.get(
         const { rows } = await query(`SELECT ${safeUserColumns} FROM users WHERE user_id = $1`, [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'User ID not found' } });
         res.json(rows[0]);
+    })
+)
+
+router.patch(
+    '/:id',
+    asyncHandler(async (req, res) => {
+        handleValidation(req, 'UPDATE User - ');
+        const {id} = req.params;
+        const fields = ['first_name', 'last_name', 'email', 'password_hash', 'account_role'];
+        const set = [];
+        const params = [];
+        fields.forEach((f) => {
+            if (req.body[f] != null) {
+                if (req.body[f] === 'password_hash') {
+                    const hashedPassword = hashPassword(req.body[f]);
+                    params.push(hashedPassword);
+                }
+                else {
+                    params.push(req.body[f]);
+                    set.push(`${f} = $${params.length}`);
+                }
+            }
+        });
+        if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json(
+            { error: { code: C_HTTP.REASON.BAD_REQUEST, message: 'No updatable fields provided' } });
+        params.push(id);
+        const sql = `
+            UPDATE users SET ${set.join(', ')}
+            WHERE user_id = $${params.length}
+            RETURNING 
+                ${safeUserColumns}
+        `
     })
 )
 

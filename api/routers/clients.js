@@ -1,6 +1,6 @@
 const express = require('express');
-const C = require('../utils/constants');
-const C_HTTP = require('../utils/httpStatus');
+const C = require('../utils/cSchema');
+const C_HTTP = require('../utils/cHTTP');
 const router = express.Router();
 const asyncHandler = require('../utils/asyncHandler');
 const { query } = require('../db');

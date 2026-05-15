@@ -3,8 +3,8 @@ const {paginate, handleValidation, buildPagination} = require("../utils/validati
 const asyncHandler = require("../utils/asyncHandler");
 const {query} = require("../db");
 const {param, body} = require("express-validator");
-const C_HTTP = require("../utils/httpStatus");
-const C = require("../utils/constants");
+const C_HTTP = require("../utils/cHTTP");
+const C = require("../utils/cSchema");
 const router = express.Router();
 
 //------------------------------//

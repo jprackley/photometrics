@@ -1,5 +1,5 @@
 const { param, query } = require('express-validator');
-const C = require('./constants');
+const C = require('./cSchema');
 
 //Custom validators
 const isUUID = () => param('id').isUUID().withMessage('Invalid UUID');
@@ -19,7 +19,7 @@ function buildPagination({ page = 1, limit = 20 }) {
 
 //Handles validation for Node.js Express requests
 function handleValidation(req, desc) {
-    const C_HTTP = require('./httpStatus');
+    const C_HTTP = require('./cHTTP');
     const { validationResult } = require('express-validator');
 
     const result = validationResult(req);

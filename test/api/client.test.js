@@ -2,8 +2,8 @@ const {test, describe, after, before} = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const app = require('../../api/index');
-const C_HTTP = require('../../api/utils/httpStatus');
-const C = require('../../api/utils/constants');
+const C_HTTP = require('../../api/utils/cHTTP');
+const C = require('../../api/utils/cSchema');
 
 let clients = [];
 const initClient = [
@@ -116,7 +116,7 @@ describe('Testing /api/clients', () => {
     })
     after(async () => {
         for (const id of clients) {
-            const response = await request(app).delete(`/api/clients/${id}`);
+            await request(app).delete(`/api/clients/${id}`);
         }
     });
     //------------------------------------//
