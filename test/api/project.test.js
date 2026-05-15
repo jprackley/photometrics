@@ -5,7 +5,7 @@ const app = require('../../api/index');
 const C_HTTPS = require('../../api/utils/httpStatus');
 
 describe('Testing /api/projects', () => {
-
+    let projectId;
     describe('[api]: CREATE projects', () => {
 
         describe("[test]: valid entry", () => {
@@ -54,7 +54,6 @@ describe('Testing /api/projects', () => {
         })
     })
     describe("PATCH /api/projects/:id", () => {
-        let projectId;
 
         describe("[test]: valid entry", () => {
 
@@ -117,4 +116,38 @@ describe('Testing /api/projects', () => {
             );
         });
     });
+    describe("DELETE /api/projects/:id", () => {
+        describe("[test]: valid id", () => {
+            test(`[expected]: status code ${C_HTTPS.STATUS.OK}`, async () => {
+                const response = await request(app).delete(`/api/projects/${projectId}`);
+
+                assert.equal(response.statusCode, C_HTTPS.STATUS.OK,
+                    `Expected status code ${C_HTTPS.STATUS.OK}, got ${response.statusCode}`
+                );
+
+                assert.equal(response.body.project_id, projectId);
+                assert.equal(response.body.project_name, "Delete Test Project");
+            });
+        describe("[test]: missing project", () => {
+            test(`[expected]: status code ${C_HTTPS.STATUS.NOT_FOUND}`, async () => {
+                const missingProjectId = "00000000-0000-0000-0000-000000000000";
+
+                const response = await request(app).delete(`/api/projects/${missingProjectId}`);
+
+                assert.equal(response.statusCode,C_HTTPS.STATUS.NOT_FOUND,
+                    `Expected status code ${C_HTTPS.STATUS.NOT_FOUND}, got ${response.statusCode}`
+                );
+                assert.equal(response.body.error.code, C_HTTPS.REASON.NOT_FOUND);
+            });
+        })
+        describe("[test]: invalid project id", () => {})
+            test(`[expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+                const response = await request(app).delete("/api/projects/not-a-valid-uuid");
+
+                assert.equal(response.statusCode, C_HTTPS.STATUS.BAD_REQUEST,
+                    `Expected status code ${C_HTTPS.STATUS.BAD_REQUEST}, got ${response.statusCode}`
+                );
+            });
+        });
+    })
 })

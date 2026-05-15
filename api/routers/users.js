@@ -6,15 +6,19 @@ const { query } = require('../db');
 const { body } = require("express-validator");
 const router = express.Router();
 
-// CREATE CLient
+//------------------------------//
+//        CREATE User           //
+//------------------------------//
 router.post(
     '/',
     [
-        body('first_name').isString().isLength({ min: CONST.MIN.FIRST_NAME_LENGTH, max: CONST.MAX.FIRST_NAME_LENGTH }),
-        body('last_name').isString().isLength({ min: CONST.MIN.LAST_NAME_LENGTH, max: CONST.MAX.LAST_NAME_LENGTH }),
-        body('email').isEmail().isLength({ max: CONST.MAX.EMAIL_LENGTH }),
+        body('first_name').isString().isLength({ min: CONST.MIN.FIRST_NAME_LENGTH, max: CONST.MAX.FIRST_NAME_LENGTH })
+            .withMessage(`First name must be between ${CONST.MIN.FIRST_NAME_LENGTH} and ${CONST.MAX.FIRST_NAME_LENGTH} characters`),
+        body('last_name').isString().isLength({ min: CONST.MIN.LAST_NAME_LENGTH, max: CONST.MAX.LAST_NAME_LENGTH })
+            .withMessage(`Last name must be between ${CONST.MIN.LAST_NAME_LENGTH} and ${CONST.MAX.LAST_NAME_LENGTH} characters`),
+        body('email').isEmail().isLength({ max: CONST.MAX.EMAIL_LENGTH }).withMessage('Invalid email format'),
         body('password_hash').isString(),
-        body('account_role').isString().isIn(CONST.USER_ROLES),
+        body('account_role').isString().isIn(CONST.USER_ROLES).withMessage('Invalid account role'),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req);

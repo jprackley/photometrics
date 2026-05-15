@@ -164,7 +164,48 @@ router.get(
 //------------------------------//
 //       Update Project         //
 //------------------------------//
-// noinspection JSCheckFunctionSignatures
+/**
+ * @description Updates an existing project by project ID.
+ *
+ * This endpoint validates the project ID and any provided request body fields.
+ * Only fields included in the request body are updated. If no valid updatable
+ * fields are provided, the endpoint returns a 400 Bad Request response.
+ *
+ * @param {string} req.params.id
+ * The UUID of the project to update.
+ * @param {string} [req.body.project_name]
+ * Optional project name. Must be a string within the configured project name length limits.
+ * @param {string} [req.body.client_id]
+ * Optional client UUID assigned to the project.
+ * @param {string} [req.body.managed_by]
+ * Optional user UUID for the manager assigned to the project.
+ * @param {string} [req.body.description]
+ * Optional project description. Must be a string within the configured project description length limits.
+ * @param {string} [req.body.status]
+ * Optional project status. Must match one of the allowed project status values.
+ * @param {string} [req.body.start_time]
+ * Optional project start time. Must be a valid ISO 8601 date string.
+ * @param {string} [req.body.due_time]
+ * Optional project due time. Must be a valid ISO 8601 date string.
+ * @param {string} [req.body.completed_at]
+ * Optional project completion time. Must be a valid ISO 8601 date string.
+ *
+ * @returns {Object} 200
+ * Returns the updated project object.
+ * @returns {Object} 400
+ * Returns a validation error or a message stating that no updatable fields were provided.
+ * @returns {Object} 404
+ * Returns an error if no project exists with the provided project ID.
+ *
+ * @example
+ * PATCH /api/projects/0f8fad5b-d9cb-469f-a165-70867728950e
+ *
+ * {
+ *   "project_name": "Updated Wedding Shoot",
+ *   "status": "In Progress",
+ *   "due_time": "2026-08-14T18:00:00.000Z"
+ * }
+ */
 router.patch(
     '/:id',
     [
@@ -208,5 +249,36 @@ router.patch(
 //------------------------------//
 //       Delete Project         //
 //------------------------------//
+/**
+ * @description Deletes an existing project by project ID.
+ *
+ * This endpoint validates the project ID, deletes the matching project from
+ * the database, and returns the deleted project object. If no project exists
+ * with the provided ID, the endpoint returns a 404 Not Found response.
+ *
+ * @param {string} req.params.id
+ * The UUID of the project to delete.
+ *
+ * @returns {Object} 200
+ * Returns the deleted project object.
+ * @returns {Object} 400
+ * Returns a validation error if the project ID is not a valid UUID.
+ * @returns {Object} 404
+ * Returns an error if no project exists with the provided project ID.
+ *
+ * @example
+ * DELETE /api/projects/0f8fad5b-d9cb-469f-a165-70867728950e
+ */
+router.delete(
+    '/:id',
+    [param('id').isUUID()],
+    asyncHandler(async (req, res) => {
+        handleValidation(req, 'DELETE Project:id - ');
+        const { id } = req.params;
+        const { rows } = await query('DELETE FROM projects WHERE project_id = $1 RETURNING *', [id]);
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'Project not found' } });
+        res.json(rows[0]);
+    })
+)
 
 module.exports = router;
