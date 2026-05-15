@@ -106,7 +106,10 @@ router.patch(
             WHERE user_id = $${params.length}
             RETURNING 
                 ${safeUserColumns}
-        `
+        `;
+        const { rows } = await query(sql, params);
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'User not found' } });
+        res.json(rows[0]);
     })
 )
 
