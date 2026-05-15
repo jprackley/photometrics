@@ -844,14 +844,14 @@ function Logo() {
 function Sidebar({ isCollapsed, activePage, onPageChange, onToggle }) {
     return (
         <aside
-            className={`flex min-h-screen flex-col border-r border-slate-200 bg-white transition-all duration-300 ${
-                isCollapsed ? "w-[84px]" : "w-[260px]"
+            className={`flex w-full shrink-0 flex-col border-b border-slate-200 bg-white transition-all duration-300 md:min-h-screen md:border-b-0 md:border-r ${
+                isCollapsed ? "md:w-[84px]" : "md:w-[260px]"
             }`}
         >
 
             {/* Logo section */}
             <div
-                className={`flex h-[86px] items-center border-b border-slate-200 px-4 ${
+                className={`flex min-h-[76px] items-center border-b border-slate-200 px-4 py-3 md:h-[86px] md:py-0 ${
                     isCollapsed ? "justify-center" : "justify-between"
                 }`}
             >
@@ -862,7 +862,7 @@ function Sidebar({ isCollapsed, activePage, onPageChange, onToggle }) {
                     type="button"
                     onClick={onToggle}
                     aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white shadow-sm transition hover:bg-slate-100"
+                    className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white shadow-sm transition hover:bg-slate-100 md:flex"
                 >
                     {isCollapsed
                         ? <ChevronRight size={22} />
@@ -871,7 +871,7 @@ function Sidebar({ isCollapsed, activePage, onPageChange, onToggle }) {
             </div>
 
             {/* Navigation buttons */}
-            <nav className="flex-1 space-y-3 p-4 pt-6">
+            <nav className="flex gap-2 overflow-x-auto p-3 md:flex-1 md:flex-col md:space-y-3 md:overflow-visible md:p-4 md:pt-6">
                 {navItems.map(({ label, page, icon: Icon }) => (
                     <button
                         key={label}
@@ -880,8 +880,8 @@ function Sidebar({ isCollapsed, activePage, onPageChange, onToggle }) {
                         onClick={() => onPageChange(page)}
 
                         // Highlight active page button
-                        className={`flex w-full items-center rounded-xl py-3 text-lg transition hover:bg-slate-100 ${
-                            isCollapsed ? "justify-center px-0" : "gap-4 px-4 text-left"
+                        className={`flex min-w-max items-center rounded-xl px-3 py-3 text-sm transition hover:bg-slate-100 md:w-full md:text-lg ${
+                            isCollapsed ? "gap-2 md:justify-center md:px-0" : "gap-2 md:gap-4 md:px-4 md:text-left"
                         } ${
                             activePage === page
                                 ? "bg-slate-100 font-semibold text-violet-700"
@@ -889,7 +889,7 @@ function Sidebar({ isCollapsed, activePage, onPageChange, onToggle }) {
                         }`}
                     >
                         <Icon size={24} strokeWidth={2} />
-                        {!isCollapsed && <span>{label}</span>}
+                        <span className={isCollapsed ? "md:hidden" : ""}>{label}</span>
                     </button>
                 ))}
             </nav>
@@ -897,12 +897,12 @@ function Sidebar({ isCollapsed, activePage, onPageChange, onToggle }) {
             {/* Logout button */}
             <button
                 title={isCollapsed ? "Logout" : undefined}
-                className={`m-4 flex items-center rounded-xl py-3 text-lg font-semibold hover:bg-slate-100 ${
-                    isCollapsed ? "justify-center px-0" : "gap-4 px-4"
+                className={`m-3 flex min-w-max items-center rounded-xl px-3 py-3 text-sm font-semibold hover:bg-slate-100 md:m-4 md:text-lg ${
+                    isCollapsed ? "gap-2 md:justify-center md:px-0" : "gap-2 md:gap-4 md:px-4"
                 }`}
             >
                 <LogOut size={24} />
-                {!isCollapsed && <span>Logout</span>}
+                <span className={isCollapsed ? "md:hidden" : ""}>Logout</span>
             </button>
         </aside>
     );
@@ -930,16 +930,16 @@ function Topbar({ onPageChange }) {
     };
 
     return (
-        <header className="relative flex h-[86px] items-center justify-between border-b border-slate-200 bg-white px-8">
+        <header className="relative flex flex-col gap-3 border-b border-slate-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:h-[86px] md:px-8 md:py-0">
 
             {/* Search bar */}
-            <div className="flex w-[380px] items-center gap-3 rounded-xl border border-slate-300 px-4 py-3 shadow-sm">
+            <div className="flex w-full items-center gap-3 rounded-xl border border-slate-300 px-4 py-3 shadow-sm sm:max-w-[380px]">
                 <Search size={20} className="text-slate-500" />
                 <input className="w-full text-base outline-none" placeholder="Search" />
             </div>
 
             {/* User info area */}
-            <div className="flex items-center gap-5 pr-2">
+            <div className="flex w-full items-center justify-end gap-3 sm:w-auto sm:gap-5 sm:pr-2">
                 <div className="relative">
                     <button
                         type="button"
@@ -956,7 +956,7 @@ function Topbar({ onPageChange }) {
                     </button>
 
                     {isNotificationsOpen && (
-                        <div className="absolute right-0 z-40 mt-3 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                        <div className="absolute right-0 z-40 mt-3 w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl sm:w-80">
                             <div className="border-b border-slate-200 px-4 py-3 font-bold">
                                 Notifications
                             </div>
@@ -997,7 +997,7 @@ function Topbar({ onPageChange }) {
                         title="Manager menu"
                     >
                         {/* User profile image */}
-                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-slate-300 bg-slate-100 shadow-sm">
+                        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-2 border-slate-300 bg-slate-100 shadow-sm sm:h-12 sm:w-12">
                             <img
                                 src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQI6QNyB22A2rTJfdHWecRsPWOH4OlbAUGIhQ&s"
                                 alt="Logged in manager"
@@ -1005,7 +1005,7 @@ function Topbar({ onPageChange }) {
                             />
                         </div>
 
-                        <span className="text-lg font-bold">Manager⌄</span>
+                        <span className="hidden text-lg font-bold sm:inline">Manager⌄</span>
                     </button>
 
                     {isManagerMenuOpen && (
@@ -1126,7 +1126,7 @@ function RowActions({ onEdit, onDelete }) {
 function FilterSelect({ value, onChange, options }) {
     return (
         <select
-            className="h-10 min-w-[150px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none hover:bg-slate-50"
+            className="h-10 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none hover:bg-slate-50 sm:w-auto sm:min-w-[150px]"
             value={value}
             onChange={(event) => onChange(event.target.value)}
         >
@@ -1165,7 +1165,7 @@ function TableFooter({ text, currentPage, totalPages, onPageChange }) {
     const pages = buildPageNumbers(totalPages);
 
     return (
-        <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-600">
+        <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
             <span>{text}</span>
 
             <div className="flex items-center gap-2">
@@ -1232,8 +1232,8 @@ function TextInput({ value, onChange, placeholder, type = "text" }) {
 function Modal({ title, children, onClose }) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
-            <div className="w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-xl">
-                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl">
+                <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                     <h3 className="text-xl font-bold">{title}</h3>
                     <button
                         type="button"
@@ -1268,7 +1268,7 @@ function ProjectForm({ initialProject, onCancel, onSave }) {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="Project Name">
                     <TextInput value={form.name} onChange={(value) => updateField("name", value)} placeholder="Graduation - Smith" />
                 </FormField>
@@ -1339,7 +1339,7 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="Project">
                     <select
                         value={form.project}
@@ -1464,14 +1464,14 @@ function Dashboard({ onPageChange }) {
     const { data: projectProgressData } = useApiPlaceholder(API_ENDPOINTS.dashboard.projectProgress, projectProgress);
 
     return (
-        <section className="space-y-5 bg-slate-50 p-6">
+        <section className="space-y-5 bg-slate-50 p-3 sm:p-4 lg:p-6">
 
             {/* KPI cards */}
-            <div className="grid grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
                 {dashboardKpis.map(([label, value]) => (
                     <div
                         key={label}
-                        className="rounded-xl border border-slate-300 bg-white px-5 py-7 text-center shadow-sm"
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-5 text-center shadow-sm sm:px-5 sm:py-7"
                     >
                         <div className="text-sm font-bold">{label}</div>
 
@@ -1490,11 +1490,11 @@ function Dashboard({ onPageChange }) {
             </div>
 
             {/* Charts section */}
-            <div className="grid grid-cols-[1.07fr_0.93fr] gap-5">
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.07fr_0.93fr]">
 
                 {/* Productivity chart */}
                 <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
-                    <h2 className="mb-2 text-2xl font-bold">
+                    <h2 className="mb-2 text-xl font-bold sm:text-2xl">
                         Employee Productivity Over Time
                     </h2>
 
@@ -1558,7 +1558,7 @@ function Dashboard({ onPageChange }) {
 
                 {/* Workflow pie chart */}
                 <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
-                    <h2 className="mb-2 text-2xl font-bold">
+                    <h2 className="mb-2 text-xl font-bold sm:text-2xl">
                         Workflow Distribution
                     </h2>
 
@@ -1623,7 +1623,7 @@ function Dashboard({ onPageChange }) {
             </div>
 
             {/* Bottom tables */}
-            <div className="grid grid-cols-[0.95fr_1.05fr] gap-5">
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.95fr_1.05fr]">
                 <EmployeeActivityPanel
                     rows={employeeActivityData}
                     onViewAll={() => onPageChange?.("employees")}
@@ -1640,12 +1640,12 @@ function Dashboard({ onPageChange }) {
 // Employee activity table
 function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
     return (
-        <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
-            <h2 className="mb-3 text-2xl font-bold">
+        <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
+            <h2 className="mb-3 text-xl font-bold sm:text-2xl">
                 Employee Activity
             </h2>
 
-            <table className="w-full border-collapse text-sm">
+            <table className="min-w-[900px] w-full border-collapse text-sm">
 
                 {/* Table header */}
                 <thead>
@@ -1700,12 +1700,12 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
 // Project progress table
 function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
     return (
-        <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
-            <h2 className="mb-3 text-2xl font-bold">
+        <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
+            <h2 className="mb-3 text-xl font-bold sm:text-2xl">
                 Project Progress
             </h2>
 
-            <table className="w-full border-collapse text-sm">
+            <table className="min-w-[900px] w-full border-collapse text-sm">
 
                 {/* Table header */}
                 <thead>
@@ -1978,20 +1978,20 @@ function ProjectsAndAssignments() {
     };
 
     return (
-        <section className="space-y-5 bg-slate-50 p-6">
+        <section className="space-y-5 bg-slate-50 p-3 sm:p-4 lg:p-6">
 
             {/* Projects table */}
-            <div className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-                    <h2 className="flex items-center gap-3 text-2xl font-bold">
+            <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <h2 className="flex items-center gap-3 text-xl font-bold sm:text-2xl">
                         <Folder size={26} /> Projects
                     </h2>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
                         <button
                             type="button"
                             onClick={() => downloadProjectsReport(projectRows, assignmentRows)}
-                            className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                            className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:w-auto"
                         >
                             <Download size={16} /> Export Report
                         </button>
@@ -1999,14 +1999,14 @@ function ProjectsAndAssignments() {
                         <button
                             type="button"
                             onClick={openNewProjectModal}
-                            className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 sm:w-auto"
                         >
                             <Plus size={16} /> New Project
                         </button>
                     </div>
                 </div>
 
-                <table className="w-full border-collapse text-sm">
+                <table className="min-w-[900px] w-full border-collapse text-sm">
                     <thead className="bg-slate-200 text-slate-800">
                     <tr>
                         {PROJECT_COLUMNS.map((column) => (
@@ -2070,13 +2070,13 @@ function ProjectsAndAssignments() {
             </div>
 
             {/* Assignments table */}
-            <div className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-                    <h2 className="flex items-center gap-3 text-2xl font-bold">
+            <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <h2 className="flex items-center gap-3 text-xl font-bold sm:text-2xl">
                         <ListChecks size={26} /> Assignments
                     </h2>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
                         <FilterSelect
                             value={projectFilter}
                             onChange={(value) => {
@@ -2105,14 +2105,14 @@ function ProjectsAndAssignments() {
                         <button
                             type="button"
                             onClick={openNewAssignmentModal}
-                            className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 sm:w-auto"
                         >
                             <Plus size={16} /> New Assignment
                         </button>
                     </div>
                 </div>
 
-                <table className="w-full border-collapse text-sm">
+                <table className="min-w-[900px] w-full border-collapse text-sm">
                     <thead className="bg-slate-200 text-slate-800">
                     <tr>
                         {ASSIGNMENT_COLUMNS.map((column) => (
@@ -2226,7 +2226,7 @@ function TaskForm({ initialTask, projectOptions, employeeOptions, onCancel, onSa
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="Task Name">
                     <TextInput value={form.taskName} onChange={(value) => updateField("taskName", value)} placeholder="Photo Editing Batch 1" />
                 </FormField>
@@ -2557,15 +2557,15 @@ function TaskManagementPage() {
     };
 
     return (
-        <section className="space-y-5 bg-slate-50 p-6">
-            <div className="grid grid-cols-4 gap-4">
+        <section className="space-y-5 bg-slate-50 p-3 sm:p-4 lg:p-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {[
                     ["Open Tasks", openTasks],
                     ["Completed Tasks", completedTasks],
                     ["In Review", reviewTasks],
                     ["Total Tracked Time", formatDuration(totalTrackedSeconds)],
                 ].map(([label, value]) => (
-                    <div key={label} className="rounded-xl border border-slate-300 bg-white px-5 py-6 text-center shadow-sm">
+                    <div key={label} className="rounded-xl border border-slate-300 bg-white px-4 py-5 text-center shadow-sm sm:px-5 sm:py-6">
                         <div className="text-sm font-bold">{label}</div>
                         <div className={`mt-4 text-3xl ${label === "Total Tracked Time" ? "text-violet-700" : "text-black"}`}>
                             {value}
@@ -2574,9 +2574,9 @@ function TaskManagementPage() {
                 ))}
             </div>
 
-            <div className="grid grid-cols-[380px_1fr] items-start gap-5">
-                <div className="self-start rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
-                    <h2 className="flex items-center gap-3 text-2xl font-bold">
+            <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[380px_1fr]">
+                <div className="self-start rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
+                    <h2 className="flex items-center gap-3 text-xl font-bold sm:text-2xl">
                         <Clock size={26} /> Active Time Tracker
                     </h2>
 
@@ -2586,7 +2586,7 @@ function TaskManagementPage() {
                                 <div className="text-sm font-semibold text-slate-500">Currently Tracking</div>
                                 <div className="mt-2 text-xl font-bold text-slate-900">{activeTask.taskName}</div>
                                 <div className="mt-1 text-sm text-slate-600">{activeTask.project}</div>
-                                <div className="mt-5 text-5xl font-bold text-violet-700">
+                                <div className="mt-5 text-4xl font-bold text-violet-700 sm:text-5xl">
                                     {formatDuration(getLiveTrackedSeconds(activeTask, timerTick))}
                                 </div>
                                 <button
@@ -2624,17 +2624,17 @@ function TaskManagementPage() {
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
-                    <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-                        <h2 className="flex items-center gap-3 text-2xl font-bold">
+                <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
+                    <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                        <h2 className="flex items-center gap-3 text-xl font-bold sm:text-2xl">
                             <ListChecks size={26} /> Task Management
                         </h2>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
                             <button
                                 type="button"
                                 onClick={() => downloadTasksReport(taskRows)}
-                                className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                                className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:w-auto"
                             >
                                 <Download size={16} /> Export Time Report
                             </button>
@@ -2642,7 +2642,7 @@ function TaskManagementPage() {
                             <button
                                 type="button"
                                 onClick={openNewTaskModal}
-                                className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+                                className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 sm:w-auto"
                             >
                                 <Plus size={16} /> New Task
                             </button>
@@ -2676,7 +2676,7 @@ function TaskManagementPage() {
                         />
                     </div>
 
-                    <table className="w-full border-collapse text-sm">
+                    <table className="min-w-[900px] w-full border-collapse text-sm">
                         <thead className="bg-slate-200 text-slate-800">
                         <tr>
                             {TASK_COLUMNS.map((column) => (
@@ -2777,9 +2777,9 @@ function TaskManagementPage() {
 // Placeholder pages for tabs that are not yet built
 function PlaceholderPage({ title }) {
     return (
-        <section className="bg-slate-50 p-6">
+        <section className="bg-slate-50 p-3 sm:p-4 lg:p-6">
             <div className="rounded-xl border border-slate-300 bg-white p-8 text-center shadow-sm">
-                <h1 className="text-3xl font-bold">{title}</h1>
+                <h1 className="text-xl font-bold sm:text-2xl sm:text-3xl">{title}</h1>
                 <p className="mt-3 text-slate-600">
                     This page is ready for future content.
                 </p>
@@ -2797,7 +2797,7 @@ export default function App() {
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-950">
-            <div className="flex">
+            <div className="flex min-h-screen flex-col md:flex-row">
 
                 {/* Sidebar */}
                 <Sidebar
@@ -2808,7 +2808,7 @@ export default function App() {
                 />
 
                 {/* Main content */}
-                <main className="min-w-0 flex-1">
+                <main className="min-w-0 flex-1 overflow-x-hidden">
 
                     {/* Top header */}
                     <Topbar onPageChange={setPage} />
