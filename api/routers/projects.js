@@ -164,6 +164,7 @@ router.get(
 //------------------------------//
 //       Update Project         //
 //------------------------------//
+// noinspection JSCheckFunctionSignatures
 router.patch(
     '/:id',
     [
