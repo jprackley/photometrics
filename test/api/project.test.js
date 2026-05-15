@@ -128,6 +128,7 @@ describe('Testing /api/projects', () => {
                 assert.equal(response.body.project_id, projectId);
                 assert.equal(response.body.project_name, "Delete Test Project");
             });
+        });
         describe("[test]: missing project", () => {
             test(`[expected]: status code ${C_HTTPS.STATUS.NOT_FOUND}`, async () => {
                 const missingProjectId = "00000000-0000-0000-0000-000000000000";
@@ -149,5 +150,4 @@ describe('Testing /api/projects', () => {
                 );
             });
         });
-    })
-})
+    });
