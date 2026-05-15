@@ -225,12 +225,17 @@ router.patch(
         const fields = ['project_name', 'client_id', 'managed_by', 'description', 'status', 'start_time', 'due_time', 'completed_at'];
         const set = [];
         const params = [];
+        let fieldsUpdated = false;
         fields.forEach((f) => {
             if (req.body[f] != null) {
                 params.push(req.body[f]);
                 set.push(`${f} = $${params.length}`);
+                fieldsUpdated = true;
             }
         });
+
+        if (fieldsUpdated) {set.push('updated_at = now()');}
+
         if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({ error: { code: C_HTTP.REASON.BAD_REQUEST, message: 'No updatable fields provided' } });
         params.push(id);
 
