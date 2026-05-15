@@ -1,5 +1,5 @@
 const express = require('express');
-const {paginate, handleValidation, buildPagination, isProjectStatus} = require("../utils/validation");
+const {paginate, handleValidation, buildPagination} = require("../utils/validation");
 const asyncHandler = require("../utils/asyncHandler");
 const {query} = require("../db");
 const {param, body} = require("express-validator");
@@ -10,6 +10,29 @@ const router = express.Router();
 //------------------------------//
 //        CREATE Project         //
 //------------------------------//
+/**
+ * Creates a new project record.
+ *
+ * Successful response:
+ * Status 201 Created
+ * Returns the newly created project record.
+ *
+ * Error response:
+ * Status 400 Bad Request
+ * Returned when request body validation fails.
+ *
+ * @name CreateProject
+ * @route {POST} /
+ * @param {string} req.body.client_id UUID of the client associated with the project.
+ * @param {string} [req.body.managed_by] Optional UUID of the manager assigned to the project.
+ * @param {string} req.body.project_name Name of the project.
+ * @param {string} req.body.description Description of the project.
+ * @param {string} [req.body.status] Optional project status.
+ * @param {string} [req.body.start_time] Optional project start time in ISO 8601 format.
+ * @param {string} [req.body.due_time] Optional project due time in ISO 8601 format.
+ * @param {string} [req.body.completed_at] Optional project completion time in ISO 8601 format.
+ * @returns {Object} 201 Newly created project record.
+ */
 router.post(
     '/',
     [
@@ -141,7 +164,44 @@ router.get(
 //------------------------------//
 //       Update Project         //
 //------------------------------//
+router.patch(
+    '/:id',
+    [
+        param('id').isUUID(),
+        body('project_name').optional().isString().isLength({ min: C.MIN.PROJECT_NAME_LENGTH, max: C.MAX.PROJECT_NAME_LENGTH }),
+        body('client_id').optional().isUUID(),
+        body('managed_by').optional().isUUID(),
+        body('description').optional().isString().isLength({ min: C.MIN.PROJECT_DESC_LENGTH, max: C.MAX.PROJECT_DESC_LENGTH }),
+        body('status').optional().isIn(C.STATUS.PROJECT).withMessage('Invalid project status'),
+        body('start_time').optional().isISO8601().withMessage('Invalid start time format'),
+        body('due_time').optional().isISO8601().withMessage('Invalid due time format'),
+        body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
+    ],
+    asyncHandler(async (req, res) => {
+        handleValidation(req, 'UPDATE Project:id - ');
+        const { id } = req.params;
+        const fields = ['project_name', 'client_id', 'managed_by', 'description', 'status', 'start_time', 'due_time', 'completed_at'];
+        const set = [];
+        const params = [];
+        fields.forEach((f) => {
+            if (req.body[f] != null) {
+                params.push(req.body[f]);
+                set.push(`${f} = $${params.length}`);
+            }
+        });
+        if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({ error: { code: C_HTTP.REASON.BAD_REQUEST, message: 'No updatable fields provided' } });
+        params.push(id);
 
+        const sql = `
+            UPDATE projects SET ${set.join(', ')}
+            WHERE project_id = $${params.length}
+            RETURNING *
+        `;
+        const { rows } = await query(sql, params);
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'Project not found' } });
+        res.json(rows[0]);
+    })
+)
 
 
 //------------------------------//

@@ -1,13 +1,10 @@
-const { test, describe, before, after } = require('node:test');
+const { test, describe, after } = require('node:test');
 const assert = require('node:assert/strict');
-const supertest = require('supertest');
 const request = require('supertest');
 const app = require('../../api/index');
 const { pool, healthcheck } = require("../../api/db");
 const C_HTTP = require('../../api/utils/httpStatus');
 const C = require('../../api/utils/constants');
-const {rows} = require("pg/lib/defaults");
-const {response} = require("express");
 
 let clients = [];
 let clientIds = [];
@@ -17,8 +14,7 @@ describe('POST /api/clients', () => {
     describe('[test]: database connection', () => {
         test('db healthcheck returns ok', async () => {
             const response = await healthcheck();
-            console.log(response);
-            assert.equal(response.ok, true);
+            assert.equal(response.ok, true, 'Database healthcheck failed');
         });
     });
 
@@ -204,9 +200,6 @@ describe('POST /api/clients', () => {
         describe("[test]: read by search", () => {
             test(`valid search: should return status code ${C_HTTP.STATUS.OK}`, async () => {
                 const response = await request(app).get('/api/clients?q=Johnny');
-                console.log("STATUS:", response.statusCode);
-                console.log("BODY:", JSON.stringify(response.body, null, 2));
-                console.log("DATA LENGTH:", response.body.data.length);
                 assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                     `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
                 assert.ok(response.body.data.length > 0, true,
@@ -215,12 +208,9 @@ describe('POST /api/clients', () => {
             })
             test(`empty search: should return status code ${C_HTTP.STATUS.OK} and data is empty`, async () => {
                 const response = await request(app).get('/api/clients?q=spiderman');
-                console.log("STATUS:", response.statusCode);
-                console.log("BODY:", JSON.stringify(response.body, null, 2));
-                console.log("DATA LENGTH:", response.body.data.length);
                 assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                     `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
-                assert.ok(response.body.data.length == 0, true,
+                assert.ok(response.body.data.length === 0, true,
                     `Expected data to be empty, got ${response.body.data.length} entries`);
                 }
             )
@@ -292,9 +282,6 @@ describe('POST /api/clients', () => {
                 ];
                 for (const testcase of testcases) {
                     const response = await request(app).patch(`/api/clients/${clientIds[0]}`).send(testcase.body);
-                    console.log(response.statusCode);
-                    console.log(response.body);
-                    console.log(response.text);
                     assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                         `${testcase.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
                 }
@@ -312,7 +299,8 @@ describe('POST /api/clients', () => {
             test(`[expected]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
                 for (const id of clientIds) {
                     const response = await request(app).delete(`/api/clients/${id}`);
-                    assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT);
+                    assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,
+                        `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode}`);
                 }
             })
         })

@@ -1,10 +1,10 @@
-const {describe, test} = require("node:test");
+const {describe, test, before} = require("node:test");
 const assert = require("node:assert/strict");
 const request = require("supertest");
 const app = require('../../api/index');
 const C_HTTPS = require('../../api/utils/httpStatus');
 
-describe('GET /api/projects', () => {
+describe('Testing /api/projects', () => {
 
     describe('[api]: CREATE projects', () => {
 
@@ -12,7 +12,7 @@ describe('GET /api/projects', () => {
             test(`[expected]: status code ${C_HTTPS.STATUS.CREATED}`, async () => {
                 const client_id = await request(app).get('/api/clients');
                 const response = await request(app).post('/api/projects').send({
-                    name: "Test Project",
+                    project_name: "Test Project",
                     description: "This is a test project",
                     client_id: client_id.body.data[0].client_id,
                     status: "To-Do",
@@ -52,8 +52,69 @@ describe('GET /api/projects', () => {
                 }
             })
         })
-
-        describe(
-        )
     })
+    describe("PATCH /api/projects/:id", () => {
+        let projectId;
+
+        describe("[test]: valid entry", () => {
+
+            before(async () => {
+                const response = await request(app).get('/api/projects');
+                projectId = response.body.data[0].project_id;
+            })
+
+            test(`[expected]: status code ${C_HTTPS.STATUS.OK}`, async () => {
+                const response = await request(app).patch(`/api/projects/${projectId}`).send({
+                    project_name: "Updated Test Project",
+                    description: "This project was updated during an automated PATCH test.",
+                    status: "In Progress"
+                });
+                assert.equal(response.statusCode, C_HTTPS.STATUS.OK,
+                    `Expected status code ${C_HTTPS.STATUS.OK}, got ${response.statusCode}`);
+            })
+        })
+
+        describe("[test]: invalid entry", () => {})
+        test("[expected]status code 400", async () => {
+            const response = await request(app).patch(`/api/projects/${projectId}`).send({});
+
+            assert.equal(response.statusCode, C_HTTPS.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTPS.STATUS.BAD_REQUEST}, got ${response.statusCode}`
+            );
+        });
+        describe("[test]: invalid project_id", () => {
+            test(`[expected]: status code ${C_HTTPS.STATUS.BAD_REQUEST}`, async () => {
+
+                const response = await request(app).patch("/api/projects/not-a-valid-uuid")
+                    .send({project_name: "Invalid UUID Test"});
+
+                assert.equal(response.statusCode, C_HTTPS.STATUS.BAD_REQUEST,
+                    `Expected status code ${C_HTTPS.STATUS.BAD_REQUEST}, got ${response.statusCode}`
+                );
+            });
+        })
+
+        describe("[test]: project not found", () => {})
+        test(`[expected] status code ${C_HTTPS.STATUS.NOT_FOUND}`, async () => {
+            const missingProjectId = "00000000-0000-0000-0000-000000000000";
+
+            const response = await request(app).patch(`/api/projects/${missingProjectId}`)
+                .send({project_name: "Missing Project Test"});
+
+            assert.equal(response.statusCode, C_HTTPS.STATUS.NOT_FOUND,
+                `Expected status code ${C_HTTPS.STATUS.NOT_FOUND}, got ${response.statusCode}`
+            );
+
+            assert.equal(response.body.error.message,"Project not found");
+        });
+        describe("[test]: invalid status", () => {})
+        test(`[expected] status code ${C_HTTPS.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).patch(`/api/projects/${projectId}`)
+                .send({status: "Invalid Status"});
+
+            assert.equal(response.statusCode,C_HTTPS.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTPS.STATUS.BAD_REQUEST}, got ${response.statusCode}`
+            );
+        });
+    });
 })

@@ -1,4 +1,4 @@
-const { param, body, query } = require('express-validator');
+const { param, query } = require('express-validator');
 const C = require('./constants');
 
 //Custom validators
