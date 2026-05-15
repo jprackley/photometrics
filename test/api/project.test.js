@@ -141,7 +141,7 @@ describe('Testing /api/projects', () => {
             });
         })
         describe("[test]: invalid project id", () => {})
-            test(`[expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            test(`[expected]: status code ${C_HTTPS.STATUS.BAD_REQUEST}`, async () => {
                 const response = await request(app).delete("/api/projects/not-a-valid-uuid");
 
                 assert.equal(response.statusCode, C_HTTPS.STATUS.BAD_REQUEST,

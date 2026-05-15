@@ -4,6 +4,7 @@ const C_HTTP = require('../utils/httpStatus');
 const asyncHandler = require('../utils/asyncHandler');
 const { query } = require('../db');
 const { body } = require("express-validator");
+const {handleValidation} = require("../utils/validation");
 const router = express.Router();
 
 //------------------------------//
@@ -21,7 +22,7 @@ router.post(
         body('account_role').isString().isIn(CONST.USER_ROLES).withMessage('Invalid account role'),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req);
+        handleValidation(req, 'CREATE User - ');
         const { first_name, last_name, company_name, email } = req.body;
 
         const sql = `
