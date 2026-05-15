@@ -1078,17 +1078,17 @@ function PriorityBadge({ value }) {
 }
 
 // Reusable progress bar component
-function ProgressBar({ value }) {
+function ProgressBar({ value, compact = false }) {
     return (
-        <div className="flex items-center gap-3">
-            <div className="h-3 flex-1 rounded-full border border-slate-300 bg-white">
+        <div className={`${compact ? "gap-1.5" : "gap-3"} flex items-center`}>
+            <div className="h-3 min-w-0 flex-1 rounded-full border border-slate-300 bg-white">
                 <div
                     className="h-full rounded-full bg-violet-600"
                     style={{ width: `${value}%` }}
                 />
             </div>
 
-            <span className="w-10 text-xs font-semibold text-slate-700">
+            <span className={`${compact ? "w-7 text-[10px]" : "w-10 text-xs"} shrink-0 font-semibold text-slate-700`}>
                 {value}%
             </span>
         </div>
@@ -1423,7 +1423,7 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
     );
 }
 
-// Creates colored chart line segments// Creates colored chart line segments
+// Creates colored chart line segments
 function ColoredLineSegment({ data, segment, index }) {
 
     // Skip last item
@@ -1640,12 +1640,12 @@ function Dashboard({ onPageChange }) {
 // Employee activity table
 function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
     return (
-        <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
-            <h2 className="mb-3 text-xl font-bold sm:text-2xl">
+        <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
+            <h2 className="mb-3 text-lg font-bold sm:text-2xl">
                 Employee Activity
             </h2>
 
-            <table className="min-w-[900px] w-full border-collapse text-sm">
+            <table className="w-full table-fixed border-collapse text-xs sm:text-sm">
 
                 {/* Table header */}
                 <thead>
@@ -1654,7 +1654,7 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
                         .map((h) => (
                             <th
                                 key={h}
-                                className="border border-slate-300 bg-white p-2 font-bold"
+                                className="break-words border border-slate-300 bg-white px-1.5 py-2 font-bold sm:px-2"
                             >
                                 {h}
                             </th>
@@ -1666,19 +1666,19 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
                 <tbody>
                 {rows.map((row) => (
                     <tr key={row[0]}>
-                        <td className="border border-slate-300 px-3 py-2">
+                        <td className="break-words border border-slate-300 px-1.5 py-2 sm:px-3">
                             {row[0]}
                         </td>
 
-                        <td className="border border-slate-300 px-3 py-2 text-center">
+                        <td className="break-words border border-slate-300 px-1.5 py-2 text-center sm:px-3">
                             {row[1]}
                         </td>
 
-                        <td className="border border-slate-300 px-3 py-2 text-center">
+                        <td className="break-words border border-slate-300 px-1.5 py-2 text-center sm:px-3">
                             {row[2]}
                         </td>
 
-                        <td className="border border-slate-300 px-3 py-2 text-center">
+                        <td className="break-words border border-slate-300 px-1.5 py-2 text-center sm:px-3">
                             <Badge value={row[3]} />
                         </td>
                     </tr>
@@ -1700,12 +1700,12 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
 // Project progress table
 function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
     return (
-        <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
-            <h2 className="mb-3 text-xl font-bold sm:text-2xl">
+        <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
+            <h2 className="mb-3 text-lg font-bold sm:text-2xl">
                 Project Progress
             </h2>
 
-            <table className="min-w-[900px] w-full border-collapse text-sm">
+            <table className="w-full table-fixed border-collapse text-xs sm:text-sm">
 
                 {/* Table header */}
                 <thead>
@@ -1714,7 +1714,7 @@ function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
                         .map((h) => (
                             <th
                                 key={h}
-                                className="border border-slate-300 bg-white p-2 font-bold"
+                                className="break-words border border-slate-300 bg-white px-1.5 py-2 font-bold sm:px-2"
                             >
                                 {h}
                             </th>
@@ -1726,25 +1726,25 @@ function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
                 <tbody>
                 {rows.map((row) => (
                     <tr key={row[0]}>
-                        <td className="border border-slate-300 px-3 py-2">
+                        <td className="break-words border border-slate-300 px-1.5 py-2 sm:px-3">
                             {row[0]}
                         </td>
 
-                        <td className="border border-slate-300 px-3 py-2 text-center">
+                        <td className="border border-slate-300 px-1.5 py-2 text-center sm:px-3">
                             {row[1]}
                         </td>
 
-                        <td className="border border-slate-300 px-3 py-2 text-center">
+                        <td className="border border-slate-300 px-1.5 py-2 text-center sm:px-3">
                             {row[2]}
                         </td>
 
-                        <td className="border border-slate-300 px-3 py-2 text-center">
+                        <td className="border border-slate-300 px-1.5 py-2 text-center sm:px-3">
                             {row[3]}
                         </td>
 
                         {/* Progress bar */}
-                        <td className="border border-slate-300 px-3 py-2">
-                            <ProgressBar value={row[4]} />
+                        <td className="border border-slate-300 px-1.5 py-2 sm:px-3">
+                            <ProgressBar value={row[4]} compact />
                         </td>
                     </tr>
                 ))}
