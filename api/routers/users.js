@@ -5,6 +5,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { query } = require('../db');
 const { body } = require("express-validator");
 const {handleValidation} = require("../utils/validation");
+const {hash} = require("node:crypto");
 const router = express.Router();
 
 //------------------------------//
@@ -23,14 +24,22 @@ router.post(
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE User - ');
-        const { first_name, last_name, company_name, email } = req.body;
+
+        const hashedPassword = hash(req.body.password_hash, 'sha256', (err, hashedPassword) => {
+            if (err) {
+                console.error('Error hashing password:', err);
+                return res.status(500).json({ error: 'Internal server error' });
+            }
+            return hashedPassword;
+        });
+        const { first_name, last_name, email, account_role } = req.body;
 
         const sql = `
       INSERT INTO users (first_name, last_name, email, password_hash, account_role)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
-        const { rows } = await query(sql, [first_name, last_name, company_name, email]);
+        const { rows } = await query(sql, [first_name, last_name, email, hashedPassword, account_role ]);
         res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
     })
 );
