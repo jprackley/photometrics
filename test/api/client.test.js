@@ -215,11 +215,7 @@ describe('POST /api/clients', () => {
                 }
             )
         })
-
-
     })
-
-
 
     //------------------------------------//
     //      UPDATE CLIENT TESTS           //
@@ -294,7 +290,7 @@ describe('POST /api/clients', () => {
     //        DELETE CLIENT TESTS         //
     //------------------------------------//
     describe('[api]: DELETE client', () => {
-        //Will delete all clients
+        //Will delete all CREATED clients
         describe("[test]: DELETE by ID", () => {
             test(`[expected]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
                 for (const id of clientIds) {
