@@ -234,7 +234,7 @@ router.patch(
             }
         });
 
-        if (fieldsUpdated) {set.push('updated_at = now()');}
+        //if (fieldsUpdated) {set.push('updated_at = now()');}
 
         if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({ error: { code: C_HTTP.REASON.BAD_REQUEST, message: 'No updatable fields provided' } });
         params.push(id);
