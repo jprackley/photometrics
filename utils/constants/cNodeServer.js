@@ -1,0 +1,20 @@
+const PAGINATE = {
+    LIMIT: 50,
+    MIN_LIMIT: 1,
+    MAX_LIMIT: 100,
+    OFFSET: 0,
+    PAGE: 1,
+    MIN_PAGE: 1,
+    SORT: 'created_at',
+    ORDER: 'desc',
+}
+const SORTABLE = {
+    USERS: ['created_at', 'updated_at', 'first_name', 'last_name', 'email', 'account_role'],
+    CLIENTS: ['created_at', 'updated_at', 'first_name', 'last_name', 'company_name'],
+    PROJECTS: ['created_at', 'updated_at', 'project_name', 'status', 'start_time', 'due_time', 'completed_at'],
+    TASKS: ['created_at', 'updated_at', 'task_name', 'category', 'status', 'start_time', 'due_time', 'completed_at'],
+    ASCENDING: 'asc',
+    DESCENDING: 'desc',
+}
+
+module.exports = { PAGINATE, SORTABLE };

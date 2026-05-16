@@ -1,10 +1,11 @@
 const express = require('express');
-const {paginate, handleValidation, buildPagination} = require("../utils/validation");
-const asyncHandler = require("../utils/asyncHandler");
+const {paginate, handleValidation, buildPagination} = require("../../utils/helpers/validation");
+const asyncHandler = require("../../utils/helpers/asyncHandler");
 const {query} = require("../db");
 const {param, body} = require("express-validator");
-const C_HTTP = require("../utils/cHTTP");
-const C = require("../utils/cSchema");
+const C_HTTP = require("../../utils/constants/cHTTP");
+const C_SCHEMA = require("../../utils/constants/cSchema");
+const C_NODE = require("../../utils/constants/cNodeServer");
 const router = express.Router();
 
 //------------------------------//
@@ -38,9 +39,9 @@ router.post(
     [
         body('client_id').isUUID(),
         body('managed_by').optional().isUUID(),
-        body('project_name').isString().isLength({ min: C.MIN.PROJECT_NAME_LENGTH, max: C.MAX.PROJECT_NAME_LENGTH }),
-        body('description').isString().isLength({ min: C.MIN.PROJECT_DESC_LENGTH, max: C.MAX.PROJECT_DESC_LENGTH }),
-        body('status').optional().isIn(C.STATUS.PROJECT).withMessage('Invalid project status'),
+        body('project_name').isString().isLength({ min: C_SCHEMA.MIN.PROJECT_NAME_LENGTH, max: C_SCHEMA.MAX.PROJECT_NAME_LENGTH }),
+        body('description').isString().isLength({ min: C_SCHEMA.MIN.PROJECT_DESC_LENGTH, max: C_SCHEMA.MAX.PROJECT_DESC_LENGTH }),
+        body('status').optional().isIn(C_SCHEMA.STATUS.PROJECT).withMessage('Invalid project status'),
         body('start_time').optional().isISO8601().withMessage('Invalid start time format'),
         body('due_time').optional().isISO8601().withMessage('Invalid due time format'),
         body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
@@ -86,19 +87,14 @@ router.get(
     [paginate],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ Projects - ');
-        const { page = 1, limit = 20, sort = 'due_time', order = 'desc', q } = req.query;
+        const { page = C_NODE.PAGINATE.PAGE, limit = C_NODE.PAGINATE.LIMIT, sort = C_NODE.PAGINATE.SORT,
+            order = C_NODE.PAGINATE.ORDER, q } = req.query;
         const { offset } = buildPagination({ page: Number(page), limit: Number(limit) });
 
         // Basic whitelist for sort fields to avoid SQL injection
-        const sortable = new Set(
-            [
-                'project_name', 'status',
-                'created_at', 'updated_at',
-                'completed_at', 'due_time',
-                'start_time'
-            ]);
-        const sortField = sortable.has(String(sort)) ? sort : 'created_at';
-        const sortDir = order === 'asc' ? 'asc' : 'desc';
+        const sortable = C_NODE.SORTABLE.PROJECTS;
+        const sortField = sortable.includes(String(sort)) ? sort : C_NODE.SORTABLE.PROJECTS[0];
+        const sortDir = order === C_NODE.SORTABLE.ASCENDING ? C_NODE.SORTABLE.ASCENDING : C_NODE.SORTABLE.DESCENDING;
 
         const params = [];
         let where = '';
@@ -210,11 +206,11 @@ router.patch(
     '/:id',
     [
         param('id').isUUID(),
-        body('project_name').optional().isString().isLength({ min: C.MIN.PROJECT_NAME_LENGTH, max: C.MAX.PROJECT_NAME_LENGTH }),
+        body('project_name').optional().isString().isLength({ min: C_SCHEMA.MIN.PROJECT_NAME_LENGTH, max: C_SCHEMA.MAX.PROJECT_NAME_LENGTH }),
         body('client_id').optional().isUUID(),
         body('managed_by').optional().isUUID(),
-        body('description').optional().isString().isLength({ min: C.MIN.PROJECT_DESC_LENGTH, max: C.MAX.PROJECT_DESC_LENGTH }),
-        body('status').optional().isIn(C.STATUS.PROJECT).withMessage('Invalid project status'),
+        body('description').optional().isString().isLength({ min: C_SCHEMA.MIN.PROJECT_DESC_LENGTH, max: C_SCHEMA.MAX.PROJECT_DESC_LENGTH }),
+        body('status').optional().isIn(C_SCHEMA.STATUS.PROJECT).withMessage('Invalid project status'),
         body('start_time').optional().isISO8601().withMessage('Invalid start time format'),
         body('due_time').optional().isISO8601().withMessage('Invalid due time format'),
         body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
@@ -225,22 +221,18 @@ router.patch(
         const fields = ['project_name', 'client_id', 'managed_by', 'description', 'status', 'start_time', 'due_time', 'completed_at'];
         const set = [];
         const params = [];
-        let fieldsUpdated = false;
         fields.forEach((f) => {
             if (req.body[f] != null) {
                 params.push(req.body[f]);
                 set.push(`${f} = $${params.length}`);
-                fieldsUpdated = true;
             }
         });
-
-        //if (fieldsUpdated) {set.push('updated_at = now()');}
 
         if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({ error: { code: C_HTTP.REASON.BAD_REQUEST, message: 'No updatable fields provided' } });
         params.push(id);
 
         const sql = `
-            UPDATE projects SET ${set.join(', ')}
+            UPDATE projects SET ${set.join(', ')}, updated_at = now()
             WHERE project_id = $${params.length}
             RETURNING *
         `;

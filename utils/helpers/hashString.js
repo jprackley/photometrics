@@ -1,5 +1,5 @@
 const crypto = require("node:crypto");
-const C_HTTP = require("./cHTTP");
+const C_HTTP = require("../constants/cHTTP");
 /**
  * Hashes a plain text password using SHA256.
  *

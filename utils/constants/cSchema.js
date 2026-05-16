@@ -1,4 +1,4 @@
-// Constants for PostgreSQL
+// Constants for PostgreSQL Schema
 const USER_ROLES = ['Manager', 'Employee'];
 const TASK_CATEGORIES = ['Import', 'Cull', 'Edit', 'Quality Review', 'Export', 'Delivery', 'Other'];
 
@@ -8,14 +8,27 @@ const STATUS = {
     IMAGE: ['Pending', 'In Progress', 'Completed', 'Rejected']
 }
 const MIN = {
-    //For Clients
+    //For Clients and Users
     FIRST_NAME_LENGTH: 1,
     LAST_NAME_LENGTH: 1,
     COMPANY_NAME_LENGTH: 1,
+    EMAIL_LENGTH: 1,
 
     //For Projects
     PROJECT_NAME_LENGTH: 1,
     PROJECT_DESC_LENGTH: 0,
+
+    //For Tasks
+    TASK_NAME_LENGTH: 1,
+    TASK_DESC_LENGTH: 0,
+
+    //For Images
+    IMAGE_NAME_LENGTH: 1,
+    IMAGE_DESC_LENGTH: 0,
+    IMAGE_URL_LENGTH: 0,
+
+    //For Time Entries
+
 }
 const MAX = {
     //For Clients
@@ -27,6 +40,17 @@ const MAX = {
     //For Projects
     PROJECT_NAME_LENGTH: 255,
     PROJECT_DESC_LENGTH: 500,
+
+    //For Tasks
+    TASK_NAME_LENGTH: 255,
+    TASK_DESC_LENGTH: 500,
+
+    //For Images
+    IMAGE_NAME_LENGTH: 255,
+    IMAGE_DESC_LENGTH: 500,
+    IMAGE_URL_LENGTH: 255,
+
+    //For Time Entries
 }
 
 module.exports = { USER_ROLES, TASK_CATEGORIES, STATUS, MIN, MAX  };

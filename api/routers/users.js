@@ -1,12 +1,15 @@
 const express = require('express');
-const CONST = require('../utils/cSchema');
-const C_HTTP = require('../utils/cHTTP');
-const asyncHandler = require('../utils/asyncHandler');
+const router = express.Router();
+const C_SCHEMA = require('../../utils/constants/cSchema');
+const C_HTTP = require('../../utils/constants/cHTTP');
+const C_NODE = require('../../utils/constants/cNodeServer');
+const asyncHandler = require('../../utils/helpers/asyncHandler');
+const {handleValidation, paginate, buildPagination} = require("../../utils/helpers/validation");
+const hashPassword = require("../../utils/helpers/hashString");
 const { query } = require('../db');
 const { body, param} = require("express-validator");
-const {handleValidation} = require("../utils/validation");
-const hashPassword = require("../utils/hashString");
-const router = express.Router();
+
+
 
 const safeUserColumns = `
     user_id,
@@ -24,13 +27,13 @@ const safeUserColumns = `
 router.post(
     '/',
     [
-        body('first_name').isString().isLength({ min: CONST.MIN.FIRST_NAME_LENGTH, max: CONST.MAX.FIRST_NAME_LENGTH })
-            .withMessage(`First name must be between ${CONST.MIN.FIRST_NAME_LENGTH} and ${CONST.MAX.FIRST_NAME_LENGTH} characters`),
-        body('last_name').isString().isLength({ min: CONST.MIN.LAST_NAME_LENGTH, max: CONST.MAX.LAST_NAME_LENGTH })
-            .withMessage(`Last name must be between ${CONST.MIN.LAST_NAME_LENGTH} and ${CONST.MAX.LAST_NAME_LENGTH} characters`),
-        body('email').isEmail().isLength({ max: CONST.MAX.EMAIL_LENGTH }).withMessage('Invalid email format'),
+        body('first_name').isString().isLength({ min: C_SCHEMA.MIN.FIRST_NAME_LENGTH, max: C_SCHEMA.MAX.FIRST_NAME_LENGTH })
+            .withMessage(`First name must be between ${C_SCHEMA.MIN.FIRST_NAME_LENGTH} and ${C_SCHEMA.MAX.FIRST_NAME_LENGTH} characters`),
+        body('last_name').isString().isLength({ min: C_SCHEMA.MIN.LAST_NAME_LENGTH, max: C_SCHEMA.MAX.LAST_NAME_LENGTH })
+            .withMessage(`Last name must be between ${C_SCHEMA.MIN.LAST_NAME_LENGTH} and ${C_SCHEMA.MAX.LAST_NAME_LENGTH} characters`),
+        body('email').isEmail().isLength({ max: C_SCHEMA.MAX.EMAIL_LENGTH }).withMessage('Invalid email format'),
         body('password_hash').isString().withMessage('Password is invalid or missing'),
-        body('account_role').isString().isIn(CONST.USER_ROLES).withMessage('Invalid account role'),
+        body('account_role').isString().isIn(C_SCHEMA.USER_ROLES).withMessage('Invalid account role'),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE User - ');
@@ -58,14 +61,53 @@ router.post(
 //------------------------------//
 //        READ User             //
 //------------------------------//
-router.get(
+/*router.get(
     `/`,
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ Users - ');
-        const { rows } = await query(`SELECT ${safeUserColumns} FROM users`);
+        const {rows} = await query(`SELECT ${safeUserColumns}
+                                    FROM users`);
         res.json(rows);
     })
-)
+)*/
+router.get(
+    '/',
+    [paginate],
+    asyncHandler(async (req, res) => {
+        handleValidation(req, 'READ Users - ');
+        const { page = C_NODE.PAGINATE.PAGE, limit = C_NODE.PAGINATE.LIMIT,
+            sort = C_NODE.PAGINATE.SORT, order = C_NODE.PAGINATE.ORDER, q } = req.query;
+        const { offset } = buildPagination({ page: Number(page), limit: Number(limit) });
+
+        // Basic whitelist for sort fields to avoid SQL injection
+        const sortable = C_NODE.SORTABLE.USERS;
+        const sortField = sortable.includes(String(sort)) ? sort : C_NODE.SORTABLE.USERS[0];
+        const sortDir = order === C_NODE.SORTABLE.ASCENDING ? C_NODE.SORTABLE.ASCENDING : C_NODE.SORTABLE.DESCENDING;
+
+        const params = [];
+        let where = '';
+        if (q) {
+            params.push(`%${q}%`);
+            where = `WHERE first_name ILIKE $${params.length} OR last_name ILIKE $${params.length} 
+            OR email ILIKE $${params.length} OR account_role ILIKE $${params.length}`;
+        }
+        const sql = `
+            SELECT * FROM users
+            ${where}
+            ORDER BY ${sortField} ${sortDir}
+            LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+
+        params.push(limit, offset);
+
+        const { rows } = await query(sql, params);
+
+        // total count for pagination UI
+        const countSql = `SELECT count(*)::int AS total FROM users ${where}`;
+        const { rows: countRows } = await query(countSql, q ? [params[0]] : []);
+
+        res.json({ data: rows, page: Number(page), limit: Number(limit), total: countRows[0].total });
+    })
+);
 router.get(
     `/:id`,
     [param('id').isUUID()],
@@ -77,7 +119,9 @@ router.get(
         res.json(rows[0]);
     })
 )
-
+//--------------------------------//
+//        UPDATE User             //
+//--------------------------------//
 router.patch(
     '/:id',
     asyncHandler(async (req, res) => {
@@ -102,14 +146,28 @@ router.patch(
             { error: { code: C_HTTP.REASON.BAD_REQUEST, message: 'No updatable fields provided' } });
         params.push(id);
         const sql = `
-            UPDATE users SET ${set.join(', ')}
+            UPDATE users SET ${set.join(', ')}, updated_at = now()
             WHERE user_id = $${params.length}
-            RETURNING 
-                ${safeUserColumns}
+            RETURNING ${safeUserColumns}
         `;
         const { rows } = await query(sql, params);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'User not found' } });
         res.json(rows[0]);
+    })
+)
+//--------------------------------//
+//        DELETE User             //
+//--------------------------------//
+
+router.delete(
+    '/:id',
+    [param('id').isUUID()],
+    asyncHandler(async (req, res) => {
+        handleValidation(req, 'DELETE User - ');
+        const { id } = req.params;
+        const { rowCount } = await query('DELETE FROM users WHERE user_id = $1', [id]);
+        if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'User not found' } });
+        res.status(C_HTTP.STATUS.NO_CONTENT).send();
     })
 )
 

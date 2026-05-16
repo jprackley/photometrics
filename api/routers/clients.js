@@ -1,11 +1,13 @@
 const express = require('express');
-const C = require('../utils/cSchema');
-const C_HTTP = require('../utils/cHTTP');
+const C_SCHEMA = require('../../utils/constants/cSchema');
+const C_HTTP = require('../../utils/constants/cHTTP');
 const router = express.Router();
-const asyncHandler = require('../utils/asyncHandler');
+const asyncHandler = require('../../utils/helpers/asyncHandler');
 const { query } = require('../db');
 const { body, param } = require('express-validator');
-const { paginate, buildPagination, handleValidation } = require('../utils/validation');
+const { paginate, buildPagination, handleValidation } = require('../../utils/helpers/validation');
+const C_NODE = require("../../utils/constants/cNodeServer");
+const {SORTABLE} = require("../../utils/constants/cNodeServer");
 
 //--------------------//
 //   CREATE Client    //
@@ -13,10 +15,10 @@ const { paginate, buildPagination, handleValidation } = require('../utils/valida
 router.post(
     '/',
     [
-        body('first_name').isString().isLength({ min: C.MIN.FIRST_NAME_LENGTH, max: C.MAX.FIRST_NAME_LENGTH }),
-        body('last_name').isString().isLength({ min: C.MIN.LAST_NAME_LENGTH, max: C.MAX.LAST_NAME_LENGTH }),
-        body('company_name').isString().isLength({ min: C.MIN.LAST_NAME_LENGTH, max: C.MAX.COMPANY_NAME_LENGTH }),
-        body('email').isEmail().isLength({ max: C.MAX.EMAIL_LENGTH }),
+        body('first_name').isString().isLength({ min: C_SCHEMA.MIN.FIRST_NAME_LENGTH, max: C_SCHEMA.MAX.FIRST_NAME_LENGTH }),
+        body('last_name').isString().isLength({ min: C_SCHEMA.MIN.LAST_NAME_LENGTH, max: C_SCHEMA.MAX.LAST_NAME_LENGTH }),
+        body('company_name').isString().isLength({ min: C_SCHEMA.MIN.LAST_NAME_LENGTH, max: C_SCHEMA.MAX.COMPANY_NAME_LENGTH }),
+        body('email').isEmail().isLength({ max: C_SCHEMA.MAX.EMAIL_LENGTH }),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE Client - ');
@@ -40,13 +42,14 @@ router.get(
     [paginate],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ Clients - ');
-        const { page = 1, limit = 20, sort = 'created_at', order = 'desc', q } = req.query;
+        const { page = C_NODE.PAGINATE.PAGE, limit = C_NODE.PAGINATE.LIMIT,
+            sort = C_NODE.PAGINATE.SORT, order = C_NODE.PAGINATE.ORDER, q } = req.query;
         const { offset } = buildPagination({ page: Number(page), limit: Number(limit) });
 
         // Basic whitelist for sort fields to avoid SQL injection
-        const sortable = new Set(['created_at', 'updated_at', 'first_name', 'last_name', 'company_name']);
-        const sortField = sortable.has(String(sort)) ? sort : 'created_at';
-        const sortDir = order === 'asc' ? 'asc' : 'desc';
+        const sortable = SORTABLE.CLIENTS;
+        const sortField = sortable.includes(String(sort)) ? sort : SORTABLE.CLIENTS[0];
+        const sortDir = order === SORTABLE.ASCENDING ? SORTABLE.ASCENDING : SORTABLE.DESCENDING;
 
         const params = [];
         let where = '';
@@ -114,10 +117,10 @@ router.patch(
         params.push(id);
 
         const sql = `
-      UPDATE clients SET ${set.join(', ')}, updated_at = now()
-      WHERE client_id = $${params.length}
-      RETURNING *
-    `;
+            UPDATE clients SET ${set.join(', ')}, updated_at = now()
+            WHERE client_id = $${params.length}
+            RETURNING *
+        `;
         const { rows } = await query(sql, params);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'Client not found' } });
         res.json(rows[0]);

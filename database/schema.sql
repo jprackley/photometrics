@@ -55,9 +55,9 @@ CREATE TABLE users (
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    last_login TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMPTZ DEFAULT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     account_role user_role NOT NULL
 );
 
@@ -67,8 +67,8 @@ CREATE TABLE IF NOT EXISTS clients (
     last_name VARCHAR(100) NOT NULL,
     company_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE projects (
@@ -76,11 +76,11 @@ CREATE TABLE projects (
     client_id UUID NOT NULL,
     managed_by UUID REFERENCES users(user_id) ON DELETE SET NULL,
     project_name VARCHAR(255) NOT NULL,
-    description TEXT,
+    description TEXT DEFAULT NULL,
     status project_status DEFAULT 'To-Do',
-    start_time TIMESTAMPTZ,
-    due_time TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
+    start_time TIMESTAMPTZ DEFAULT now(),
+    due_time TIMESTAMPTZ DEFAULT NULL,
+    completed_at TIMESTAMPTZ DEFAULT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT fk_projects_client
@@ -98,16 +98,17 @@ CREATE TABLE projects (
 CREATE TABLE tasks (
     task_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL,
+    task_name VARCHAR(255) NOT NULL,
     category task_category NOT NULL DEFAULT 'Other',
-    description TEXT,
+    description TEXT DEFAULT NULL,
     status task_status DEFAULT 'To-Do',
-    start_time TIMESTAMPTZ,
-    due_time TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
-    assigned_by UUID REFERENCES users(user_id) ON DELETE SET NULL,
-    assigned_to UUID REFERENCES users(user_id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    start_time TIMESTAMPTZ DEFAULT now(),
+    due_time TIMESTAMPTZ DEFAULT NULL,
+    completed_at TIMESTAMPTZ DEFAULT NULL,
+    assigned_by UUID DEFAULT NULL REFERENCES users(user_id) ON DELETE SET NULL,
+    assigned_to UUID DEFAULT NULL REFERENCES users(user_id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT fk_tasks_project
         FOREIGN KEY (project_id)
         REFERENCES projects(project_id)
@@ -121,13 +122,14 @@ CREATE TABLE tasks (
 CREATE TABLE images (
     image_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL,
-    task_id UUID,
-    name VARCHAR(255) NOT NULL,
-    url TEXT,
+    task_id UUID DEFAULT NULL,
+    name VARCHAR(255) DEFAULT CURRENT_DATE::text || '_' || gen_random_uuid()::text,
+    description TEXT DEFAULT NULL,
+    url TEXT DEFAULT NULL,
     status image_status NOT NULL DEFAULT 'Pending',
     completed BOOLEAN NOT NULL DEFAULT false,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT fk_images_project
         FOREIGN KEY (project_id)
         REFERENCES projects(project_id)
@@ -143,9 +145,9 @@ CREATE TABLE time_entries (
     task_id UUID NOT NULL,
     employee_id UUID NOT NULL,
     start_time TIMESTAMPTZ NOT NULL,
-    end_time TIMESTAMPTZ,
-    total_time DECIMAL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    end_time TIMESTAMPTZ DEFAULT NULL,
+    total_time DECIMAL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT fk_time_entries_task
         FOREIGN KEY (task_id)
         REFERENCES tasks(task_id)

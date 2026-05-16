@@ -1,6 +1,6 @@
 const express = require('express')
 const cors = require('cors')
-const C_HTTP = require('./utils/cHTTP')
+const C_HTTP = require('../utils/constants/cHTTP')
 const app = express()
 
 app.use(cors());
@@ -19,7 +19,7 @@ app.use('/api/time-entries', require('./routers/timeEntries'));
 app.use('/api/users', require('./routers/users'));
 
 // Error handler MUST BE LAST
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
     const status = err.status || C_HTTP.STATUS.INTERNAL_SERVER_ERROR;
     const code = err.code || 'internal_error';
     console.error('[error]', {
@@ -28,7 +28,13 @@ app.use((err, req, res, next) => {
         message: err.message,
         stack: err.stack,
     });
-    res.status(status).json({ error: { code, message: err.message } });
+    res.status(status).json({
+        error: {
+            code: err.code || C_HTTP.STATUS.INTERNAL_SERVER_ERROR,
+            message: err.message,
+            details: err.details || null,
+        }
+    });
 });
 
 module.exports = app;
