@@ -82,7 +82,7 @@ router.get(
         if (q) {
             params.push(`%${q}%`);
             where = `WHERE first_name ILIKE $${params.length} OR last_name ILIKE $${params.length} 
-            OR email ILIKE $${params.length} OR account_role ILIKE $${params.length}`;
+            OR email ILIKE $${params.length} OR account_role::text ILIKE $${params.length}`;
         }
         const sql = `
             SELECT ${C_SCHEMA.SAFE_USER_RETURN} FROM users
