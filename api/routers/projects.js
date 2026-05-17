@@ -256,7 +256,7 @@ router.patch(
  * @param {string} req.params.id
  * The UUID of the project to delete.
  *
- * @returns {Object} 200
+ * @returns {Object} 204
  * Returns the deleted project object.
  * @returns {Object} 400
  * Returns a validation error if the project ID is not a valid UUID.
@@ -274,7 +274,7 @@ router.delete(
         const { id } = req.params;
         const { rows } = await query('DELETE FROM projects WHERE project_id = $1 RETURNING *', [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'Project not found' } });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.NO_CONTENT).send();
     })
 )
 
