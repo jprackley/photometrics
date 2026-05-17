@@ -57,11 +57,19 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 // Maps front-end data areas to backend routes. Backend paths can change here without touching the UI components.
 const API_ENDPOINTS = {
     //I will work on this later.
+    // Authentication endpoints for login/logout and session handling
+    // Frontend expects JWT or session token response on login
     auth: {
         login: "/auth/login",
         logout: "/auth/logout",
     },
     //These will be done later. We will probably need a non SQL database for these.
+    
+    //---------------------------------------------------------------------------------
+    // Dashboard endpoints are read-only aggregated/statistical data.
+    // These power charts, KPI cards, graphs, workload tracking, and progress widgets.
+    // Does not necessarily require NoSQL unless you want faster analytics aggregation.
+    //----------------------------------------------------------------------------------
     dashboard: {
         kpis: "/dashboard/kpis",
         productivity: "/dashboard/productivity",
@@ -71,14 +79,98 @@ const API_ENDPOINTS = {
     },
     //users: "/users" This router is for CRUD of Managers, and Employees
     //clients: "/clients" This router is for CRUD of Clients
+    
+    //-----------------------------------------------------------------
+    // CRUD for managers/employees/user accounts.
+    // Frontend expects:
+    // GET all users
+    // GET single user
+    // POST create
+    // PUT update
+    // DELETE remove/deactivate
+    // Also used for authentication roles/permissions.
+    // users: "/users",
+
+    // CRUD for customer/client information tied to projects.
+    // Stores company info, contacts, addresses, billing details, etc.
+    // clients: "/clients",
+    //------------------------------------------------------------------
+
+    // Main project management endpoint.
+    // Stores project details, status, deadlines, linked client, assigned employees, uploaded files, etc.
     projects: "/projects",
     //images: "/images" This router is for CRUD of Images to be linked to a Project"
+
+    //--------------------------------------------------------------------
+    // Image/file upload CRUD for project attachments.
+    // Used for project reference images, screenshots, documents, deliverables, etc.
+    // images: "/images",
+
+    // Assignment API links employees/users to projects/tasks.
+    // Frontend uses this for:
+    // - assigning employees to projects
+    // - assigning tasks
+    // - workload distribution
+    // - showing employee project lists
+    // Expected relationships:
+    // employeeId <-> projectId <-> taskId
+    //----------------------------------------------------------------------
     assignments: "/assignments", //How are you trying to use this API?
+
+    //-----------------------------------------------------------------------
+    // Yes — this is employee CRUD.
+    // Frontend uses it for:
+    // - employee directory
+    // - employee profile management
+    // - productivity tracking
+    // - role/title info
+    // - availability/status
+    // - employee dashboard displays
+    //-----------------------------------------------------------------------
     employees: "/employees", //Is this for employee CRUD?
+    //-----------------------------------------------------------------------
+    // Task CRUD tied to projects and employees.
+    // Includes:
+    // - task status
+    // - priority
+    // - due dates
+    // - progress %
+    // - timer tracking linkage
+    //-----------------------------------------------------------------------
     tasks: "/tasks",
+    //-----------------------------------------------------------------------
+    // Stores clocked work time for tasks/projects.
+    // Frontend timer system posts here.
+    // Expected fields:
+    // employeeId, taskId, startTime, endTime, duration
+    //-----------------------------------------------------------------------
     timeEntries: "/time-entries",
+    //-----------------------------------------------------------------------
+    // Generated reports endpoint.
+    // Used for exporting/filtering:
+    // - employee productivity
+    // - project progress
+    // - time tracking
+    // - utilization
+    // - client/project summaries
+    //------------------------------------------------------------------------
     reports: "/reports", //Will most likely be part of the above mentioned non SQL database.
+    //------------------------------------------------------------------------
+    // Analytics endpoints for graphs, trends, forecasting, workload analysis, etc.
+    // Mostly aggregated/calculated data.
+    //------------------------------------------------------------------------
     analytics: "/analytics", //Will most likely be part of the above mentioned non SQL database.
+    //------------------------------------------------------------------------
+    // Application/system settings storage.
+    // Frontend currently needs:
+    // - theme/dark mode
+    // - dashboard preferences
+    // - notification preferences
+    // - timer behavior
+    // - default filters/views
+    // - role/permission settings
+    // - company settings
+    //-------------------------------------------------------------------------
     settings: "/settings", //What settings do you need to store?
 };
 
