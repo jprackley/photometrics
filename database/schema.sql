@@ -64,9 +64,30 @@ CREATE TABLE users (
 CREATE TABLE IF NOT EXISTS clients (
     client_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100) DEFAULT NULL,
     last_name VARCHAR(100) NOT NULL,
+    title VARCHAR(100) DEFAULT NULL,
     company_name VARCHAR(255) NOT NULL,
+
     email VARCHAR(255) NOT NULL UNIQUE,
+    phone_number VARCHAR(20) DEFAULT NULL,
+    website VARCHAR(255) DEFAULT NULL,
+    notes TEXT DEFAULT NULL,
+
+    address_line1 VARCHAR(255) DEFAULT NULL,
+    address_line2 VARCHAR(255) DEFAULT NULL,
+    city VARCHAR(100) DEFAULT NULL,
+    state VARCHAR(100) DEFAULT NULL,
+    postal_code VARCHAR(20) DEFAULT NULL,
+    country VARCHAR(100) DEFAULT NULL,
+
+    billing_address_line1 VARCHAR(255) DEFAULT NULL,
+    billing_address_line2 VARCHAR(255) DEFAULT NULL,
+    billing_city VARCHAR(100) DEFAULT NULL,
+    billing_state VARCHAR(100) DEFAULT NULL,
+    billing_postal_code VARCHAR(20) DEFAULT NULL,
+    billing_country VARCHAR(100) DEFAULT NULL,
+
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

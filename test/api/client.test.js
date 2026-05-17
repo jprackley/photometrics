@@ -65,7 +65,7 @@ const clients_overrun = [
  * This suite validates the main client API operations:
  * create, read, update, and delete.
  *
- * A client is created before the test suite runs so read, update,
+ * A client is created before the test suite runs, so read, update,
  * and delete tests have a known valid client ID to use.
  *
  * Any clients created during the test run are stored in the `clients`
@@ -83,7 +83,7 @@ describe('Testing /api/clients', () => {
         );
         assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
             `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode}`);
-        clients.push(response.body);
+        if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
     })
     /**
      * Deletes all clients created during the test run.
@@ -119,10 +119,10 @@ describe('Testing /api/clients', () => {
             );
             assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
                 `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode}`);
-            clients.push(response.body);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
         /**
-         * Verifies that client creation fails when first name is missing.
+         * Verifies that client creation fails when the first name is missing.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
@@ -130,9 +130,10 @@ describe('Testing /api/clients', () => {
             const response = await request(app).post('/api/clients').send(clients_undefined[0]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
         /**
-         * Verifies that client creation fails when first name exceeds
+         * Verifies that client creation fails when the first name exceeds
          * the configured max length.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
@@ -141,9 +142,10 @@ describe('Testing /api/clients', () => {
             const response = await request(app).post('/api/clients').send(clients_overrun[0]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
         /**
-         * Verifies that client creation fails when last name is missing.
+         * Verifies that client creation fails when the last name is missing.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
@@ -152,9 +154,10 @@ describe('Testing /api/clients', () => {
             const response = await request(app).post('/api/clients').send(clients_undefined[1]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
         /**
-         * Verifies that client creation fails when last name exceeds
+         * Verifies that client creation fails when the last name exceeds
          * the configured max length.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
@@ -163,9 +166,10 @@ describe('Testing /api/clients', () => {
             const response = await request(app).post('/api/clients').send(clients_overrun[1]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
         /**
-         * Verifies that client creation fails when company name is missing.
+         * Verifies that client creation fails when the company name is missing.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
@@ -174,9 +178,10 @@ describe('Testing /api/clients', () => {
             const response = await request(app).post('/api/clients').send(clients_undefined[2]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
         /**
-         * Verifies that client creation fails when company name exceeds
+         * Verifies that client creation fails when the company name exceeds
          * the configured max length.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
@@ -185,6 +190,7 @@ describe('Testing /api/clients', () => {
             const response = await request(app).post('/api/clients').send(clients_overrun[2]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
         /**
          * Verifies that client creation fails when email is missing.
@@ -195,9 +201,10 @@ describe('Testing /api/clients', () => {
             const response = await request(app).post('/api/clients').send(clients_undefined[3]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
         /**
-         * Verifies that client creation fails when email exceeds
+         * Verifies that client creation fails when the email exceeds
          * the configured max length.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
@@ -206,20 +213,21 @@ describe('Testing /api/clients', () => {
             const response = await request(app).post('/api/clients').send(clients_overrun[3]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
     });
     //------------------------------------//
     //       READ CLIENT TESTS            //
     //------------------------------------//
     /**
-     * Tests client read behavior.
+     * Tests client-read behavior.
      *
      * This group validates default pagination, reading by ID,
      * invalid ID validation, valid search, and empty search results.
      */
     describe('[API]: READ client', () => {
         /**
-         * Verifies that the clients endpoint returns a paginated response.
+         * Verifies that the client's endpoint returns a paginated response.
          *
          * @throws {AssertionError} If the API does not return HTTP 200 OK.
          */
@@ -252,7 +260,7 @@ describe('Testing /api/clients', () => {
          * Verifies that a valid search query returns HTTP 200 OK and at least
          * one matching client.
          *
-         * @throws {AssertionError} If the API does not return HTTP 200 OK
+         * @throws {AssertionError} If the API does not return HTTP 200 OK,
          * or if the response data array is empty.
          */
         test(`[TEST]: valid search string [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
@@ -266,7 +274,7 @@ describe('Testing /api/clients', () => {
          * Verifies that a search query with no matching clients returns
          * HTTP 200 OK and an empty data array.
          *
-         * @throws {AssertionError} If the API does not return HTTP 200 OK
+         * @throws {AssertionError} If the API does not return HTTP 200 OK,
          * or if the response data array is not empty.
          */
         test(`[TEST]: empty search [EXPECTED] status code ${C_HTTP.STATUS.OK} and data is empty`, async () => {
@@ -361,7 +369,7 @@ describe('Testing /api/clients', () => {
      */
     describe('[API]: DELETE client', () => {
         /**
-         * Verifies that a client can be deleted by ID.
+         * Verifies that ID can delete a client.
          *
          * @throws {AssertionError} If the API does not return HTTP 204 No Content.
          */

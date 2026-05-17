@@ -83,11 +83,11 @@ const API_ENDPOINTS = {
     //-----------------------------------------------------------------
     // CRUD for managers/employees/user accounts.
     // Frontend expects:
-    // GET all users
-    // GET single user
-    // POST create
-    // PUT update
-    // DELETE remove/deactivate
+    // GET all users                                        DONE
+    // GET single user                                      DONE
+    // POST create                                          DONE
+    // PUT update                                           DONE
+    // DELETE remove/deactivate                             DONE
     // Also used for authentication roles/permissions.
     // users: "/users",
 
