@@ -9,7 +9,14 @@ const PAGINATE = {
     ORDER: 'desc',
 }
 const SORTABLE = {
-    USERS: ['created_at', 'updated_at', 'first_name', 'last_name', 'email', 'account_role'],
+    USERS: {
+        CREATED: 'created_at',
+        UPDATED: 'updated_at',
+        FIRST_NAME: 'first_name',
+        LAST_NAME: 'last_name',
+        EMAIL: 'email',
+        ROLE: 'account_role'
+    },
     CLIENTS: ['created_at', 'updated_at', 'first_name', 'last_name', 'company_name'],
     PROJECTS: ['created_at', 'updated_at', 'project_name', 'status', 'start_time', 'due_time', 'completed_at'],
     TASKS: ['created_at', 'updated_at', 'task_name', 'category', 'status', 'start_time', 'due_time', 'completed_at'],

@@ -9,18 +9,6 @@ const hashPassword = require("../../utils/helpers/hashString");
 const { query } = require('../db');
 const { body, param} = require("express-validator");
 
-
-
-const safeUserColumns = `
-    user_id,
-    first_name,
-    last_name,
-    email,
-    last_login,
-    created_at,
-    updated_at,
-    account_role`;
-
 //------------------------------//
 //        CREATE User           //
 //------------------------------//
@@ -66,24 +54,38 @@ router.get(
     [paginate],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ Users - ');
-        const { page = C_NODE.PAGINATE.PAGE, limit = C_NODE.PAGINATE.LIMIT,
-            sort = C_NODE.PAGINATE.SORT, order = C_NODE.PAGINATE.ORDER, q } = req.query;
+        const {
+            all = C_NODE.PAGINATE.ALL,
+            page  = C_NODE.PAGINATE.PAGE,
+            limit = C_NODE.PAGINATE.LIMIT,
+            sort = C_NODE.PAGINATE.SORT,
+            order = C_NODE.PAGINATE.ORDER,
+            q
+        } = req.query;
+
+        // if all is true, return all users, otherwise paginate
+        if (all === 'true') {
+            const sql = `SELECT ${C_SCHEMA.SAFE_USER_RETURN} FROM users`;
+            const { rows } = await query(sql);
+            return res.json(rows);
+        }
+
+        //Sets up the pagination variables
         const { offset } = buildPagination({ page: Number(page), limit: Number(limit) });
-
-        // Basic whitelist for sort fields to avoid SQL injection
-        const sortable = C_NODE.SORTABLE.USERS;
-        const sortField = sortable.includes(String(sort)) ? sort : C_NODE.SORTABLE.USERS[0];
+        const sortable = Object.values(C_NODE.SORTABLE.USERS);
+        const sortField = sortable.includes(String(sort)) ? sort : C_NODE.SORTABLE.USERS.CREATED;
         const sortDir = order === C_NODE.SORTABLE.ASCENDING ? C_NODE.SORTABLE.ASCENDING : C_NODE.SORTABLE.DESCENDING;
-
         const params = [];
         let where = '';
+
+        //Basic whitelist for sort fields to avoid SQL injection
         if (q) {
             params.push(`%${q}%`);
             where = `WHERE first_name ILIKE $${params.length} OR last_name ILIKE $${params.length} 
             OR email ILIKE $${params.length} OR account_role ILIKE $${params.length}`;
         }
         const sql = `
-            SELECT * FROM users
+            SELECT ${C_SCHEMA.SAFE_USER_RETURN} FROM users
             ${where}
             ORDER BY ${sortField} ${sortDir}
             LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
@@ -105,7 +107,7 @@ router.get(
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ User:id - ');
         const { id } = req.params;
-        const { rows } = await query(`SELECT ${safeUserColumns} FROM users WHERE user_id = $1`, [id]);
+        const { rows } = await query(`SELECT ${C_SCHEMA.SAFE_USER_RETURN} FROM users WHERE user_id = $1`, [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'User ID not found' } });
         res.json(rows[0]);
     })
@@ -139,7 +141,7 @@ router.patch(
         const sql = `
             UPDATE users SET ${set.join(', ')}, updated_at = now()
             WHERE user_id = $${params.length}
-            RETURNING ${safeUserColumns}
+            RETURNING ${C_SCHEMA.SAFE_USER_RETURN}
         `;
         const { rows } = await query(sql, params);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'User not found' } });
