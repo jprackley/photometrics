@@ -56,10 +56,12 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 // Maps front-end data areas to backend routes. Backend paths can change here without touching the UI components.
 const API_ENDPOINTS = {
+    //I will work on this later.
     auth: {
         login: "/auth/login",
         logout: "/auth/logout",
     },
+    //These will be done later. We will probably need a non SQL database for these.
     dashboard: {
         kpis: "/dashboard/kpis",
         productivity: "/dashboard/productivity",
@@ -67,14 +69,17 @@ const API_ENDPOINTS = {
         employeeActivity: "/dashboard/employee-activity",
         projectProgress: "/dashboard/project-progress",
     },
+    //users: "/users" This router is for CRUD of Managers, and Employees
+    //clients: "/clients" This router is for CRUD of Clients
     projects: "/projects",
-    assignments: "/assignments",
-    employees: "/employees",
+    //images: "/images" This router is for CRUD of Images to be linked to a Project"
+    assignments: "/assignments", //How are you trying to use this API?
+    employees: "/employees", //Is this for employee CRUD?
     tasks: "/tasks",
     timeEntries: "/time-entries",
-    reports: "/reports",
-    analytics: "/analytics",
-    settings: "/settings",
+    reports: "/reports", //Will most likely be part of the above mentioned non SQL database.
+    analytics: "/analytics", //Will most likely be part of the above mentioned non SQL database.
+    settings: "/settings", //What settings do you need to store?
 };
 
 /**
