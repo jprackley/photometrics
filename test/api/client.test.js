@@ -5,156 +5,58 @@ const app = require('../../api/index');
 const C_HTTP = require('../../utils/constants/cHTTP');
 const C = require('../../utils/constants/cSchema');
 
-//Stores client IDs created during the test run.
-let clients = [];
-/**
- * Initial client used to create a known client before the test suite runs.
- *
- * @type {{body: {first_name: string, last_name: string, company_name: string, email: string}}[]}
- */
-const initClient = [
+
+const clients = []
+const clients_undefined = [
     {
-        body: {
-            first_name: "Wilson",
-            last_name: "Tester",
-            company_name: "Testees",
-            email: `wi.tester${Date.now()}@testees.com`,
-        }
+        first_name: "",
+        last_name: "Client",
+        company_name: "Missing First Name",
+        email: `s.lowe${Date.now()}@testees.com`,
+    },
+    {
+        first_name: "Client",
+        last_name: "",
+        company_name: "Missing Last Name",
+        email: `s.lowe${Date.now()}@testees.com`,
+    },
+    {
+        first_name: "Missing Company Name",
+        last_name: "Client",
+        company_name: "",
+        email: `s.lowe${Date.now()}@testees.com`,
+    },
+    {
+        first_name: "TestClient",
+        last_name: "Client",
+        company_name: "Missing Email",
+        email: ``,
     }
 ]
-/**
- * Valid client request body used to test successful client creation.
- *
- * @type {{body: {first_name: string, last_name: string, company_name: string, email: string}}[]}
- */
-const validClient = [
+const clients_overrun = [
     {
-        body: {
-            first_name: "Johnny",
-            last_name: "Tester",
-            company_name: "Testees",
-            email: `j.tester${Date.now()}@testees.com`,
-        }
-    }
-]
-/**
- * Invalid client request body used to test missing first name validation.
- *
- * @type {{body: {first_name: string, last_name: string, company_name: string, email: string}}[]}
- */
-const missingFirstName = [
+        first_name: "C".repeat(C.MAX.FIRST_NAME_LENGTH + 1),
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: "c.taylor@testees.com"
+    },
     {
-        body: {
-            first_name: "",
-            last_name: "Lowe",
-            company_name: "Testees",
-            email: `s.lowe${Date.now()}@testees.com`,
-        }
-    }
-]
-/**
- * Invalid client request body used to test missing last name validation.
- *
- * @type {{body: {first_name: string, last_name: string, company_name: string, email: string}}[]}
- */
-const missingLastName = [
+        first_name: "Client",
+        last_name: "T".repeat(C.MAX.LAST_NAME_LENGTH + 1),
+        company_name: "Last Name Too Long",
+        email: "c.taylor@testees.com"
+    },
     {
-        body: {
-            first_name: "Susan",
-            last_name: "",
-            company_name: "Testees",
-            email: `s.lowe${Date.now()}@testees.com`,
-        }
-    }
-]
-/**
- * Invalid client request body used to test missing company name validation.
- *
- * @type {{body: {first_name: string, last_name: string, company_name: string, email: string}}[]}
- */
-const missingCompName = [
+        first_name: "Max Company Name Length",
+        last_name: "Client",
+        company_name: "S".repeat(C.MAX.COMPANY_NAME_LENGTH + 1),
+        email: "c.taylor@testees.com"
+    },
     {
-        body: {
-            first_name: "Susan",
-            last_name: "Lowe",
-            company_name: "",
-            email: `s.lowe${Date.now()}@testees.com`,
-        }
-    }
-]
-/**
- * Invalid client request body used to test missing email validation.
- *
- * @type {{body: {first_name: string, last_name: string, company_name: string, email: string}}[]}
- */
-const missingEmail = [
-    {
-        body: {
-            first_name: "Susan",
-            last_name: "Lowe",
-            company_name: "Testees",
-            email: ``,
-        }
-    }
-]
-/**
- * Invalid client request body used to test first name max length validation.
- *
- * @type {{body: {first_name: string, last_name: string, company_name: string, email: string}}[]}
- */
-const maxFirstName = [
-    {
-        body: {
-            first_name: "C".repeat(C.MAX.FIRST_NAME_LENGTH + 1),
-            last_name: "Taylor",
-            company_name: "Slipknot",
-            email: "c.taylor@testees.com"
-        }
-    }
-]
-/**
- * Invalid client request body used to test last name max length validation.
- *
- * @type {{body: {first_name: string, last_name: string, company_name: string, email: string}}[]}
- */
-const maxLastName = [
-    {
-        body: {
-            first_name: "Corey",
-            last_name: "T".repeat(C.MAX.LAST_NAME_LENGTH + 1),
-            company_name: "Slipknot",
-            email: "c.taylor@testees.com"
-        }
-    }
-]
-/**
- * Invalid client request body used to test company name max length validation.
- *
- * @type {{body: {first_name: string, last_name: string, company_name: string, email: string}}[]}
- */
-const maxCompName = [
-    {
-        body: {
-            first_name: "Corey",
-            last_name: "Taylor",
-            company_name: "S".repeat(C.MAX.COMPANY_NAME_LENGTH + 1),
-            email: "c.taylor@testees.com"
-        }
-    }
-]
-/**
- * Invalid client request body used to test email max length validation.
- *
- * @type {{body: {first_name: string, last_name: string, company_name: string, email: string}}[]}
- */
-const maxEmail = [
-    {
-        body: {
-            first_name: "Corey",
-            last_name: "Taylor",
-            company_name: "Slipknot",
-            email: "c".repeat(C.MAX.EMAIL_LENGTH) + "@testees.com"
-        }
+        first_name: "Corey",
+        last_name: "Client",
+        company_name: "Max Email Length",
+        email: "c".repeat(C.MAX.EMAIL_LENGTH) + "@testees.com"
     }
 ]
 /**
@@ -170,19 +72,18 @@ const maxEmail = [
  * array so they can be removed during cleanup.
  */
 describe('Testing /api/clients', () => {
-    /**
-     * Creates an initial client before the test suite runs.
-     *
-     * The created client ID is stored in the `clients` array and reused
-     * by read, update, delete, and cleanup operations.
-     *
-     * @throws {AssertionError} If the API does not return HTTP 201 Created.
-     */
     before(async () => {
-        const response = await request(app).post('/api/clients').send(initClient[0].body);
+        const response = await request(app).post('/api/clients').send(
+            {
+                first_name: "TestClient",
+                last_name: "Client",
+                company_name: "Valid Client",
+                email: `before.tester${Date.now()}@testees.com`,
+            },
+        );
         assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
             `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode}`);
-        clients.push(response.body.client_id);
+        clients.push(response.body);
     })
     /**
      * Deletes all clients created during the test run.
@@ -191,35 +92,44 @@ describe('Testing /api/clients', () => {
      * the suite finishes.
      */
     after(async () => {
-        for (const id of clients) {
-            await request(app).delete(`/api/clients/${id}`);
+        for (const client of clients) {
+            const response = await request(app).delete(`/api/clients/${client.client_id}`);
+            assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,
+                `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode}`);
+            clients.splice(clients.indexOf(client), 1);
         }
     });
     //------------------------------------//
     //         CREATE CLIENT TESTS        //
     //------------------------------------//
-    describe('[api]: CREATE client', () => {
+    describe('[API]: CREATE client', () => {
         /**
          * Verifies that a valid client can be created.
          *
          * @throws {AssertionError} If the API does not return HTTP 201 Created.
          */
-        test(`[test]: CREATE valid entry [expected] status code ${C_HTTP.STATUS.CREATED}`, async () => {
-            const response = await request(app).post('/api/clients').send(validClient[0].body);
+        test(`[TEST]: CREATE valid entry [EXPECTED] status code ${C_HTTP.STATUS.CREATED}`, async () => {
+            const response = await request(app).post('/api/clients').send(
+                {
+                    first_name: "TestClient",
+                    last_name: "Client",
+                    company_name: "Valid Client",
+                    email: `wi.tester${Date.now()}@testees.com`,
+                },
+            );
             assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
                 `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode}`);
-            clients.push(response.body.client_id);
+            clients.push(response.body);
         });
         /**
          * Verifies that client creation fails when first name is missing.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[test]: CREATE first name missing [expected] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-
-            const response = await request(app).post('/api/clients').send(missingFirstName.body);
+        test(`[TEST]: CREATE first name missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_undefined[0]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                `${missingFirstName.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
         });
         /**
          * Verifies that client creation fails when first name exceeds
@@ -227,21 +137,21 @@ describe('Testing /api/clients', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[test]: CREATE max first name [expected] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/clients').send(maxFirstName.body);
+        test(`[TEST]: CREATE max first name [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun[0]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                `${maxFirstName.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
         });
         /**
          * Verifies that client creation fails when last name is missing.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[test]: CREATE last name missing [expected] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE last name missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
 
-            const response = await request(app).post('/api/clients').send(missingLastName.body);
+            const response = await request(app).post('/api/clients').send(clients_undefined[1]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                `${missingLastName.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
         });
         /**
          * Verifies that client creation fails when last name exceeds
@@ -249,21 +159,21 @@ describe('Testing /api/clients', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[test]: CREATE max last name [expected] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/clients').send(maxLastName.body);
+        test(`[TEST]: CREATE max last name [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun[1]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                `${maxLastName.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
         });
         /**
          * Verifies that client creation fails when company name is missing.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[test]: CREATE company name missing [expected] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE company name missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
 
-            const response = await request(app).post('/api/clients').send(missingCompName.body);
+            const response = await request(app).post('/api/clients').send(clients_undefined[2]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                `${missingCompName.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
         });
         /**
          * Verifies that client creation fails when company name exceeds
@@ -271,20 +181,20 @@ describe('Testing /api/clients', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[test]: CREATE max company name [expected] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/clients').send(maxCompName.body);
+        test(`[TEST]: CREATE max company name [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun[2]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                `${maxCompName.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
         });
         /**
          * Verifies that client creation fails when email is missing.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[test]: CREATE email missing [expected] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/clients').send(missingEmail.body);
+        test(`[TEST]: CREATE email missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_undefined[3]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                `${missingEmail.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
         });
         /**
          * Verifies that client creation fails when email exceeds
@@ -292,10 +202,10 @@ describe('Testing /api/clients', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[test]: CREATE max email [expected] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/clients').send(maxEmail.body);
+        test(`[TEST]: CREATE max email [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun[3]);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                `${maxEmail.name}: Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
         });
     });
     //------------------------------------//
@@ -307,13 +217,13 @@ describe('Testing /api/clients', () => {
      * This group validates default pagination, reading by ID,
      * invalid ID validation, valid search, and empty search results.
      */
-    describe('[api]: READ client', () => {
+    describe('[API]: READ client', () => {
         /**
          * Verifies that the clients endpoint returns a paginated response.
          *
          * @throws {AssertionError} If the API does not return HTTP 200 OK.
          */
-        test(`[test]: read by default pagination [expected] status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: read by default pagination [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).get('/api/clients');
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                 `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
@@ -323,8 +233,8 @@ describe('Testing /api/clients', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 200 OK.
          */
-        test(`[test] valid id [expected] status code ${C_HTTP.STATUS.OK}`, async () => {
-            const response = await request(app).get(`/api/clients/${clients[0]}`);
+        test(`[TEST] valid id [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
+            const response = await request(app).get(`/api/clients/${clients[0].client_id}`);
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                 `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
         });
@@ -333,7 +243,7 @@ describe('Testing /api/clients', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[test] invalid id [expected] status code ${C_HTTP.STATUS.NOT_FOUND} or ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST] invalid id [EXPECTED] status code ${C_HTTP.STATUS.NOT_FOUND} or ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app).get(`/api/clients/00000000-0000-0000-0000-000000`);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
@@ -345,8 +255,8 @@ describe('Testing /api/clients', () => {
          * @throws {AssertionError} If the API does not return HTTP 200 OK
          * or if the response data array is empty.
          */
-        test(`[test]: valid search string [expected] status code ${C_HTTP.STATUS.OK}`, async () => {
-            const response = await request(app).get(`/api/clients?q=${validClient[0].body.first_name}`);
+        test(`[TEST]: valid search string [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
+            const response = await request(app).get(`/api/clients?q=${clients[0].first_name}`);
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                 `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
             assert.ok(response.body.data.length > 0, true,
@@ -359,7 +269,7 @@ describe('Testing /api/clients', () => {
          * @throws {AssertionError} If the API does not return HTTP 200 OK
          * or if the response data array is not empty.
          */
-        test(`[test]: empty search [expected] status code ${C_HTTP.STATUS.OK} and data is empty`, async () => {
+        test(`[TEST]: empty search [EXPECTED] status code ${C_HTTP.STATUS.OK} and data is empty`, async () => {
                 const response = await request(app).get('/api/clients?q=spiderman');
                 assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                     `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
@@ -368,7 +278,6 @@ describe('Testing /api/clients', () => {
             }
         );
     });
-
 //------------------------------------//
 //      UPDATE CLIENT TESTS           //
 //------------------------------------//
@@ -378,7 +287,7 @@ describe('Testing /api/clients', () => {
      * This group validates successful field updates and validation errors
      * for oversized fields.
      */
-    describe('[api]: UPDATE client', () => {
+    describe('[API]: UPDATE client', () => {
         /**
          * Verifies that each editable client field can be updated.
          *
@@ -388,29 +297,16 @@ describe('Testing /api/clients', () => {
          * @throws {AssertionError} If any update request does not return
          * HTTP 200 OK.
          */
-        test(`[test]: update client fields [expected] status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: update client fields [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
             const testcases = [
-                {
-                    name: "first_name",
-                    body: {first_name: "Steve"}
-                },
-                {
-                    name: "last_name",
-                    body: {last_name: "Jobs"}
-                },
-                {
-                    name: "company_name",
-                    body: {company_name: "Apple"}
-                },
-                {
-                    name: "email",
-                    body: {email: "s.jobs@apple.com"}
-                }
-            ];
+                {first_name: "TestClientUpdated"},
+                {last_name: "ClientUpdated"},
+                {company_name: "Apple"},
+                {email: `s.${Date.now()}jobs@apple.com`}];
             for (const testcase of testcases) {
-                const response = await request(app).patch(`/api/clients/${clients[0]}`).send(testcase.body);
+                const response = await request(app).patch(`/api/clients/${clients[0].client_id}`).send(testcase);
                 assert.equal(response.statusCode, C_HTTP.STATUS.OK,
-                    `${testcase.name}: Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
+                    `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
             }
         });
         /**
@@ -422,7 +318,7 @@ describe('Testing /api/clients', () => {
          * @throws {AssertionError} If any invalid update request does not
          * return HTTP 400 Bad Request.
          */
-        test(`[test]: invalid data length [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: invalid data length [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             let testcases;
             testcases = [
                 {
@@ -463,16 +359,19 @@ describe('Testing /api/clients', () => {
     /**
      * Tests client delete behavior.
      */
-    describe('[api]: DELETE client', () => {
+    describe('[API]: DELETE client', () => {
         /**
          * Verifies that a client can be deleted by ID.
          *
          * @throws {AssertionError} If the API does not return HTTP 204 No Content.
          */
-        test(`[test]: DELETE by ID [expected]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
-            const response = await request(app).delete(`/api/clients/${clients[0]}`);
-            assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,
-                `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode}`);
+        test(`[TEST]: DELETE by ID [EXPECTED]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
+            for (const client of clients) {
+                const response = await request(app).delete(`/api/clients/${client.client_id}`);
+                assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,
+                    `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode}`);
+                clients.splice(clients.indexOf(client), 1);
+            }
         });
     });
 });

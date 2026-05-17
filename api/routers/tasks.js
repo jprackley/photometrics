@@ -76,7 +76,8 @@ router.get('/',
             SELECT *
             FROM tasks ${where}
             ORDER BY ${sortField} ${sortDir}
-            LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+            LIMIT $${params.length + 1} 
+            OFFSET $${params.length + 2}`;
 
         params.push(limit, offset);
 

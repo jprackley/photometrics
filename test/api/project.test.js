@@ -17,11 +17,8 @@ describe('Testing /api/projects', () => {
   ** The test suite first fetches a list of clients from the database.
   ** If no clients are found, then some will be created and seeded into the database.
   */
-    //Stores client IDs created during the test run.
     let clients = [];
-    //Stores project IDs created during the test run.
     let projects = [];
-
     /**
      * Creates temporary clients before the project test suite runs.
      *
@@ -35,7 +32,7 @@ describe('Testing /api/projects', () => {
         const test_clients = [
             {
                 body: {
-                    first_name: "Johnny",
+                    first_name: "TestClient",
                     last_name: "Projects",
                     company_name: "TestSuite",
                     email: `j.projects${Date.now()}@testsuite.com`,
@@ -43,7 +40,7 @@ describe('Testing /api/projects', () => {
             },
             {
                 body: {
-                    first_name: "Susie",
+                    first_name: "TestClient",
                     last_name: "Projects",
                     company_name: "TestSuite",
                     email: `s.projects${Date.now()}@testsuite.com`,
@@ -51,7 +48,7 @@ describe('Testing /api/projects', () => {
             },
             {
                 body: {
-                    first_name: "Wonka",
+                    first_name: "TestClient",
                     last_name: "Projects",
                     company_name: "TestSuite",
                     email: `w.projects${Date.now()}@testsuite.com`,
@@ -59,7 +56,7 @@ describe('Testing /api/projects', () => {
             },
             {
                 body: {
-                    first_name: "Luis",
+                    first_name: "TestClient",
                     last_name: "Projects",
                     company_name: "TestSuite",
                     email: `l.projects${Date.now()}@testsuite.com`,
@@ -128,10 +125,10 @@ describe('Testing /api/projects', () => {
          * @throws {AssertionError} If the API does not return HTTP 201 Created
          * or the response does not include a `project_id`.
          */
-        test(`[test]: valid entry [expected]: status code ${C_HTTP.STATUS.CREATED}`, async () => {
+        test(`[TEST]: valid entry [EXPECTED]: status code ${C_HTTP.STATUS.CREATED}`, async () => {
             const response = await request(app).post('/api/projects').send({
                 project_name: 'Test Project',
-                description: 'This is a test project',
+                description: 'FROM Project Test Suite',
                 client_id: clients[0],
                 status: 'To-Do',
                 start_time: '2023-01-01',
@@ -159,7 +156,7 @@ describe('Testing /api/projects', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 200 OK.
          */
-        test(`[test]: valid entry [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: valid entry [EXPECTED]: status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).get('/api/projects');
             assert.equal(
                 response.statusCode,
@@ -173,7 +170,7 @@ describe('Testing /api/projects', () => {
          * @throws {AssertionError} If any invalid query does not return
          * HTTP 400 Bad Request.
          */
-        test(`[test]: invalid query entry [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: invalid query entry [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             for (const testcase of invalid_queries) {
                 const response = await request(app).get(`/api/projects${testcase}`);
                 assert.equal(
@@ -193,12 +190,12 @@ describe('Testing /api/projects', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 200 OK.
          */
-        test(`[test]: valid entry [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: valid entry [EXPECTED]: status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app)
                 .patch(`/api/projects/${projects[0]}`)
                 .send({
                     project_name: 'Updated Test Project',
-                    description: 'This project was updated during an automated PATCH test.',
+                    description: 'FROM Projects PATCH test.',
                     status: 'In Progress',
                 });
             assert.equal(
@@ -212,7 +209,7 @@ describe('Testing /api/projects', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test('[test]: invalid entry [expected] status code 400', async () => {
+        test('[TEST]: invalid entry [EXPECTED] status code 400', async () => {
             const response = await request(app)
                 .patch(`/api/projects/${projects[0]}`)
                 .send({});
@@ -227,7 +224,7 @@ describe('Testing /api/projects', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[[test]: invalid project_id [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[[TEST]: invalid project_id [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app)
                 .patch('/api/projects/not-a-valid-uuid')
                 .send({project_name: 'Invalid UUID Test'});
@@ -244,7 +241,7 @@ describe('Testing /api/projects', () => {
          * @throws {AssertionError} If the API does not return HTTP 404 Not Found
          * or the expected error message.
          */
-        test(`[test]: project not found [expected] status code ${C_HTTP.STATUS.NOT_FOUND}`, async () => {
+        test(`[TEST]: project not found [EXPECTED] status code ${C_HTTP.STATUS.NOT_FOUND}`, async () => {
             const missingProjectId = '00000000-0000-0000-0000-000000000000';
             const response = await request(app)
                 .patch(`/api/projects/${missingProjectId}`)
@@ -262,7 +259,7 @@ describe('Testing /api/projects', () => {
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
 
-        test(`[test]: invalid status [expected] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: invalid status [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app)
                 .patch(`/api/projects/${projects[0]}`)
                 .send({status: 'Invalid Status'});
@@ -283,7 +280,7 @@ describe('Testing /api/projects', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 404 Not Found.
          */
-        test(`[test]: missing project [expected]: status code ${C_HTTP.STATUS.NOT_FOUND}`, async () => {
+        test(`[TEST]: DELETE by missing id [EXPECTED]: status code ${C_HTTP.STATUS.NOT_FOUND}`, async () => {
             const missingProjectId = '00000000-0000-0000-0000-000000000000';
             const response = await request(app).delete(`/api/projects/${missingProjectId}`);
             assert.equal(
@@ -298,7 +295,7 @@ describe('Testing /api/projects', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[test]: invalid project id [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: DELETE by invalid id [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app).delete('/api/projects/not-a-valid-uuid');
             assert.equal(
                 response.statusCode,
@@ -312,15 +309,14 @@ describe('Testing /api/projects', () => {
          * @throws {AssertionError} If the API does not return HTTP 200 OK
          * or the deleted project ID does not match the requested project ID.
          */
-        test(`[test]: valid id [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
-            const deletedProjectId = projects[0];
+        test(`[TEST]: DELETE by id [EXPECTED]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
             const response = await request(app).delete(`/api/projects/${projects[0]}`);
             assert.equal(
                 response.statusCode,
-                C_HTTP.STATUS.OK,
-                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`
+                C_HTTP.STATUS.NO_CONTENT,
+                `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode}`
             );
-            assert.equal(response.body.project_id, deletedProjectId);
+            projects.splice(projects.indexOf(projects[0]), 1);
         });
 
     });

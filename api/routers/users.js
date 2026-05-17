@@ -61,15 +61,6 @@ router.post(
 //------------------------------//
 //        READ User             //
 //------------------------------//
-/*router.get(
-    `/`,
-    asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Users - ');
-        const {rows} = await query(`SELECT ${safeUserColumns}
-                                    FROM users`);
-        res.json(rows);
-    })
-)*/
 router.get(
     '/',
     [paginate],

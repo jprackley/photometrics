@@ -10,16 +10,16 @@ describe('Testing /api/tasks', () => {
     const users = [
         {
             user_id: "",
-            first_name: "The",
-            last_name: "Manager",
+            first_name: "TestUser",
+            last_name: "Task",
             email: `the.manager${Date.now()}@testees.com`,
             password_hash: "manager",
             account_role: C_SCHEMA.USER_ROLES[0],
         },
         {
             user_id: "",
-            first_name: "The",
-            last_name: "Employee",
+            first_name: "TestUser",
+            last_name: "Task",
             email: `the.employee${Date.now()}@testees.com`,
             password_hash: "employee",
             account_role: C_SCHEMA.USER_ROLES[1],
@@ -28,8 +28,8 @@ describe('Testing /api/tasks', () => {
     const clients = [
         {
             client_id: "",
-            first_name: "The",
-            last_name: "Client",
+            first_name: "TestClient",
+            last_name: "Task",
             company_name: "The Company",
             email: `the.client${Date.now()}@testees.com`,
         }
@@ -39,8 +39,8 @@ describe('Testing /api/tasks', () => {
             project_id: "",
             client_id: clients[0].client_id,
             managed_by: users[0].user_id,
-            project_name: "The Project",
-            description: "The Project Description",
+            project_name: "Test Project",
+            description: "FROM the Task Test Suite",
         }
     ]
     const tasks = [
@@ -49,7 +49,7 @@ describe('Testing /api/tasks', () => {
             project_id: "",
             task_name: "The Task",
             category: C_SCHEMA.TASK_CATEGORIES[0],
-            description: "The Task Description",
+            description: "FROM the Task Test Suite",
             assigned_by: "",
             assigned_to: "",
         },
@@ -61,7 +61,7 @@ describe('Testing /api/tasks', () => {
             due_time: '2027-05-16T14:30:00Z',
             completed_time: '2026-012-16T14:30:00Z',
             assigned_to: users[0].user_id,
-            description: "The Task Description Has Been Updated",
+            description: "FROM the Task Test Suite Has Been Updated",
         }
     ]
     before(async () => {
@@ -91,17 +91,17 @@ describe('Testing /api/tasks', () => {
     })
     after(async () => {
         for ( const project of projects ) {
-            const response = await request(app).delete(`api/projects/${project.project_id}`);
+            const response = await request(app).delete(`/api/projects/${project.project_id}`);
             assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,
                 `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode} \n ${JSON.stringify(response.body, null, 2)}`)
         }
         for ( const client of clients ) {
-            const response = await request(app).delete(`api/clients/${client.client_id}`);
+            const response = await request(app).delete(`/api/clients/${client.client_id}`);
             assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,
                 `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode} \n ${JSON.stringify(response.body, null, 2)}`)
         }
         for ( const user of users ) {
-            const response = await request(app).delete(`api/users/${users[user].user_id}`);
+            const response = await request(app).delete(`/api/users/${user.user_id}`);
             assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,
                 `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode} \n ${JSON.stringify(response.body, null, 2)}`)
         }
@@ -158,11 +158,12 @@ describe('Testing /api/tasks', () => {
     describe('[api]: DELETE Task', () => {
         test(`[test]: DELETE task [expected]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
             for (const task of tasks) {
-                if (task.task_id !== ( "" || null || undefined )) {
+                if (task.task_id) {
                     const response = await request(app).delete(`/api/tasks/${task.task_id}`);
                     assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,
                         `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode} 
                         \n ${JSON.stringify(response.body, null, 2)}`)
+                    tasks.splice(tasks.indexOf(tasks[0]), 1);
                 }
             }
         })

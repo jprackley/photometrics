@@ -71,8 +71,8 @@ describe('Testing /api/users', () => {
     before(async () => {
 
         const response = await request(app).post('/api/users').send({
-            first_name: "Testin",
-            last_name: "Using",
+            first_name: "TestUser",
+            last_name: "User",
             email: `t.user${Date.now()}@testees.com`,
             password_hash: "password",
             account_role: "Manager",
@@ -101,12 +101,12 @@ describe('Testing /api/users', () => {
      * Validates that a properly formed request creates a user and that
      * invalid request bodies return HTTP 400 Bad Request.
      */
-    describe('[api]: CREATE User', () => {
+    describe('[API]: CREATE User', () => {
 
-        test(`[test]: CREATE valid entry [expected]: status code ${C_HTTP.STATUS.CREATED}`, async () => {
+        test(`[TEST]: CREATE valid entry [expected]: status code ${C_HTTP.STATUS.CREATED}`, async () => {
             const response = await request(app).post('/api/users').send({
-                first_name: "Johnny",
-                last_name: "Tester",
+                first_name: "TestUser",
+                last_name: "User",
                 email: `j.tester${Date.now()}@testees.com`,
                 password_hash: "password",
                 account_role: "Manager",
@@ -116,30 +116,30 @@ describe('Testing /api/users', () => {
             users.push(response.body.user_id);
         });
 
-        test(`[test]: CREATE first name missing [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE first name missing [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app).post('/api/users').send(missingFirstName);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n ${JSON.stringify(response.body, null, 2)}`);
         });
 
-        test(`[test]: CREATE last name missing [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE last name missing [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app).post('/api/users').send(missingLastName);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n ${JSON.stringify(response.body, null, 2)}`);
         });
 
-        test(`[test]: CREATE email missing [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE email missing [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app).post('/api/users').send(missingEmail);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n ${JSON.stringify(response.body, null, 2)}`);
         });
 
-        test(`[test]: CREATE password missing [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE password missing [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app).post('/api/users').send(missingPassword);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,)
         });
 
-        test(`[test]: CREATE role missing [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE role missing [expected]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app).post('/api/users').send(missingRole);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,)
         });
@@ -151,15 +151,15 @@ describe('Testing /api/users', () => {
      * Validates that users can be retrieved with default pagination and
      * that a specific user can be retrieved by ID.
      */
-    describe('[api]: READ User', () => {
+    describe('[API]: READ User', () => {
 
-        test(`[test]: read by default pagination [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: read by default pagination [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).get('/api/users');
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                 `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode} \n ${JSON.stringify(response.body, null, 2)}`);
         });
 
-        test(`[test]: valid id [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: valid id [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).get(`/api/users/${users[0]}`);
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                 `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode} \n ${JSON.stringify(response.body, null, 2)}`);
@@ -170,32 +170,32 @@ describe('Testing /api/users', () => {
      *
      * Validates that individual user fields can be updated using PATCH.
      */
-    describe('[api]: UPDATE User', () => {
-        test(`[test]: UPDATE first name [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
+    describe('[API]: UPDATE User', () => {
+        test(`[TEST]: UPDATE first name [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).patch(`/api/users/${users[0]}`).send({
-                first_name: "John"
+                first_name: "TestUserUpdated"
             });
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,)
         })
-        test(`[test]: UPDATE last name [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: UPDATE last name [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).patch(`/api/users/${users[0]}`).send({
-                last_name: "Teest"
+                last_name: "UserUpdated"
             })
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,)
         })
-        test(`[test]: UPDATE email [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: UPDATE email [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).patch(`/api/users/${users[0]}`).send({
                 email: "whoops@update.com",
             })
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,)
         })
-        test(`[test]: UPDATE password [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: UPDATE password [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).patch(`/api/users/${users[0]}`).send({
                 password_hash: "newpassword"
             })
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,)
         })
-        test(`[test]: UPDATE role [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: UPDATE role [expected]: status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).patch(`/api/users/${users[0]}`).send({
                 account_role: "Employee"
             })
@@ -208,8 +208,8 @@ describe('Testing /api/users', () => {
      * Validates that an existing user can be deleted and then removes
      * that user ID from the cleanup array.
      */
-    describe('[api]: DELETE User', () => {
-        test(`[test]: DELETE user [expected]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
+    describe('[API]: DELETE User', () => {
+        test(`[TEST]: DELETE user [expected]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
             const response = await request(app).delete(`/api/users/${users[0]}`);
             assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,)
             users.splice(0, 1);
