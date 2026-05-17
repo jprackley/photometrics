@@ -94,7 +94,7 @@ router.get(
         // Basic whitelist for sort fields to avoid SQL injection
         const sortable = C_NODE.SORTABLE.PROJECTS;
         const sortField = sortable.includes(String(sort)) ? sort : C_NODE.SORTABLE.PROJECTS[0];
-        const sortDir = order === C_NODE.SORTABLE.ASCENDING ? C_NODE.SORTABLE.ASCENDING : C_NODE.SORTABLE.DESCENDING;
+        const sortDir = order === C_NODE.C_NODE.ASCENDING ? C_NODE.C_NODE.ASCENDING : C_NODE.C_NODE.DESCENDING;
 
         const params = [];
         let where = '';

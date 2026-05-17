@@ -1,6 +1,7 @@
 const express = require('express');
 const C_SCHEMA = require('../../utils/constants/cSchema');
 const C_HTTP = require('../../utils/constants/cHTTP');
+const C_CLIENT = require('../../utils/constants/cClients');
 const router = express.Router();
 const asyncHandler = require('../../utils/helpers/asyncHandler');
 const { query } = require('../db');
@@ -15,21 +16,71 @@ const {SORTABLE} = require("../../utils/constants/cNodeServer");
 router.post(
     '/',
     [
-        body('first_name').isString().isLength({ min: C_SCHEMA.MIN.FIRST_NAME_LENGTH, max: C_SCHEMA.MAX.FIRST_NAME_LENGTH }),
-        body('last_name').isString().isLength({ min: C_SCHEMA.MIN.LAST_NAME_LENGTH, max: C_SCHEMA.MAX.LAST_NAME_LENGTH }),
-        body('company_name').isString().isLength({ min: C_SCHEMA.MIN.LAST_NAME_LENGTH, max: C_SCHEMA.MAX.COMPANY_NAME_LENGTH }),
-        body('email').isEmail().isLength({ max: C_SCHEMA.MAX.EMAIL_LENGTH }),
+        body('first_name').isString().isLength({ max: C_CLIENT.MAX_LENGTH.FIRST_NAME })
+            .withMessage(`First name must be less than ${C_CLIENT.MAX_LENGTH.FIRST_NAME} characters long`),
+        body('middle_name').optional().isLength({ max: C_CLIENT.MAX_LENGTH.MIDDLE_NAME})
+            .withMessage(`Middle name must be less than ${C_CLIENT.MAX_LENGTH.MIDDLE_NAME} characters long`),
+        body('last_name').isString().isLength({ max: C_CLIENT.MAX_LENGTH.LAST_NAME })
+            .withMessage(`Last name must be less than ${C_CLIENT.MAX_LENGTH.LAST_NAME} characters long`),
+        body('title').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.TITLE })
+            .withMessage(`Title must be less than ${C_CLIENT.MAX_LENGTH.TITLE} characters long`),
+        body('company_name').isString().isLength({ max: C_SCHEMA.MAX.COMPANY_NAME_LENGTH })
+            .withMessage(`Company name must be less than ${C_SCHEMA.MAX.COMPANY_NAME_LENGTH} characters long`),
+        body('email').isEmail().isLength({ max: C_SCHEMA.MAX.EMAIL_LENGTH })
+            .withMessage(`Email must be an email and less than ${C_SCHEMA.MAX.EMAIL_LENGTH} characters long`),
+        body('phone_number').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.PHONE})
+            .withMessage(`Phone number must be less than ${C_CLIENT.MAX_LENGTH.PHONE} characters long`),
+        body('website').optional().isURL().isLength({ max: C_CLIENT.MAX_LENGTH.WEBSITE })
+            .withMessage(`Website must be a URL and less than ${C_CLIENT.MAX_LENGTH.WEBSITE} characters long`),
+        body('notes').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.NOTES })
+            .withMessage(`Notes must be less than ${C_CLIENT.MAX_LENGTH.NOTES} characters long`),
+        body('address_line1').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE})
+            .withMessage(`Address line 1 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+        body('address_line2').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE})
+            .withMessage(`Address line 2 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+        body('city').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.CITY })
+            .withMessage(`City must be less than ${C_CLIENT.MAX_LENGTH.CITY} characters long`),
+        body('state').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.STATE })
+            .withMessage(`State must be less than ${C_CLIENT.MAX_LENGTH.STATE} characters long`),
+        body('postal_code').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ZIP })
+            .withMessage(`Postal Code must be less than ${C_CLIENT.MAX_LENGTH.ZIP} characters long`),
+        body('country').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.COUNTRY })
+            .withMessage(`Country must be less than ${C_CLIENT.MAX_LENGTH.COUNTRY} characters long`),
+        body('billing_address_line1').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE})
+            .withMessage(`Address line 1 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+        body('billing_address_line2').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE})
+            .withMessage(`Address line 2 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+        body('billing_city').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.CITY })
+            .withMessage(`City must be less than ${C_CLIENT.MAX_LENGTH.CITY} characters long`),
+        body('billing_state').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.STATE })
+            .withMessage(`State must be less than ${C_CLIENT.MAX_LENGTH.STATE} characters long`),
+        body('billing_postal_code').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ZIP })
+            .withMessage(`Postal Code must be less than ${C_CLIENT.MAX_LENGTH.ZIP} characters long`),
+        body('billing_country').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.COUNTRY })
+            .withMessage(`Country must be less than ${C_CLIENT.MAX_LENGTH.COUNTRY} characters long`),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE Client - ');
-        const { first_name, last_name, company_name, email } = req.body;
+        
+        const columnKeys = Object.keys(C_CLIENT.CREATE_COLUMNS);
+        
+        const columns = [];
+        const values = [];
+        const params = [];
+
+        for (const column of columnKeys) {
+            if (req.body[column] !== undefined) {
+                columns.push(column);
+                params.push(req.body[column]);
+                values.push(`$${params.length + 1}`); //Use +1 since this route does not accept parameters.
+            }
+        }
 
         const sql = `
-      INSERT INTO clients (first_name, last_name, company_name, email)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *
-    `;
-        const { rows } = await query(sql, [first_name, last_name, company_name, email]);
+            INSERT INTO clients (${columns.join(', ')})
+            VALUES (${values.join(', ')}) RETURNING *
+        `;
+        const {rows} = await query(sql, params);
         res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
     })
 );
@@ -49,7 +100,7 @@ router.get(
         // Basic whitelist for sort fields to avoid SQL injection
         const sortable = SORTABLE.CLIENTS;
         const sortField = sortable.includes(String(sort)) ? sort : SORTABLE.CLIENTS[0];
-        const sortDir = order === SORTABLE.ASCENDING ? SORTABLE.ASCENDING : SORTABLE.DESCENDING;
+        const sortDir = order === C_NODE.ASCENDING ? C_NODE.ASCENDING : C_NODE.DESCENDING;
 
         const params = [];
         let where = '';

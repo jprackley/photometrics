@@ -8,6 +8,9 @@ const PAGINATE = {
     SORT: 'created_at',
     ORDER: 'desc',
 }
+ASCENDING = 'asc';
+DESCENDING = 'desc';
+
 const SORTABLE = {
     USERS: {
         CREATED: 'created_at',
@@ -17,12 +20,10 @@ const SORTABLE = {
         EMAIL: 'email',
         ROLE: 'account_role'
     },
-    CLIENTS: ['created_at', 'updated_at', 'first_name', 'last_name', 'company_name'],
+    //CLIENTS: ['created_at', 'updated_at', 'first_name', 'last_name', 'company_name'],
     PROJECTS: ['created_at', 'updated_at', 'project_name', 'status', 'start_time', 'due_time', 'completed_at'],
     TASKS: ['created_at', 'updated_at', 'task_name', 'category', 'status', 'start_time', 'due_time', 'completed_at'],
     IMAGE:['image_id', 'project_id', 'task_id', 'name', 'status', 'completed', 'created_at', 'updated_at'],
-    ASCENDING: 'asc',
-    DESCENDING: 'desc',
 }
 
-module.exports = { PAGINATE, SORTABLE };
+module.exports = { PAGINATE, SORTABLE, ASCENDING, DESCENDING };

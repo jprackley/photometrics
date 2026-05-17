@@ -63,7 +63,7 @@ router.get('/',
 
         const sortable = SORTABLE.TASKS;
         const sortField = sortable.includes(String(sort)) ? sort : SORTABLE.TASKS[0];
-        const sortDir = order === SORTABLE.ASCENDING ? SORTABLE.ASCENDING : SORTABLE.DESCENDING;
+        const sortDir = order === C_NODE.ASCENDING ? C_NODE.ASCENDING : C_NODE.DESCENDING;
 
         const params = [];
         let where = '';

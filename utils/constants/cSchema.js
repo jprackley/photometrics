@@ -16,12 +16,10 @@ const STATUS = {
     TASK: ['To-Do', 'Assigned', 'In Progress', 'Paused', 'Completed', 'Cancelled'],
     IMAGE: ['Pending', 'In Progress', 'Completed', 'Rejected']
 }
-const MIN = {
+
+let MIN = {
     //For Clients and Users
-    FIRST_NAME_LENGTH: 1,
-    LAST_NAME_LENGTH: 1,
-    COMPANY_NAME_LENGTH: 1,
-    EMAIL_LENGTH: 1,
+
 
     //For Projects
     PROJECT_NAME_LENGTH: 1,
@@ -62,4 +60,4 @@ const MAX = {
     //For Time Entries
 }
 
-module.exports = { USER_ROLES, SAFE_USER_RETURN, TASK_CATEGORIES, STATUS, MIN, MAX  };
+module.exports = { CLIENTS, USER_ROLES, SAFE_USER_RETURN, TASK_CATEGORIES, STATUS, MIN, MAX  };

@@ -74,7 +74,7 @@ router.get(
         const { offset } = buildPagination({ page: Number(page), limit: Number(limit) });
         const sortable = Object.values(C_NODE.SORTABLE.USERS);
         const sortField = sortable.includes(String(sort)) ? sort : C_NODE.SORTABLE.USERS.CREATED;
-        const sortDir = order === C_NODE.SORTABLE.ASCENDING ? C_NODE.SORTABLE.ASCENDING : C_NODE.SORTABLE.DESCENDING;
+        const sortDir = order === C_NODE.C_NODE.ASCENDING ? C_NODE.C_NODE.ASCENDING : C_NODE.C_NODE.DESCENDING;
         const params = [];
         let where = '';
 
