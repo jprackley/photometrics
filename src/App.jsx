@@ -63,14 +63,24 @@ import {
 // routes or from the local mock data sets in this file. The frontend supports
 // standard API response shapes such as a plain array/object or an object with a
 // top-level data/items property.
-const DEFAULT_USE_API_DATA = import.meta.env.VITE_USE_API_DATA === "true";
-const API_DATA_SETTING_KEY = "photometrics-use-api-data";
+// Keep mock data ON by default so the deployed app stays usable while API work is tested.
+// Set VITE_USE_API_DATA=true only when you intentionally want API mode as the initial default.
+const DEFAULT_USE_API_DATA = import.meta.env.VITE_USE_API_DATA === "true" ? true : false;
+
+// Use a versioned key so any previously-saved API-only preference does not keep forcing
+// the app into API mode after this change is deployed.
+const LEGACY_API_DATA_SETTING_KEY = "photometrics-use-api-data";
+const API_DATA_SETTING_KEY = "photometrics-use-api-data-v2";
 const API_DATA_SETTING_EVENT = "photometrics-api-data-setting-changed";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 const DEFAULT_PAGE_LIMIT = 50;
 
 function getUseApiDataSetting() {
     if (typeof window === "undefined") return DEFAULT_USE_API_DATA;
+
+    // Clear the old key once so a browser that previously saved API-only mode
+    // cannot keep causing a blank screen after the mock-data default is restored.
+    window.localStorage.removeItem(LEGACY_API_DATA_SETTING_KEY);
 
     const savedValue = window.localStorage.getItem(API_DATA_SETTING_KEY);
     if (savedValue === null) return DEFAULT_USE_API_DATA;
