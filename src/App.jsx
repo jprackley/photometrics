@@ -65,7 +65,7 @@ import {
 // top-level data/items property.
 // Keep mock data ON by default so the deployed app stays usable while API work is tested.
 // Set VITE_USE_API_DATA=true only when you intentionally want API mode as the initial default.
-const DEFAULT_USE_API_DATA = import.meta.env.VITE_USE_API_DATA === "true" ? true : false;
+const DEFAULT_USE_API_DATA = import.meta.env.VITE_USE_API_DATA === "false" ? true : false;
 
 // Use a versioned key so any previously-saved API-only preference does not keep forcing
 // the app into API mode after this change is deployed.
