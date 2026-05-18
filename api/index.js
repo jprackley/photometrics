@@ -1,7 +1,9 @@
 const express = require('express')
-const cors = require('cors')
-const C_HTTP = require('../utils/constants/cHTTP')
 const app = express()
+const cors = require('cors')
+
+const C_HTTP = require('../utils/constants/cHTTP')
+
 
 app.use(cors());
 app.use(express.json());
@@ -11,6 +13,7 @@ app.get('/api/health', (req, res) => {
     res.json({ message: 'Server is running' });
 });
 
+app.use('/api/login', require('./routers/auth/login'));
 app.use('/api/clients', require('./routers/clients'));
 app.use('/api/projects', require('./routers/projects'));
 app.use('/api/tasks', require('./routers/tasks'));
@@ -18,6 +21,7 @@ app.use('/api/images', require('./routers/images'));
 app.use('/api/time-entries', require('./routers/time.entries'));
 app.use('/api/users', require('./routers/users'));
 app.use('/api/employees', require('./routers/read-only/employees'));
+
 
 // Error handler MUST BE LAST
 // Error handler MUST BE LAST

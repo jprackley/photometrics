@@ -1,12 +1,19 @@
 const express = require('express');
-const {paginate, handleValidation, buildPagination} = require("../../utils/helpers/validation");
+const {param, body} = require("express-validator");
+const router = express.Router();
+
+const {
+    paginate,
+    handleValidation,
+    buildPagination
+} = require("../../utils/helpers/validation");
 const asyncHandler = require("../../utils/helpers/asyncHandler");
 const {query} = require("../db");
-const {param, body} = require("express-validator");
+
 const C_HTTP = require("../../utils/constants/cHTTP");
 const C_NODE = require("../../utils/constants/cNodeServer");
 const C_PROJECT = require("../../utils/constants/cProjects");
-const router = express.Router();
+
 
 //------------------------------//
 //        CREATE Project         //

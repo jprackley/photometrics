@@ -1,14 +1,18 @@
 const express = require('express');
+const { body, param} = require("express-validator");
 const router = express.Router();
+
+const bcrypt = require('bcrypt');
+const SALT_ROUNDS = 10;
+
 const C_USER = require('../../utils/constants/cUsers');
 const C_HTTP = require('../../utils/constants/cHTTP');
 const C_NODE = require('../../utils/constants/cNodeServer');
+
 const asyncHandler = require('../../utils/helpers/asyncHandler');
 const {handleValidation, paginate, buildPagination} = require("../../utils/helpers/validation");
 const hashPassword = require("../../utils/helpers/hashString");
 const { query } = require('../db');
-const { body, param} = require("express-validator");
-const CU_USER = require("../../utils/constants/cUsers");
 
 //------------------------------//
 //        CREATE User           //
@@ -84,7 +88,7 @@ router.post(
         body('city').optional().isString().isLength({
             min: C_USER.MIN_LENGTH.CITY,
             max: C_USER.MAX_LENGTH.CITY
-        }).withMessage(`City must be less than ${CU_USER.MAX_LENGTH.CITY} characters long`),
+        }).withMessage(`City must be less than ${C_USER.MAX_LENGTH.CITY} characters long`),
 
         body('state').optional().isString().isLength({
             min: C_USER.MIN_LENGTH.STATE,
@@ -99,17 +103,19 @@ router.post(
         body('country').optional().isString().isLength({
             min: C_USER.MIN_LENGTH.COUNTRY,
             max: C_USER.MAX_LENGTH.COUNTRY
-        }).withMessage(`Country must be less than ${C_USER.MAX_LENGTH.COUNTRY}`),
+        }).withMessage(`Country must be less than ${C_USER.MAX_LENGTH.COUNTRY} characters long`),
 
         body('password_hash').isString().isLength({
             min: C_USER.MIN_LENGTH.PASSWORD, max: C_USER.MAX_LENGTH.PASSWORD })
-            .withMessage('Password is invalid or missing'),
+            .withMessage(`Password must be between ${C_USER.MIN_LENGTH.PASSWORD} and ${C_USER.MAX_LENGTH.PASSWORD} characters long`),
 
-        body('account_role').isString().isIn(Object.values(C_USER.ROLES)).withMessage('Invalid account role'),
+        body('account_role').isString().isIn(Object.values(C_USER.ROLES))
+            .withMessage('Invalid account role. Must be one of: ' + Object.values(C_USER.ROLES).join(',')),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE User - ');
-        const hashedPassword = hashPassword(req.body.password_hash);
+
+        const hashedPassword = await bcrypt.hash(req.body.password_hash, SALT_ROUNDS);
 
         const createdColumns = Object.values(C_USER.CREATED_COLUMNS);
 

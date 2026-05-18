@@ -11,8 +11,8 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@neondatabase/neon-js": "^0.6.1-beta",
     "@tailwindcss/vite": "^4.3.0",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

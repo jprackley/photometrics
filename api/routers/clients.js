@@ -1,12 +1,19 @@
 const express = require('express');
+const { body, param } = require('express-validator');
+const router = express.Router();
+
+const C_NODE = require("../../utils/constants/cNodeServer");
 const C_HTTP = require('../../utils/constants/cHTTP');
 const C_CLIENT = require('../../utils/constants/cClients');
-const router = express.Router();
+
 const asyncHandler = require('../../utils/helpers/asyncHandler');
 const { query } = require('../db');
-const { body, param } = require('express-validator');
-const { paginate, buildPagination, handleValidation } = require('../../utils/helpers/validation');
-const C_NODE = require("../../utils/constants/cNodeServer");
+const {
+    paginate,
+    buildPagination,
+    handleValidation
+} = require('../../utils/helpers/validation');
+
 //--------------------//
 //   CREATE Client    //
 //--------------------//

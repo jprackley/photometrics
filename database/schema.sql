@@ -240,5 +240,62 @@ CREATE TABLE time_entries
         CHECK (end_time IS NULL OR end_time >= start_time)
 );
 
+INSERT INTO users (
+    first_name,
+    last_name,
+    email,
+    password_hash,
+    account_role
+)
+VALUES (
+           'Test',
+           'Manager',
+           'muser@gmail.com',
+           '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
+           'Manager'
+       )
+ON CONFLICT (email)
+    DO UPDATE SET
+                  first_name = EXCLUDED.first_name,
+                  last_name = EXCLUDED.last_name,
+                  password_hash = EXCLUDED.password_hash,
+                  account_role = EXCLUDED.account_role,
+                  updated_at = now()
+RETURNING
+    user_id,
+    first_name,
+    last_name,
+    email,
+    account_role,
+    created_at,
+    updated_at;
 
-
+INSERT INTO users (
+    first_name,
+    last_name,
+    email,
+    password_hash,
+    account_role
+)
+VALUES (
+           'Test',
+           'Employee',
+           'euser@gmail.com',
+           '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
+           'Manager'
+       )
+ON CONFLICT (email)
+    DO UPDATE SET
+                  first_name = EXCLUDED.first_name,
+                  last_name = EXCLUDED.last_name,
+                  password_hash = EXCLUDED.password_hash,
+                  account_role = EXCLUDED.account_role,
+                  updated_at = now()
+RETURNING
+    user_id,
+    first_name,
+    last_name,
+    email,
+    account_role,
+    created_at,
+    updated_at;

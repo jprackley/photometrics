@@ -42,7 +42,7 @@ const MAX_LENGTH = {
     STATE: 100,
     ZIP: 20,
     COUNTRY: 100,
-    PASSWORD: 255,
+    PASSWORD: 72, //Character limit of BCrypt inputs
 }
 const ROLES = {
     MANAGER: 'Manager',
