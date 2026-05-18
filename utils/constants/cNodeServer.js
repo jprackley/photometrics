@@ -11,14 +11,9 @@ const PAGINATE = {
 }
 ASCENDING = 'asc';
 DESCENDING = 'desc';
-
-
 /*
-
     PROJECTS: ['created_at', 'updated_at', 'project_name', 'status', 'start_time', 'due_time', 'completed_at'],
     TASKS: ['created_at', 'updated_at', 'task_name', 'category', 'status', 'start_time', 'due_time', 'completed_at'],
     IMAGE:['image_id', 'project_id', 'task_id', 'name', 'status', 'completed', 'created_at', 'updated_at'],
 */
-
-
 module.exports = { PAGINATE, ASCENDING, DESCENDING };

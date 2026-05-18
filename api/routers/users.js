@@ -8,6 +8,7 @@ const {handleValidation, paginate, buildPagination} = require("../../utils/helpe
 const hashPassword = require("../../utils/helpers/hashString");
 const { query } = require('../db');
 const { body, param} = require("express-validator");
+const CU_USER = require("../../utils/constants/cUsers");
 
 //------------------------------//
 //        CREATE User           //
@@ -15,33 +16,125 @@ const { body, param} = require("express-validator");
 router.post(
     '/',
     [
-        body('first_name').isString().isLength({ min: C_USER.MIN_LENGTH.FIRST_NAME, max: C_USER.MAX_LENGTH.FIRST_NAME })
+        body('employee_id').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.EMPLOYEE_ID,
+            max: C_USER.MAX_LENGTH.EMPLOYEE_ID
+        }).withMessage(`Employee ID must be less than ${C_USER.MAX_LENGTH.EMPLOYEE_ID} characters long`),
+
+        body('manager_id').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.MANAGER_ID,
+            max: C_USER.MAX_LENGTH.MANAGER_ID
+        }).withMessage(`Manager ID must be less than ${C_USER.MAX_LENGTH.MANAGER_ID} characters long`),
+
+        body('first_name').isString().isLength({
+            min: C_USER.MIN_LENGTH.FIRST_NAME,
+            max: C_USER.MAX_LENGTH.FIRST_NAME })
             .withMessage(`First name must be between ${C_USER.MIN_LENGTH.FIRST_NAME} and ${C_USER.MAX_LENGTH.FIRST_NAME} characters`),
-        body('last_name').isString().isLength({ min: C_USER.MIN_LENGTH.LAST_NAME, max: C_USER.MAX_LENGTH.LAST_NAME })
+
+        body('middle_name').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.MIDDLE_NAME,
+            max: C_USER.MAX_LENGTH.MIDDLE_NAME
+        }).withMessage(`Middle name must be less than ${C_USER.MAX_LENGTH.MIDDLE_NAME} characters long`),
+
+        body('last_name').isString().isLength({
+            min: C_USER.MIN_LENGTH.LAST_NAME,
+            max: C_USER.MAX_LENGTH.LAST_NAME })
             .withMessage(`Last name must be between ${C_USER.MIN_LENGTH.LAST_NAME} and ${C_USER.MAX_LENGTH.LAST_NAME} characters`),
-        body('email').isEmail().isLength({ max: C_USER.MAX_LENGTH.EMAIL }).withMessage('Invalid email format'),
-        body('password_hash').isString().withMessage('Password is invalid or missing'),
+
+        body('display_name').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.DISPLAY_NAME,
+            max: C_USER.MAX_LENGTH.DISPLAY_NAME
+        }).withMessage(`Display name must be less than ${C_USER.MAX_LENGTH.DISPLAY_NAME} characters long`),
+
+        body('status').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.STATUS,
+            max: C_USER.MAX_LENGTH.STATUS
+        }).withMessage(`Status must be less than ${C_USER.MAX_LENGTH.STATUS} characters long`),
+
+        body('email').isEmail().isLength({
+            min: C_USER.MIN_LENGTH.EMAIL,
+            max: C_USER.MAX_LENGTH.EMAIL })
+            .withMessage(`Email must be a valid email address and less than ${C_USER.MAX_LENGTH.EMAIL} characters long`),
+
+        body('phone_number').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.PHONE,
+            max: C_USER.MAX_LENGTH.PHONE
+        }).withMessage(`Phone Number must be less than ${C_USER.MAX_LENGTH.PHONE} characters long`),
+
+        body('website').optional().isURL().isLength({
+            min: C_USER.MIN_LENGTH.WEBSITE,
+            max: C_USER.MAX_LENGTH.WEBSITE
+        }).withMessage(`Website must be a valid URL and less than ${C_USER.MAX_LENGTH.WEBSITE} characters long`),
+
+        body('notes').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.NOTES,
+            max: C_USER.MAX_LENGTH.NOTES
+        }).withMessage(`Notes must be less than ${C_USER.MAX_LENGTH.NOTES} characters long`),
+
+        body('address_line1').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.ADDRESS_LINE,
+            max: C_USER.MAX_LENGTH.ADDRESS_LINE
+        }).withMessage(`Address line 1 must be less than ${C_USER.MAX_LENGTH.ADDRESS_LINE} characters long`),
+
+        body('address_line2').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.ADDRESS_LINE,
+            max: C_USER.MAX_LENGTH.ADDRESS_LINE
+        }).withMessage(`Address line 2 must bes less than ${C_USER.MAX_LENGTH.ADDRESS_LINE} characters long`),
+
+        body('city').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.CITY,
+            max: C_USER.MAX_LENGTH.CITY
+        }).withMessage(`City must be less than ${CU_USER.MAX_LENGTH.CITY} characters long`),
+
+        body('state').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.STATE,
+            max: C_USER.MAX_LENGTH.STATE
+        }).withMessage(`State must be less than ${C_USER.MAX_LENGTH.STATE}`),
+
+        body('postal_code').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.POSTAL_CODE,
+            max: C_USER.MAX_LENGTH.POSTAL_CODE
+        }).withMessage(`Postal Code must be less than ${C_USER.MAX_LENGTH.ZIP} characters long`),
+
+        body('country').optional().isString().isLength({
+            min: C_USER.MIN_LENGTH.COUNTRY,
+            max: C_USER.MAX_LENGTH.COUNTRY
+        }).withMessage(`Country must be less than ${C_USER.MAX_LENGTH.COUNTRY}`),
+
+        body('password_hash').isString().isLength({
+            min: C_USER.MIN_LENGTH.PASSWORD, max: C_USER.MAX_LENGTH.PASSWORD })
+            .withMessage('Password is invalid or missing'),
+
         body('account_role').isString().isIn(Object.values(C_USER.ROLES)).withMessage('Invalid account role'),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE User - ');
         const hashedPassword = hashPassword(req.body.password_hash);
-        const { first_name, last_name, email, account_role } = req.body;
+
+        const createdColumns = Object.values(C_USER.CREATED_COLUMNS);
+
+        const columns = [];
+        const values = [];
+        const params = [];
+
+        for (const column of createdColumns) {
+            if (req.body[column] !== undefined) {
+                columns.push(column);
+                params.push(req.body[column]);
+                values.push(`$${params.length}`);
+            }
+        }
+
+        columns.push(C_USER.SECURE_COLUMNS.PASSWORD);
+        params.push(hashedPassword);
+        values.push(`$${params.length}`);
 
         const sql = `
-            INSERT INTO users (first_name, last_name, email, password_hash, account_role)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING 
-                user_id,
-                first_name,
-                last_name,
-                email,
-                last_login,
-                created_at,
-                updated_at,
-                account_role
+            INSERT INTO users (${columns.join(', ')})
+            VALUES (${values.join(', ')})
+            RETURNING ${C_USER.SAFE_RETURN}
         `;
-        const { rows } = await query(sql, [first_name, last_name, email, hashedPassword, account_role ]);
+        const { rows } = await query(sql, params);
         res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
     })
 );

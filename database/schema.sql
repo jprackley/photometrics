@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS tasks CASCADE;
 DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS clients CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS addresses CASCADE;
 
 DROP TYPE IF EXISTS image_status CASCADE;
 DROP TYPE IF EXISTS task_category CASCADE;
@@ -48,17 +49,58 @@ CREATE TYPE image_status AS ENUM (
             'Completed',
             'Rejected'
 );
+-- To Be Commissioned
+CREATE TABLE addresses (
+    address_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    address_line1 VARCHAR(255) DEFAULT NULL,
+    address_line2 VARCHAR(255) DEFAULT NULL,
+    city          VARCHAR(100) DEFAULT NULL,
+    state         VARCHAR(100) DEFAULT NULL,
+    postal_code   VARCHAR(20)  DEFAULT NULL,
+    country       VARCHAR(100) DEFAULT NULL
+);
 
 CREATE TABLE users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id VARCHAR(100) DEFAULT NULL,
+    manager_id VARCHAR(100) DEFAULT NULL,
+
     first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100) DEFAULT NULL,
     last_name VARCHAR(100) NOT NULL,
+    display_name VARCHAR(100) DEFAULT NULL,
+
+    title VARCHAR(100) DEFAULT NULL,
+    company VARCHAR(100) DEFAULT NULL,
+    department VARCHAR(100) DEFAULT NULL,
+    location VARCHAR(100) DEFAULT NULL,
+    status VARCHAR(100) DEFAULT NULL,
+
     email VARCHAR(255) NOT NULL UNIQUE,
+    phone_number VARCHAR(20) DEFAULT NULL,
+    website VARCHAR(255) DEFAULT NULL,
+    notes TEXT DEFAULT NULL,
+
+    address_line1 VARCHAR(255) DEFAULT NULL,
+    address_line2 VARCHAR(255) DEFAULT NULL,
+    city VARCHAR(100) DEFAULT NULL,
+    state VARCHAR(100) DEFAULT NULL,
+    postal_code VARCHAR(20) DEFAULT NULL,
+    country VARCHAR(100) DEFAULT NULL,
+
     password_hash TEXT NOT NULL,
+    password_updated_at TIMESTAMPTZ DEFAULT now(),
+    password_expires_at TIMESTAMPTZ DEFAULT NULL,
+
     last_login TIMESTAMPTZ DEFAULT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    account_role user_role NOT NULL
+    account_role user_role NOT NULL,
+    is_admin BOOLEAN NOT NULL DEFAULT false,
+    is_active BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT chk_password_expires_after_update
+        CHECK (password_expires_at IS NULL OR password_updated_at IS NULL OR password_expires_at >= password_updated_at)
 );
 
 CREATE TABLE IF NOT EXISTS clients (

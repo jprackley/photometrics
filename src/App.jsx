@@ -77,11 +77,17 @@ const API_ENDPOINTS = {
         employeeActivity: "/dashboard/employee-activity",
         projectProgress: "/dashboard/project-progress",
     },
-    //users: "/users" This router is for CRUD of Managers, and Employees
-    //clients: "/clients" This router is for CRUD of Clients
-    
     //-----------------------------------------------------------------
-    // CRUD for managers/employees/user accounts.
+    // CRUD for client accounts.
+    // Backend provides:
+    // GET all clients                                      DONE
+    // GET single client                                    DONE
+    // POST create                                          DONE
+    // PUT update                                           DONE
+    // DELETE remove/deactivate                             DONE
+    clients: "/clients",
+    //-----------------------------------------------------------------
+    // CRUD for ALL user accounts.
     // Frontend expects:
     // GET all users                                        DONE
     // GET single user                                      DONE
@@ -89,16 +95,19 @@ const API_ENDPOINTS = {
     // PUT update                                           DONE
     // DELETE remove/deactivate                             DONE
     // Also used for authentication roles/permissions.
-    // users: "/users",
-
-    // CRUD for customer/client information tied to projects.
-    // Stores company info, contacts, addresses, billing details, etc.
-    // clients: "/clients",
+    users: "/users",
     //------------------------------------------------------------------
-
+    // CRUD for projects.
+    // Frontend expects:
+    // GET all projects                                        
+    // GET single project                                      
+    // POST create                                          
+    // PUT update                                           
+    // DELETE remove/deactivate                             
     // Main project management endpoint.
     // Stores project details, status, deadlines, linked client, assigned employees, uploaded files, etc.
     projects: "/projects",
+    //------------------------------------------------------------------
     //images: "/images" This router is for CRUD of Images to be linked to a Project"
 
     //--------------------------------------------------------------------
@@ -118,7 +127,7 @@ const API_ENDPOINTS = {
     assignments: "/assignments", //How are you trying to use this API?
 
     //-----------------------------------------------------------------------
-    // Yes — this is employee CRUD.
+    // This API endpoint will be READ-ONLY. Use "/users" for all user management.
     // Frontend uses it for:
     // - employee directory
     // - employee profile management
