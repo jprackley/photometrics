@@ -20,18 +20,22 @@ app.use('/api/users', require('./routers/users'));
 app.use('/api/employees', require('./routers/read-only/employees'));
 
 // Error handler MUST BE LAST
-app.use((err, req, res) => {
+// Error handler MUST BE LAST
+app.use((err, req, res, next) => {
     const status = err.status || C_HTTP.STATUS.INTERNAL_SERVER_ERROR;
-    const code = err.code || 'internal_error';
+    const code = err.code || C_HTTP.REASON.INTERNAL_SERVER_ERROR;
+
     console.error('[error]', {
         status,
         code,
         message: err.message,
+        details: err.details,
         stack: err.stack,
     });
+
     res.status(status).json({
         error: {
-            code: err.code || C_HTTP.STATUS.INTERNAL_SERVER_ERROR,
+            code,
             message: err.message,
             details: err.details || null,
         }

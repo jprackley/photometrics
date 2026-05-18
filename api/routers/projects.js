@@ -4,8 +4,8 @@ const asyncHandler = require("../../utils/helpers/asyncHandler");
 const {query} = require("../db");
 const {param, body} = require("express-validator");
 const C_HTTP = require("../../utils/constants/cHTTP");
-const C_SCHEMA = require("../../utils/constants/cSchema");
 const C_NODE = require("../../utils/constants/cNodeServer");
+const C_PROJECT = require("../../utils/constants/cProjects");
 const router = express.Router();
 
 //------------------------------//
@@ -37,12 +37,29 @@ const router = express.Router();
 router.post(
     '/',
     [
-        body('client_id').isUUID(),
-        body('managed_by').optional().isUUID(),
-        body('project_name').isString().isLength({ min: C_SCHEMA.MIN.PROJECT_NAME_LENGTH, max: C_SCHEMA.MAX.PROJECT_NAME_LENGTH }),
-        body('description').isString().isLength({ min: C_SCHEMA.MIN.PROJECT_DESC_LENGTH, max: C_SCHEMA.MAX.PROJECT_DESC_LENGTH }),
-        body('status').optional().isIn(C_SCHEMA.STATUS.PROJECT).withMessage('Invalid project status'),
+        body('client_id').isUUID().withMessage('Invalid client ID format'),
+        body('managed_by').optional().isUUID().withMessage('Invalid user ID format'),
+
+        body('project_name').isString().isLength({
+            min: C_PROJECT.MIN_LENGTH.NAME,
+            max: C_PROJECT.MAX_LENGTH.NAME
+        }).withMessage(`Project name must be less than ${C_PROJECT.MAX_LENGTH.NAME} characters long`),
+
+        body('description').isString().isLength({
+            min: C_PROJECT.MIN_LENGTH.DESCRIPTION,
+            max: C_PROJECT.MAX_LENGTH.DESCRIPTION
+        }).withMessage(`Project description must be less than ${C_PROJECT.MAX_LENGTH.DESCRIPTION} characters long`),
+
+        body('status').optional().isIn(Object.values(C_PROJECT.STATUS)).withMessage('Invalid project status'),
+        body('priority').optional().isIn(Object.values(C_PROJECT.PRIORITY)).withMessage('Invalid project priority'),
+
+        body('notes').optional().isString().isLength({
+            min: C_PROJECT.MIN_LENGTH.NOTES,
+            max: C_PROJECT.MAX_LENGTH.NOTES
+        }).withMessage(`Notes must be less than ${C_PROJECT.MAX_LENGTH.NOTES} characters long`),
+
         body('start_time').optional().isISO8601().withMessage('Invalid start time format'),
+        body('shoot_time').optional().isISO8601().withMessage('Invalid shoot time format'),
         body('due_time').optional().isISO8601().withMessage('Invalid due time format'),
         body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
     ],
@@ -87,21 +104,38 @@ router.get(
     [paginate],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ Projects - ');
-        const { page = C_NODE.PAGINATE.PAGE, limit = C_NODE.PAGINATE.LIMIT, sort = C_NODE.PAGINATE.SORT,
-            order = C_NODE.PAGINATE.ORDER, q } = req.query;
-        const { offset } = buildPagination({ page: Number(page), limit: Number(limit) });
+        const {
+            all = C_NODE.PAGINATE.ALL,
+            page  = C_NODE.PAGINATE.PAGE,
+            limit = C_NODE.PAGINATE.LIMIT,
+            sort = C_NODE.PAGINATE.SORT,
+            order = C_NODE.PAGINATE.ORDER,
+            q
+        } = req.query;
+
+        // if all is true, return all users, otherwise paginate
+        if (all === 'true') {
+            const sql = `SELECT * FROM projects`;
+            const { rows } = await query(sql);
+            return res.json(rows);
+        }
 
         // Basic whitelist for sort fields to avoid SQL injection
-        const sortable = C_NODE.SORTABLE.PROJECTS;
-        const sortField = sortable.includes(String(sort)) ? sort : C_NODE.SORTABLE.PROJECTS[0];
-        const sortDir = order === C_NODE.C_NODE.ASCENDING ? C_NODE.C_NODE.ASCENDING : C_NODE.C_NODE.DESCENDING;
+        const { offset } = buildPagination({ page: Number(page), limit: Number(limit) });
+        const sortable = Object.values(C_PROJECT.CREATED_COLUMNS).concat(Object.values(C_PROJECT.UPDATED_COLUMNS));
+        const sortField = sortable.includes(String(sort)) ? sort : C_PROJECT.CREATED_COLUMNS.DUE;
+        const sortDir = order === C_NODE.ASCENDING ? C_NODE.ASCENDING : C_NODE.DESCENDING;
 
         const params = [];
         let where = '';
         if (q) {
             params.push(`%${q}%`);
             where = `WHERE project_name ILIKE $${params.length} 
-                OR status ILIKE $${params.length}`;
+                OR description ILIKE $${params.length}
+                OR status::TEXT ILIKE $${params.length}
+                OR priority::TEXT ILIKE $${params.length}
+                OR notes ILIKE $${params.length}
+            `;
         }
         const sql = `
             SELECT * FROM projects
@@ -156,7 +190,6 @@ router.get(
     })
 );
 
-
 //------------------------------//
 //       Update Project         //
 //------------------------------//
@@ -205,20 +238,37 @@ router.get(
 router.patch(
     '/:id',
     [
-        param('id').isUUID(),
-        body('project_name').optional().isString().isLength({ min: C_SCHEMA.MIN.PROJECT_NAME_LENGTH, max: C_SCHEMA.MAX.PROJECT_NAME_LENGTH }),
-        body('client_id').optional().isUUID(),
-        body('managed_by').optional().isUUID(),
-        body('description').optional().isString().isLength({ min: C_SCHEMA.MIN.PROJECT_DESC_LENGTH, max: C_SCHEMA.MAX.PROJECT_DESC_LENGTH }),
-        body('status').optional().isIn(C_SCHEMA.STATUS.PROJECT).withMessage('Invalid project status'),
+        param('id').isUUID().withMessage('Invalid project ID format'),
+        body('client_id').optional().isUUID().withMessage('Invalid client ID format'),
+        body('managed_by').optional().isUUID().withMessage('Invalid user ID format'),
+
+        body('project_name').optional().isString().isLength({
+            min: C_PROJECT.MIN_LENGTH.NAME,
+            max: C_PROJECT.MAX_LENGTH.NAME
+        }).withMessage(`Project name must be less than ${C_PROJECT.MAX_LENGTH.NAME} characters long`),
+
+        body('description').optional().isString().isLength({
+            min: C_PROJECT.MIN_LENGTH.DESCRIPTION,
+            max: C_PROJECT.MAX_LENGTH.DESCRIPTION
+        }).withMessage(`Project description must be less than ${C_PROJECT.MAX_LENGTH.DESCRIPTION} characters long`),
+
+        body('status').optional().isIn(Object.values(C_PROJECT.STATUS)).withMessage('Invalid project status'),
+        body('priority').optional().isIn(Object.values(C_PROJECT.PRIORITY)).withMessage('Invalid project priority'),
+
+        body('notes').optional().isString().isLength({
+            min: C_PROJECT.MIN_LENGTH.NOTES,
+            max: C_PROJECT.MAX_LENGTH.NOTES
+        }).withMessage(`Notes must be less than ${C_PROJECT.MAX_LENGTH.NOTES} characters long`),
+
         body('start_time').optional().isISO8601().withMessage('Invalid start time format'),
+        body('shoot_time').optional().isISO8601().withMessage('Invalid shoot time format'),
         body('due_time').optional().isISO8601().withMessage('Invalid due time format'),
         body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'UPDATE Project:id - ');
         const { id } = req.params;
-        const fields = ['project_name', 'client_id', 'managed_by', 'description', 'status', 'start_time', 'due_time', 'completed_at'];
+        const fields = Object.values(C_PROJECT.CREATED_COLUMNS);
         const set = [];
         const params = [];
         fields.forEach((f) => {
@@ -268,7 +318,7 @@ router.patch(
  */
 router.delete(
     '/:id',
-    [param('id').isUUID()],
+    [param('id').isUUID().withMessage('ID is an invalid UUID')],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'DELETE Project:id - ');
         const { id } = req.params;

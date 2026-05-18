@@ -8,11 +8,6 @@ const STATUS = {
 }
 
 let MIN = {
-
-    //For Projects
-    PROJECT_NAME_LENGTH: 1,
-    PROJECT_DESC_LENGTH: 0,
-
     //For Tasks
     TASK_NAME_LENGTH: 1,
     TASK_DESC_LENGTH: 0,
@@ -26,10 +21,6 @@ let MIN = {
 
 }
 const MAX = {
-
-    //For Projects
-    PROJECT_NAME_LENGTH: 255,
-    PROJECT_DESC_LENGTH: 500,
 
     //For Tasks
     TASK_NAME_LENGTH: 255,

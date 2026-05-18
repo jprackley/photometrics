@@ -29,70 +29,19 @@ describe('Testing /api/projects', () => {
      * HTTP 201 Created.
      */
     before(async () => {
-        const test_clients = [
-            {
-                body: {
-                    first_name: "TestClient",
-                    last_name: "Projects",
-                    company_name: "TestSuite",
-                    email: `j.projects${Date.now()}@testsuite.com`,
-                }
-            },
-            {
-                body: {
-                    first_name: "TestClient",
-                    last_name: "Projects",
-                    company_name: "TestSuite",
-                    email: `s.projects${Date.now()}@testsuite.com`,
-                }
-            },
-            {
-                body: {
-                    first_name: "TestClient",
-                    last_name: "Projects",
-                    company_name: "TestSuite",
-                    email: `w.projects${Date.now()}@testsuite.com`,
-                }
-            },
-            {
-                body: {
-                    first_name: "TestClient",
-                    last_name: "Projects",
-                    company_name: "TestSuite",
-                    email: `l.projects${Date.now()}@testsuite.com`,
-                }
-            }
-        ]
-        for (client = 0; client < 4; client++) {
-            const response = await request(app).post('/api/clients').send(test_clients[client].body);
-            assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
-                `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode}`);
+        const client = {
+                first_name: "TestClient",
+                last_name: "Projects",
+                company_name: "TestSuite",
+                email: `j.projects${Date.now()}@testsuite.com`,
+        }
+        const response = await request(app).post('/api/clients').send(client);
+        assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
+            `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode} \n
+                ${JSON.stringify(response.body, null, 2)}`);
+        if (response.statusCode === C_HTTP.STATUS.CREATED) {
             clients.push(response.body.client_id);
         }
-    });
-    /**
-     * Creates a temporary project before the project endpoint tests run.
-     *
-     * This project is reused by PATCH and DELETE tests that require an existing
-     * project record.
-     *
-     * @throws {AssertionError} If the project creation request does not return
-     * HTTP 201 Created.
-     */
-    before(async () => {
-        const created = await request(app).post('/api/projects').send({
-            project_name: 'Test Project',
-            description: 'Created for UPDATE/DELETE test',
-            client_id: clients[0],
-            status: 'To-Do',
-        });
-        assert.equal(
-            created.statusCode,
-            C_HTTP.STATUS.CREATED,
-            `Expected status code ${C_HTTP.STATUS.CREATED}, got ${created.statusCode}`
-        );
-        projects.push(created.body.project_id);
-        assert.ok(projects.length > 0, 'No projects created');
     });
     /**
      * Deletes all test projects created during the test run.
@@ -101,18 +50,10 @@ describe('Testing /api/projects', () => {
      */
     after(async () => {
         for (const id of projects) {
-            await request(app).delete(`/api/projects/${id}`);
-        }
-    });
-    /**
-     * Deletes all test clients created during the test run.
-     *
-     * This cleanup runs after the project cleanup because projects depend on
-     * clients through `client_id`.
-     */
-    after(async () => {
-        for (const id of clients) {
-            await request(app).delete(`/api/clients/${id}`);
+            const response = await request(app).delete(`/api/projects/${id}`);
+            if (response.statusCode === C_HTTP.STATUS.NO_CONTENT) {
+                projects.splice(projects.indexOf(id), 1);
+            }
         }
     });
     /**
@@ -138,9 +79,11 @@ describe('Testing /api/projects', () => {
             assert.equal(
                 response.statusCode,
                 C_HTTP.STATUS.CREATED,
-                `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode}`
+                `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode} 
+                ${JSON.stringify(response.body, null, 2)}`
             );
-            assert.ok(response.body.project_id);
+            assert.ok(response.body.project_id, `Response should include project_id, 
+                got ${JSON.stringify(response.body, null, 2)}`);
             projects.push(response.body.project_id)
         });
 
@@ -152,7 +95,7 @@ describe('Testing /api/projects', () => {
 
         const invalid_queries = ['?page=-1', '?limit=-1', '?order=down'];
         /**
-         * Verifies that the projects endpoint returns a valid project list.
+         * Verifies that the project endpoint returns a valid project list.
          *
          * @throws {AssertionError} If the API does not return HTTP 200 OK.
          */
@@ -161,8 +104,9 @@ describe('Testing /api/projects', () => {
             assert.equal(
                 response.statusCode,
                 C_HTTP.STATUS.OK,
-                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`
-            );
+                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode} 
+                ${JSON.stringify(response.body, null, 2)}
+            `);
         });
         /**
          * Verifies that invalid query parameters return HTTP 400 Bad Request.
@@ -176,7 +120,8 @@ describe('Testing /api/projects', () => {
                 assert.equal(
                     response.statusCode,
                     C_HTTP.STATUS.BAD_REQUEST,
-                    `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, ${testcase} got ${response.statusCode}`
+                    `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, ${testcase} got ${response.statusCode}
+                    ${JSON.stringify(response.body, null, 2)}`
                 );
             }
         });
@@ -199,9 +144,9 @@ describe('Testing /api/projects', () => {
                     status: 'In Progress',
                 });
             assert.equal(
-                response.statusCode,
-                C_HTTP.STATUS.OK,
-                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`
+                response.statusCode, C_HTTP.STATUS.OK,
+                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}
+                ${JSON.stringify(response.body, null, 2)}`
             );
         });
         /**
@@ -214,9 +159,9 @@ describe('Testing /api/projects', () => {
                 .patch(`/api/projects/${projects[0]}`)
                 .send({});
             assert.equal(
-                response.statusCode,
-                C_HTTP.STATUS.BAD_REQUEST,
-                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`
+                response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}
+                ${JSON.stringify(response.body, null, 2)}`
             );
         });
         /**
@@ -224,14 +169,14 @@ describe('Testing /api/projects', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[[TEST]: invalid project_id [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: invalid project_id [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app)
                 .patch('/api/projects/not-a-valid-uuid')
-                .send({project_name: 'Invalid UUID Test'});
+                .send({project_name: '00000000-0000-0000-0000-0000000000000'});
             assert.equal(
-                response.statusCode,
-                C_HTTP.STATUS.BAD_REQUEST,
-                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`
+                response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}
+                ${JSON.stringify(response.body, null, 2)}`
             );
         });
         /**
@@ -247,11 +192,12 @@ describe('Testing /api/projects', () => {
                 .patch(`/api/projects/${missingProjectId}`)
                 .send({project_name: 'Missing Project Test'});
             assert.equal(
-                response.statusCode,
-                C_HTTP.STATUS.NOT_FOUND,
-                `Expected status code ${C_HTTP.STATUS.NOT_FOUND}, got ${response.statusCode}`
+                response.statusCode, C_HTTP.STATUS.NOT_FOUND,
+                `Expected status code ${C_HTTP.STATUS.NOT_FOUND}, got ${response.statusCode}
+                ${JSON.stringify(response.body, null, 2)}`
             );
-            assert.equal(response.body.error.message, 'Project not found');
+            assert.equal(response.body.error.message, `Project not found`,
+                `Expected error message: Project not found, got ${response.body.error.message}`);
         });
         /**
          * Verifies that an invalid project status is rejected.
@@ -266,7 +212,8 @@ describe('Testing /api/projects', () => {
             assert.equal(
                 response.statusCode,
                 C_HTTP.STATUS.BAD_REQUEST,
-                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}
+                ${JSON.stringify(response.body, null, 2)}`
             );
         });
     });
@@ -286,7 +233,8 @@ describe('Testing /api/projects', () => {
             assert.equal(
                 response.statusCode,
                 C_HTTP.STATUS.NOT_FOUND,
-                `Expected status code ${C_HTTP.STATUS.NOT_FOUND}, got ${response.statusCode}`
+                `Expected status code ${C_HTTP.STATUS.NOT_FOUND}, got ${response.statusCode}
+                ${JSON.stringify(response.body, null, 2)}`
             );
         });
         /**
@@ -300,7 +248,8 @@ describe('Testing /api/projects', () => {
             assert.equal(
                 response.statusCode,
                 C_HTTP.STATUS.BAD_REQUEST,
-                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}
+                ${JSON.stringify(response.body, null, 2)}`
             );
         });
         /**
@@ -314,7 +263,8 @@ describe('Testing /api/projects', () => {
             assert.equal(
                 response.statusCode,
                 C_HTTP.STATUS.NO_CONTENT,
-                `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode}`
+                `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode}
+                ${JSON.stringify(response.body, null, 2)}`
             );
             projects.splice(projects.indexOf(projects[0]), 1);
         });
