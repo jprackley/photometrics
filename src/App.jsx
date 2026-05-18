@@ -77,6 +77,7 @@ const API_ENDPOINTS = {
         employeeActivity: "/dashboard/employee-activity",
         projectProgress: "/dashboard/project-progress",
     },
+
     //-----------------------------------------------------------------
     // CRUD for client accounts.
     // Backend provides:
@@ -86,6 +87,7 @@ const API_ENDPOINTS = {
     // PUT update                                           DONE
     // DELETE remove/deactivate                             DONE
     clients: "/clients",
+
     //-----------------------------------------------------------------
     // CRUD for ALL user accounts.
     // Frontend expects:
@@ -96,6 +98,7 @@ const API_ENDPOINTS = {
     // DELETE remove/deactivate                             DONE
     // Also used for authentication roles/permissions.
     users: "/users",
+
     //------------------------------------------------------------------
     // CRUD for projects.
     // Frontend expects:
@@ -107,14 +110,13 @@ const API_ENDPOINTS = {
     // Main project management endpoint.
     // Stores project details, status, deadlines, linked client, assigned employees, uploaded files, etc.
     projects: "/projects",
-    //------------------------------------------------------------------
-    //images: "/images" This router is for CRUD of Images to be linked to a Project"
 
-    //--------------------------------------------------------------------
+    //------------------------------------------------------------------
     // Image/file upload CRUD for project attachments.
     // Used for project reference images, screenshots, documents, deliverables, etc.
-    // images: "/images",
+    images: "/images",
 
+    //-----------------------------------------------------------------------
     // Assignment API links employees/users to projects/tasks.
     // Frontend uses this for:
     // - assigning employees to projects
@@ -137,6 +139,7 @@ const API_ENDPOINTS = {
     // - employee dashboard displays
     //-----------------------------------------------------------------------
     employees: "/employees", //Is this for employee CRUD?
+
     //-----------------------------------------------------------------------
     // Task CRUD tied to projects and employees.
     // Includes:
@@ -147,6 +150,7 @@ const API_ENDPOINTS = {
     // - timer tracking linkage
     //-----------------------------------------------------------------------
     tasks: "/tasks",
+
     //-----------------------------------------------------------------------
     // Stores clocked work time for tasks/projects.
     // Frontend timer system posts here.
@@ -154,6 +158,7 @@ const API_ENDPOINTS = {
     // employeeId, taskId, startTime, endTime, duration
     //-----------------------------------------------------------------------
     timeEntries: "/time-entries",
+
     //-----------------------------------------------------------------------
     // Generated reports endpoint.
     // Used for exporting/filtering:
@@ -164,11 +169,13 @@ const API_ENDPOINTS = {
     // - client/project summaries
     //------------------------------------------------------------------------
     reports: "/reports", //Will most likely be part of the above mentioned non SQL database.
+
     //------------------------------------------------------------------------
     // Analytics endpoints for graphs, trends, forecasting, workload analysis, etc.
     // Mostly aggregated/calculated data.
     //------------------------------------------------------------------------
     analytics: "/analytics", //Will most likely be part of the above mentioned non SQL database.
+
     //------------------------------------------------------------------------
     // Application/system settings storage.
     // Frontend currently needs:

@@ -17,6 +17,7 @@ app.use('/api/tasks', require('./routers/tasks'));
 app.use('/api/images', require('./routers/images'));
 app.use('/api/time-entries', require('./routers/time.entries'));
 app.use('/api/users', require('./routers/users'));
+app.use('/api/employees', require('./routers/read-only/employees'));
 
 // Error handler MUST BE LAST
 app.use((err, req, res) => {
