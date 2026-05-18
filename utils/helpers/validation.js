@@ -6,7 +6,7 @@ const paginate = [
     query('limit').optional().toInt().isInt({ min: C_NODE.PAGINATE.MIN_LIMIT, max: C_NODE.PAGINATE.MAX_LIMIT })
         .withMessage(`limit ${C_NODE.PAGINATE.MIN_LIMIT}..${C_NODE.PAGINATE.MAX_LIMIT}`),
     query('sort').optional().isString(),
-    query('order').optional().isIn([C_NODE.SORTABLE.ASCENDING, C_NODE.SORTABLE.DESCENDING]).withMessage('order asc|desc'),
+    query('order').optional().isIn([C_NODE.ASCENDING, C_NODE.DESCENDING]).withMessage('order asc|desc'),
 ];
 
 function buildPagination({ page = 1, limit = 20 }) {

@@ -3,62 +3,181 @@ const assert = require('node:assert/strict');
 const request = require('supertest');
 const app = require('../../api/index');
 const C_HTTP = require('../../utils/constants/cHTTP');
-const C = require('../../utils/constants/cSchema');
-
+const C_CLIENT = require('../../utils/constants/cClients');
 
 const clients = []
-const clients_undefined = [
-    {
+const clients_undefined = {
+    firstName: {
         first_name: "",
         last_name: "Client",
         company_name: "Missing First Name",
         email: `s.lowe${Date.now()}@testees.com`,
     },
-    {
+    lastName: {
         first_name: "Client",
         last_name: "",
         company_name: "Missing Last Name",
         email: `s.lowe${Date.now()}@testees.com`,
     },
-    {
+    companyName: {
         first_name: "Missing Company Name",
         last_name: "Client",
         company_name: "",
         email: `s.lowe${Date.now()}@testees.com`,
     },
-    {
+    email: {
         first_name: "TestClient",
         last_name: "Client",
         company_name: "Missing Email",
         email: ``,
     }
-]
-const clients_overrun = [
-    {
-        first_name: "C".repeat(C.MAX.FIRST_NAME_LENGTH + 1),
+}
+const clients_overrun = {
+    firtsName: {
+        first_name: "C".repeat(C_CLIENT.MAX_LENGTH.FIRST_NAME + 1),
         last_name: "Client",
         company_name: "First Name Too Long",
-        email: "c.taylor@testees.com"
+        email: `s.lowe${Date.now()}@testees.com`
     },
-    {
+    middleName: {
         first_name: "Client",
-        last_name: "T".repeat(C.MAX.LAST_NAME_LENGTH + 1),
-        company_name: "Last Name Too Long",
-        email: "c.taylor@testees.com"
+        middle_name: "T".repeat(C_CLIENT.MAX_LENGTH.MIDDLE_NAME + 1),
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`
     },
-    {
+    lastName: {
+        first_name: "Client",
+        last_name: "T".repeat(C_CLIENT.MAX_LENGTH.LAST_NAME + 1),
+        company_name: "Last Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`
+    },
+    title: {
+        first_name: "Client",
+        title: "T".repeat(C_CLIENT.MAX_LENGTH.TITLE + 1),
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`
+    },
+    companyName: {
         first_name: "Max Company Name Length",
         last_name: "Client",
-        company_name: "S".repeat(C.MAX.COMPANY_NAME_LENGTH + 1),
-        email: "c.taylor@testees.com"
+        company_name: "S".repeat(C_CLIENT.MAX_LENGTH.COMPANY_NAME + 1),
+        email: `s.lowe${Date.now()}@testees.com`
     },
-    {
+    email: {
         first_name: "Corey",
         last_name: "Client",
         company_name: "Max Email Length",
-        email: "c".repeat(C.MAX.EMAIL_LENGTH) + "@testees.com"
-    }
-]
+        email: "c".repeat(C_CLIENT.MAX_LENGTH.EMAIL) + "@testees.com"
+    },
+    phoneNumber: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        phone_number: "9".repeat(C_CLIENT.MAX_LENGTH.PHONE + 1)
+    },
+    website: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        website: "https://".repeat(C_CLIENT.MAX_LENGTH.WEBSITE + 1) + ".com"
+    },
+    notes: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        notes: "N".repeat(C_CLIENT.MAX_LENGTH.NOTES + 1)
+    },
+    addressLine1: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        address_line1: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)
+    },
+    addressLine2: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        address_line2: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)
+    },
+    city: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        city: "C".repeat(C_CLIENT.MAX_LENGTH.CITY)
+    },
+    state: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        state: "C".repeat(C_CLIENT.MAX_LENGTH.STATE)
+    },
+    postalCode: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        postal_code: "9".repeat(C_CLIENT.MAX_LENGTH.ZIP)
+    },
+    country: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        country: "C".repeat(C_CLIENT.MAX_LENGTH.COUNTRY)
+    },
+    billingAddressLine1: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        billing_address_line1: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)
+    },
+    billingAddressLine2: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        billing_address_line2: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)
+    },
+    billingCity: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        billing_city: "C".repeat(C_CLIENT.MAX_LENGTH.CITY)
+    },
+    billingState: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        billing_state: "C".repeat(C_CLIENT.MAX_LENGTH.STATE)
+    },
+    billingPostalCode: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        billing_postal_code: "9".repeat(C_CLIENT.MAX_LENGTH.ZIP)
+    },
+    billingCountry: {
+        first_name: "Client",
+        last_name: "Client",
+        company_name: "First Name Too Long",
+        email: `s.lowe${Date.now()}@testees.com`,
+        billing_country: "C".repeat(C_CLIENT.MAX_LENGTH.COUNTRY)
+    },
+
+}
 /**
  * Test suite for the `/api/clients` endpoint.
  *
@@ -76,13 +195,32 @@ describe('Testing /api/clients', () => {
         const response = await request(app).post('/api/clients').send(
             {
                 first_name: "TestClient",
+                middle_name: "Tester",
                 last_name: "Client",
+                title: "Mr.",
+
                 company_name: "Valid Client",
                 email: `before.tester${Date.now()}@testees.com`,
+                phone_number: "555-555-5555",
+                website: "https://testees.com",
+                notes: "This is a test client.",
+
+                address_line1: "123 Main St.",
+                address_line2: "Suite 100",
+                city: "Anytown",
+                state: "CA",
+                postal_code: "12345",
+                country: "USA",
+
+                billing_address_line1: "456 Elm St.",
+                billing_address_line2: "Apt 100",
+                billing_city: "Anytown",
+                billing_state: "CA",
+                billing_postal_code: "12345",
             },
         );
         assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
-            `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode}`);
+            `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode} \n ${JSON.stringify(response.body)}`);
         if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
     })
     /**
@@ -122,99 +260,218 @@ describe('Testing /api/clients', () => {
             if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
         /**
-         * Verifies that client creation fails when the first name is missing.
+         * Verifies that client creation fails when the first name is missing or overrun.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
         test(`[TEST]: CREATE first name missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/clients').send(clients_undefined[0]);
+            const response = await request(app).post('/api/clients').send(clients_undefined.firstName);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        });
+
+        test(`[TEST]: CREATE max first name [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.firstName);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
             if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
         /**
-         * Verifies that client creation fails when the first name exceeds
-         * the configured max length.
+         * Verifies that client creation fails when the middle name is missing or overrun.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[TEST]: CREATE max first name [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/clients').send(clients_overrun[0]);
+        test('[TEST]: CREATE missing middle name [EXPECTED] status code 201 Created', async () => {
+            const response = await request(app).post('/api/clients').send(clients_undefined.middleName);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
             if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
-        });
+        })
+        test('[TEST]: CREATE max middle name [EXPECTED] status code 201 Created', async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.middleName);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        })
+
         /**
-         * Verifies that client creation fails when the last name is missing.
+         * Verifies that client creation fails when the last name is missing or overrun.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
         test(`[TEST]: CREATE last name missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-
-            const response = await request(app).post('/api/clients').send(clients_undefined[1]);
+            const response = await request(app).post('/api/clients').send(clients_undefined.lastName);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
             if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
+        test(`[TEST]: CREATE max last name [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.lastName);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        });
+
         /**
-         * Verifies that client creation fails when the last name exceeds
-         * the configured max length.
+         * Verifies that client creation fails when the title is missing or overrun.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[TEST]: CREATE max last name [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/clients').send(clients_overrun[1]);
+        test(`[TEST]: CREATE title missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_undefined.title);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
             if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
-        });
+        })
+        test(`[TEST]: CREATE max title [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.title);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST, `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        })
+
         /**
-         * Verifies that client creation fails when the company name is missing.
+         * Verifies that client creation fails when the company name is missing or overrun.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
         test(`[TEST]: CREATE company name missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
 
-            const response = await request(app).post('/api/clients').send(clients_undefined[2]);
+            const response = await request(app).post('/api/clients').send(clients_undefined.companyName);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
             if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
-        /**
-         * Verifies that client creation fails when the company name exceeds
-         * the configured max length.
-         *
-         * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
-         */
         test(`[TEST]: CREATE max company name [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/clients').send(clients_overrun[2]);
+            const response = await request(app).post('/api/clients').send(clients_overrun.companyName);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
             if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
+
         /**
-         * Verifies that client creation fails when email is missing.
+         * Verifies that client creation fails when email is missing or overrun.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
         test(`[TEST]: CREATE email missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/clients').send(clients_undefined[3]);
+            const response = await request(app).post('/api/clients').send(clients_undefined.email);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
             if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
+        test(`[TEST]: CREATE max email [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.email);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        });
+
         /**
-         * Verifies that client creation fails when the email exceeds
-         * the configured max length.
+         * Verifies that client creation fails when the phone number is missing or overrun.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[TEST]: CREATE max email [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/clients').send(clients_overrun[3]);
+        test(`[TEST]: CREATE phone number missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_undefined.phoneNumber);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
             if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
+        test(`[TEST]: CREATE max phone number [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.phoneNumber);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+        })
+
+        /**
+         * Verifies that client creation fails when the website is missing or overrun.
+         *
+         * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
+         */
+        test(`[TEST]: CREATE website missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_undefined.website);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        });
+        test(`[TEST]: CREATE max website [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.website);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+        })
+
+        /**
+         * Verifies that client creation fails when the notes are missing or overrun.
+         *
+         * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
+         */
+        test(`[TEST]: CREATE notes missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_undefined.notes);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        });
+        test(`[TEST]: CREATE max notes [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.notes);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+        })
+
+        /**
+         * Verifies that client creation fails when the address is missing or overrun.
+         *
+         * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
+         */
+        test(`[TEST]: CREATE address_line1 missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_undefined.address);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        });
+        test(`[TEST]: CREATE address_line2 missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_undefined.address);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        })
+        test(`[TEST]: CREATE max address_line1 [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.address);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        })
+        test(`[TEST]: CREATE max address_line2 [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.address);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        })
+        test(`[TEST]: CREATE max city [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.address);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        })
+        test(`[TEST]: CREATE max state [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.address);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        })
+        test(`[TEST]: CREATE max postal_code [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.address);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        })
+        test(`[TEST]: CREATE max country [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            const response = await request(app).post('/api/clients').send(clients_overrun.address);
+            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
+                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
+            if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        })
+
     });
     //------------------------------------//
     //       READ CLIENT TESTS            //
@@ -231,27 +488,40 @@ describe('Testing /api/clients', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 200 OK.
          */
-        test(`[TEST]: read by default pagination [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: READ by default pagination [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).get('/api/clients');
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                 `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
         });
+
         /**
          * Verifies that a client can be retrieved by a valid client ID.
          *
          * @throws {AssertionError} If the API does not return HTTP 200 OK.
          */
-        test(`[TEST] valid id [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST] READ by ID [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).get(`/api/clients/${clients[0].client_id}`);
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                 `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
         });
+
+        /**
+         * Verifies that all clients can be retrieved by setting all=true in the query string.
+         *
+         * @throws {AssertionError} If the API does not return HTTP 200 OK.
+         */
+        test(`[TEST] READ all clients [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
+            const response = await request(app).get(`/api/clients?all=true`);
+            assert.equal(response.statusCode, C_HTTP.STATUS.OK,
+                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
+        })
+
         /**
          * Verifies that an invalid client ID is rejected.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[TEST] invalid id [EXPECTED] status code ${C_HTTP.STATUS.NOT_FOUND} or ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST] READ invalid ID [EXPECTED] status code ${C_HTTP.STATUS.NOT_FOUND} or ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app).get(`/api/clients/00000000-0000-0000-0000-000000`);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
@@ -263,7 +533,7 @@ describe('Testing /api/clients', () => {
          * @throws {AssertionError} If the API does not return HTTP 200 OK,
          * or if the response data array is empty.
          */
-        test(`[TEST]: valid search string [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: READ search string [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).get(`/api/clients?q=${clients[0].first_name}`);
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                 `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
@@ -277,7 +547,7 @@ describe('Testing /api/clients', () => {
          * @throws {AssertionError} If the API does not return HTTP 200 OK,
          * or if the response data array is not empty.
          */
-        test(`[TEST]: empty search [EXPECTED] status code ${C_HTTP.STATUS.OK} and data is empty`, async () => {
+        test(`[TEST]: READ empty search [EXPECTED] status code ${C_HTTP.STATUS.OK} and data is empty`, async () => {
                 const response = await request(app).get('/api/clients?q=spiderman');
                 assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                     `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode}`);
@@ -308,9 +578,27 @@ describe('Testing /api/clients', () => {
         test(`[TEST]: update client fields [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
             const testcases = [
                 {first_name: "TestClientUpdated"},
-                {last_name: "ClientUpdated"},
-                {company_name: "Apple"},
-                {email: `s.${Date.now()}jobs@apple.com`}];
+                {middle_name: "Updated"},
+                {last_name: "Updated"},
+                {title: "Updated"},
+                {company_name: "Updated"},
+                {email: `updated.${Date.now()}jobs@apple.com`},
+                {phone_number: "1234567890"},
+                {website: "https://updated.jobs"},
+                {notes: "Updated"},
+                {address_line1: "Updated"},
+                {address_line2: "Updated"},
+                {city: "Updated"},
+                {state: "Updated"},
+                {postal_code: "Updated"},
+                {country: "Updated"},
+                {billing_address_line1: "Updated"},
+                {billing_address_line2: "Updated"},
+                {billing_city: "Updated"},
+                {billing_state: "Updated"},
+                {billing_postal_code: "Updated"},
+                {billing_country: "Updated"}
+            ];
             for (const testcase of testcases) {
                 const response = await request(app).patch(`/api/clients/${clients[0].client_id}`).send(testcase);
                 assert.equal(response.statusCode, C_HTTP.STATUS.OK,
@@ -329,30 +617,27 @@ describe('Testing /api/clients', () => {
         test(`[TEST]: invalid data length [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             let testcases;
             testcases = [
-                {
-                    name: "first_name is longer than 100 characters",
-                    body: {
-                        first_name: "C".repeat(C.MAX.FIRST_NAME_LENGTH + 1)
-                    }
-                },
-                {
-                    name: "last_name is longer than 100 characters",
-                    body: {
-                        last_name: "T".repeat(C.MAX.LAST_NAME_LENGTH + 1)
-                    }
-                },
-                {
-                    name: "company_name is longer than 255 characters",
-                    body: {
-                        company_name: "S".repeat(C.MAX.COMPANY_NAME_LENGTH + 1)
-                    }
-                },
-                {
-                    name: "email is longer than 255 characters",
-                    body: {
-                        email: "c".repeat(C.MAX.EMAIL_LENGTH) + "@testees.com"
-                    }
-                }
+                { first_name: "C".repeat(C_CLIENT.MAX_LENGTH.FIRST_NAME + 1) },
+                { middle_name: "T".repeat(C_CLIENT.MAX_LENGTH.MIDDLE_NAME + 1)},
+                { last_name: "T".repeat(C_CLIENT.MAX_LENGTH.LAST_NAME + 1) },
+                { title: "T".repeat(C_CLIENT.MAX_LENGTH.TITLE + 1) },
+                { company_name: "S".repeat(C_CLIENT.MAX_LENGTH.COMPANY_NAME + 1) },
+                { email: "c".repeat(C_CLIENT.MAX_LENGTH.EMAIL) + "@testees.com" },
+                { phone_number: "8".repeat(C_CLIENT.MAX_LENGTH.PHONE_NUMBER) },
+                { websites: "https://".repeat(C_CLIENT.MAX_LENGTH.WEBSITE + 1) },
+                { notes: "Notes".repeat(C_CLIENT.MAX_LENGTH.NOTES + 1) },
+                { address_line1: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)},
+                { address_line2: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)},
+                { city: "C".repeat(C_CLIENT.MAX_LENGTH.CITY) },
+                { state: "S".repeat(C_CLIENT.MAX_LENGTH.STATE) },
+                { postal_code: "P".repeat(C_CLIENT.MAX_LENGTH.POSTAL_CODE) },
+                { country: "C".repeat(C_CLIENT.MAX_LENGTH.COUNTRY) },
+                { billing_address_line1: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)},
+                { billing_address_line2: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)},
+                { billing_city: "C".repeat(C_CLIENT.MAX_LENGTH.CITY) },
+                { billing_state: "S".repeat(C_CLIENT.MAX_LENGTH.STATE) },
+                { billing_postal_code: "P".repeat(C_CLIENT.MAX_LENGTH.POSTAL_CODE) },
+                { billing_country: "C".repeat(C_CLIENT.MAX_LENGTH.COUNTRY) }
             ];
             for (const testcase of testcases) {
                 const response = await request(app).patch(`/api/clients/${clients[0]}`).send(testcase.body);

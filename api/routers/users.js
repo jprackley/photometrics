@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const C_SCHEMA = require('../../utils/constants/cSchema');
+const C_USER = require('../../utils/constants/cUsers');
 const C_HTTP = require('../../utils/constants/cHTTP');
 const C_NODE = require('../../utils/constants/cNodeServer');
 const asyncHandler = require('../../utils/helpers/asyncHandler');
@@ -15,13 +15,13 @@ const { body, param} = require("express-validator");
 router.post(
     '/',
     [
-        body('first_name').isString().isLength({ min: C_SCHEMA.MIN.FIRST_NAME_LENGTH, max: C_SCHEMA.MAX.FIRST_NAME_LENGTH })
-            .withMessage(`First name must be between ${C_SCHEMA.MIN.FIRST_NAME_LENGTH} and ${C_SCHEMA.MAX.FIRST_NAME_LENGTH} characters`),
-        body('last_name').isString().isLength({ min: C_SCHEMA.MIN.LAST_NAME_LENGTH, max: C_SCHEMA.MAX.LAST_NAME_LENGTH })
-            .withMessage(`Last name must be between ${C_SCHEMA.MIN.LAST_NAME_LENGTH} and ${C_SCHEMA.MAX.LAST_NAME_LENGTH} characters`),
-        body('email').isEmail().isLength({ max: C_SCHEMA.MAX.EMAIL_LENGTH }).withMessage('Invalid email format'),
+        body('first_name').isString().isLength({ min: C_USER.MIN_LENGTH.FIRST_NAME, max: C_USER.MAX_LENGTH.FIRST_NAME })
+            .withMessage(`First name must be between ${C_USER.MIN_LENGTH.FIRST_NAME} and ${C_USER.MAX_LENGTH.FIRST_NAME} characters`),
+        body('last_name').isString().isLength({ min: C_USER.MIN_LENGTH.LAST_NAME, max: C_USER.MAX_LENGTH.LAST_NAME })
+            .withMessage(`Last name must be between ${C_USER.MIN_LENGTH.LAST_NAME} and ${C_USER.MAX_LENGTH.LAST_NAME} characters`),
+        body('email').isEmail().isLength({ max: C_USER.MAX_LENGTH.EMAIL }).withMessage('Invalid email format'),
         body('password_hash').isString().withMessage('Password is invalid or missing'),
-        body('account_role').isString().isIn(C_SCHEMA.USER_ROLES).withMessage('Invalid account role'),
+        body('account_role').isString().isIn(Object.values(C_USER.ROLES)).withMessage('Invalid account role'),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE User - ');
@@ -65,16 +65,19 @@ router.get(
 
         // if all is true, return all users, otherwise paginate
         if (all === 'true') {
-            const sql = `SELECT ${C_SCHEMA.SAFE_USER_RETURN} FROM users`;
+            const sql = `SELECT ${C_USER.SAFE_RETURN} FROM users`;
             const { rows } = await query(sql);
             return res.json(rows);
         }
 
         //Sets up the pagination variables
         const { offset } = buildPagination({ page: Number(page), limit: Number(limit) });
-        const sortable = Object.values(C_NODE.SORTABLE.USERS);
-        const sortField = sortable.includes(String(sort)) ? sort : C_NODE.SORTABLE.USERS.CREATED;
-        const sortDir = order === C_NODE.C_NODE.ASCENDING ? C_NODE.C_NODE.ASCENDING : C_NODE.C_NODE.DESCENDING;
+        const sortable = C_USER.SAFE_RETURN;
+
+        //Basic whitelist for sort fields to avoid SQL injection
+        //Will sort descending by last_name if sort is not a valid column
+        const sortField = sortable.includes(String(sort)) ? sort : C_USER.CREATED_COLUMNS.LAST_NAME;
+        const sortDir = order === C_NODE.ASCENDING ? C_NODE.ASCENDING : C_NODE.DESCENDING;
         const params = [];
         let where = '';
 
@@ -85,7 +88,7 @@ router.get(
             OR email ILIKE $${params.length} OR account_role::text ILIKE $${params.length}`;
         }
         const sql = `
-            SELECT ${C_SCHEMA.SAFE_USER_RETURN} FROM users
+            SELECT ${C_USER.SAFE_RETURN} FROM users
             ${where}
             ORDER BY ${sortField} ${sortDir}
             LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
@@ -107,7 +110,7 @@ router.get(
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ User:id - ');
         const { id } = req.params;
-        const { rows } = await query(`SELECT ${C_SCHEMA.SAFE_USER_RETURN} FROM users WHERE user_id = $1`, [id]);
+        const { rows } = await query(`SELECT ${C_USER.SAFE_RETURN} FROM users WHERE user_id = $1`, [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'User ID not found' } });
         res.json(rows[0]);
     })
@@ -141,7 +144,7 @@ router.patch(
         const sql = `
             UPDATE users SET ${set.join(', ')}, updated_at = now()
             WHERE user_id = $${params.length}
-            RETURNING ${C_SCHEMA.SAFE_USER_RETURN}
+            RETURNING ${C_USER.SAFE_RETURN}
         `;
         const { rows } = await query(sql, params);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'User not found' } });

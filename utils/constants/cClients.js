@@ -1,25 +1,31 @@
-const CREATE_COLUMNS = {
-    first_name: null,
-    middle_name: null,
-    last_name: null,
-    title: null,
-    company_name: null,
-    email: null,
-    phone_number: null,
-    website: null,
-    notes: null,
-    address_line1: null,
-    address_line2: null,
-    city: null,
-    state: null,
-    postal_code: null,
-    country: null,
-    billing_address_line1: null,
-    billing_address_line2: null,
-    billing_city: null,
-    billing_state: null,
-    billing_postal_code: null,
-    billing_country: null,
+
+const CREATED_COLUMNS = {
+    FIRST_NAME: 'first_name',
+    MIDDLE_NAME: 'middle_name',
+    LAST_NAME: 'last_name',
+    TITLE: 'title',
+    COMPANY_NAME: 'company_name',
+    EMAIL: 'email',
+    PHONE_NUMBER: 'phone_number',
+    WEBSITE: 'website',
+    NOTES: 'notes',
+    ADDRESS_LINE1: 'address_line1',
+    ADDRESS_LINE2: 'address_line2',
+    CITY: 'city',
+    STATE: 'state',
+    POSTAL_CODE: 'postal_code',
+    COUNTRY: 'country',
+    BILLING_ADDRESS_LINE1: 'billing_address_line1',
+    BILLING_ADDRESS_LINE2: 'billing_address_line2',
+    BILLING_CITY: 'billing_city',
+    BILLING_STATE: 'billing_state',
+    BILLING_POSTAL_CODE: 'billing_postal_code',
+    BILLING_COUNTRY: 'billing_country',
+};
+const UPDATED_COLUMNS = {
+    CLIENT_ID: "client_id",
+    CREATED_AT: "created_at",
+    UPDATED_AT: "updated_at"
 }
 const MIN_LENGTH = {
     FIRST_NAME: 1,
@@ -54,4 +60,4 @@ const MAX_LENGTH = {
     COUNTRY: 100,
 }
 
-module.exports = { CREATE_COLUMNS, MIN_LENGTH, MAX_LENGTH };
+module.exports = { CREATED_COLUMNS, UPDATED_COLUMNS, MIN_LENGTH, MAX_LENGTH };

@@ -1,5 +1,4 @@
 const express = require('express');
-const C_SCHEMA = require('../../utils/constants/cSchema');
 const C_HTTP = require('../../utils/constants/cHTTP');
 const C_CLIENT = require('../../utils/constants/cClients');
 const router = express.Router();
@@ -8,61 +7,122 @@ const { query } = require('../db');
 const { body, param } = require('express-validator');
 const { paginate, buildPagination, handleValidation } = require('../../utils/helpers/validation');
 const C_NODE = require("../../utils/constants/cNodeServer");
-const {SORTABLE} = require("../../utils/constants/cNodeServer");
-
 //--------------------//
 //   CREATE Client    //
 //--------------------//
 router.post(
     '/',
     [
-        body('first_name').isString().isLength({ max: C_CLIENT.MAX_LENGTH.FIRST_NAME })
-            .withMessage(`First name must be less than ${C_CLIENT.MAX_LENGTH.FIRST_NAME} characters long`),
-        body('middle_name').optional().isLength({ max: C_CLIENT.MAX_LENGTH.MIDDLE_NAME})
-            .withMessage(`Middle name must be less than ${C_CLIENT.MAX_LENGTH.MIDDLE_NAME} characters long`),
-        body('last_name').isString().isLength({ max: C_CLIENT.MAX_LENGTH.LAST_NAME })
-            .withMessage(`Last name must be less than ${C_CLIENT.MAX_LENGTH.LAST_NAME} characters long`),
-        body('title').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.TITLE })
-            .withMessage(`Title must be less than ${C_CLIENT.MAX_LENGTH.TITLE} characters long`),
-        body('company_name').isString().isLength({ max: C_SCHEMA.MAX.COMPANY_NAME_LENGTH })
-            .withMessage(`Company name must be less than ${C_SCHEMA.MAX.COMPANY_NAME_LENGTH} characters long`),
-        body('email').isEmail().isLength({ max: C_SCHEMA.MAX.EMAIL_LENGTH })
-            .withMessage(`Email must be an email and less than ${C_SCHEMA.MAX.EMAIL_LENGTH} characters long`),
-        body('phone_number').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.PHONE})
-            .withMessage(`Phone number must be less than ${C_CLIENT.MAX_LENGTH.PHONE} characters long`),
-        body('website').optional().isURL().isLength({ max: C_CLIENT.MAX_LENGTH.WEBSITE })
-            .withMessage(`Website must be a URL and less than ${C_CLIENT.MAX_LENGTH.WEBSITE} characters long`),
-        body('notes').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.NOTES })
-            .withMessage(`Notes must be less than ${C_CLIENT.MAX_LENGTH.NOTES} characters long`),
-        body('address_line1').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE})
-            .withMessage(`Address line 1 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
-        body('address_line2').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE})
-            .withMessage(`Address line 2 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
-        body('city').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.CITY })
-            .withMessage(`City must be less than ${C_CLIENT.MAX_LENGTH.CITY} characters long`),
-        body('state').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.STATE })
-            .withMessage(`State must be less than ${C_CLIENT.MAX_LENGTH.STATE} characters long`),
-        body('postal_code').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ZIP })
-            .withMessage(`Postal Code must be less than ${C_CLIENT.MAX_LENGTH.ZIP} characters long`),
-        body('country').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.COUNTRY })
-            .withMessage(`Country must be less than ${C_CLIENT.MAX_LENGTH.COUNTRY} characters long`),
-        body('billing_address_line1').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE})
-            .withMessage(`Address line 1 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
-        body('billing_address_line2').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE})
-            .withMessage(`Address line 2 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
-        body('billing_city').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.CITY })
-            .withMessage(`City must be less than ${C_CLIENT.MAX_LENGTH.CITY} characters long`),
-        body('billing_state').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.STATE })
-            .withMessage(`State must be less than ${C_CLIENT.MAX_LENGTH.STATE} characters long`),
-        body('billing_postal_code').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.ZIP })
-            .withMessage(`Postal Code must be less than ${C_CLIENT.MAX_LENGTH.ZIP} characters long`),
-        body('billing_country').optional().isString().isLength({ max: C_CLIENT.MAX_LENGTH.COUNTRY })
-            .withMessage(`Country must be less than ${C_CLIENT.MAX_LENGTH.COUNTRY} characters long`),
+        body('first_name').isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.FIRST_NAME,
+            max: C_CLIENT.MAX_LENGTH.FIRST_NAME
+        }).withMessage(`First name must be less than ${C_CLIENT.MAX_LENGTH.FIRST_NAME} characters long`),
+
+        body('middle_name').optional().isLength({
+            min: C_CLIENT.MIN_LENGTH.MIDDLE_NAME,
+            max: C_CLIENT.MAX_LENGTH.MIDDLE_NAME
+        }).withMessage(`Middle name must be less than ${C_CLIENT.MAX_LENGTH.MIDDLE_NAME} characters long`),
+
+        body('last_name').isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.LAST_NAME,
+            max: C_CLIENT.MAX_LENGTH.LAST_NAME
+        }).withMessage(`Last name must be less than ${C_CLIENT.MAX_LENGTH.LAST_NAME} characters long`),
+
+        body('title').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.TITLE,
+            max: C_CLIENT.MAX_LENGTH.TITLE
+        }).withMessage(`Title must be less than ${C_CLIENT.MAX_LENGTH.TITLE} characters long`),
+
+        body('company_name').isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.COMPANY_NAME,
+            max: C_CLIENT.MAX_LENGTH.COMPANY_NAME
+        }).withMessage(`Company name must be less than ${C_CLIENT.MAX_LENGTH.COMPANY_NAME} characters long`),
+
+        body('email').isEmail().isLength({
+            min: C_CLIENT.MIN_LENGTH.EMAIL,
+            max: C_CLIENT.MAX_LENGTH.EMAIL
+        }).withMessage(`Email must be an email and less than ${C_CLIENT.MAX_LENGTH.EMAIL} characters long`),
+
+        body('phone_number').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.PHONE,
+            max: C_CLIENT.MAX_LENGTH.PHONE
+        }).withMessage(`Phone number must be less than ${C_CLIENT.MAX_LENGTH.PHONE} characters long`),
+
+        body('website').optional().isURL().isLength({
+            min: C_CLIENT.MIN_LENGTH.WEBSITE,
+            max: C_CLIENT.MAX_LENGTH.WEBSITE
+        }).withMessage(`Website must be a URL and less than ${C_CLIENT.MAX_LENGTH.WEBSITE} characters long`),
+
+        body('notes').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.NOTES,
+            max: C_CLIENT.MAX_LENGTH.NOTES
+        }).withMessage(`Notes must be less than ${C_CLIENT.MAX_LENGTH.NOTES} characters long`),
+
+        body('address_line1').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ADDRESS_LINE,
+            max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE
+        }).withMessage(`Address line 1 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+
+        body('address_line2').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ADDRESS_LINE,
+            max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE
+        }).withMessage(`Address line 2 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+
+        body('city').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.CITY,
+            max: C_CLIENT.MAX_LENGTH.CITY
+        }).withMessage(`City must be less than ${C_CLIENT.MAX_LENGTH.CITY} characters long`),
+
+        body('state').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.STATE,
+            max: C_CLIENT.MAX_LENGTH.STATE
+        }).withMessage(`State must be less than ${C_CLIENT.MAX_LENGTH.STATE} characters long`),
+
+        body('postal_code').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ZIP,
+            max: C_CLIENT.MAX_LENGTH.ZIP
+        }).withMessage(`Postal Code must be less than ${C_CLIENT.MAX_LENGTH.ZIP} characters long`),
+
+        body('country').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.COUNTRY,
+            max: C_CLIENT.MAX_LENGTH.COUNTRY
+        }).withMessage(`Country must be less than ${C_CLIENT.MAX_LENGTH.COUNTRY} characters long`),
+
+        body('billing_address_line1').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ADDRESS_LINE,
+            max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE
+        }).withMessage(`Address line 1 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+
+        body('billing_address_line2').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ADDRESS_LINE,
+            max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE
+        }).withMessage(`Address line 2 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+
+        body('billing_city').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.CITY,
+            max: C_CLIENT.MAX_LENGTH.CITY
+        }).withMessage(`City must be less than ${C_CLIENT.MAX_LENGTH.CITY} characters long`),
+
+        body('billing_state').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.STATE,
+            max: C_CLIENT.MAX_LENGTH.STATE
+        }).withMessage(`State must be less than ${C_CLIENT.MAX_LENGTH.STATE} characters long`),
+
+        body('billing_postal_code').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ZIP,
+            max: C_CLIENT.MAX_LENGTH.ZIP
+        }).withMessage(`Postal Code must be less than ${C_CLIENT.MAX_LENGTH.ZIP} characters long`),
+
+        body('billing_country').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.COUNTRY,
+            max: C_CLIENT.MAX_LENGTH.COUNTRY
+        }).withMessage(`Country must be less than ${C_CLIENT.MAX_LENGTH.COUNTRY} characters long`),
+
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE Client - ');
         
-        const columnKeys = Object.keys(C_CLIENT.CREATE_COLUMNS);
+        const columnKeys = Object.values(C_CLIENT.CREATED_COLUMNS);
         
         const columns = [];
         const values = [];
@@ -72,7 +132,7 @@ router.post(
             if (req.body[column] !== undefined) {
                 columns.push(column);
                 params.push(req.body[column]);
-                values.push(`$${params.length + 1}`); //Use +1 since this route does not accept parameters.
+                values.push(`$${params.length}`);
             }
         }
 
@@ -93,13 +153,24 @@ router.get(
     [paginate],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ Clients - ');
-        const { page = C_NODE.PAGINATE.PAGE, limit = C_NODE.PAGINATE.LIMIT,
+        const { all = C_NODE.PAGINATE.ALL, page = C_NODE.PAGINATE.PAGE, limit = C_NODE.PAGINATE.LIMIT,
             sort = C_NODE.PAGINATE.SORT, order = C_NODE.PAGINATE.ORDER, q } = req.query;
-        const { offset } = buildPagination({ page: Number(page), limit: Number(limit) });
+
+        // If all is true, return all clients, Else return paginated results
+        if (all === true) {
+            const { rows } = await query('SELECT * FROM clients');
+            return res.json(rows);
+        }
 
         // Basic whitelist for sort fields to avoid SQL injection
-        const sortable = SORTABLE.CLIENTS;
-        const sortField = sortable.includes(String(sort)) ? sort : SORTABLE.CLIENTS[0];
+        const { offset } = buildPagination({ page: Number(page), limit: Number(limit) });
+        const sortable = Object.values(C_CLIENT.CREATED_COLUMNS);
+        for (const column of Object.values(C_CLIENT.UPDATED_COLUMNS)) {
+            sortable.push(column)
+        }
+
+        //Will sort descending by last_name if no sort is provided
+        const sortField = sortable.includes(String(sort)) ? sort : C_CLIENT.CREATED_COLUMNS.last_name;
         const sortDir = order === C_NODE.ASCENDING ? C_NODE.ASCENDING : C_NODE.DESCENDING;
 
         const params = [];
@@ -147,15 +218,115 @@ router.patch(
     '/:id',
     [
         param('id').isUUID(),
-        body('first_name').optional().isString().isLength({ min: 1, max: 100 }),
-        body('last_name').optional().isString().isLength({ min: 1, max: 100 }),
-        body('company_name').optional().isString().isLength({ min: 1, max: 255 }),
-        body('email').optional().isEmail().isLength({ max: 255 }),
+        body('first_name').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.FIRST_NAME,
+            max: C_CLIENT.MAX_LENGTH.FIRST_NAME
+        }).withMessage(`First name must be less than ${C_CLIENT.MAX_LENGTH.FIRST_NAME} characters long`),
+
+        body('middle_name').optional().isLength({
+            min: C_CLIENT.MIN_LENGTH.MIDDLE_NAME,
+            max: C_CLIENT.MAX_LENGTH.MIDDLE_NAME
+        }).withMessage(`Middle name must be less than ${C_CLIENT.MAX_LENGTH.MIDDLE_NAME} characters long`),
+
+        body('last_name').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.LAST_NAME,
+            max: C_CLIENT.MAX_LENGTH.LAST_NAME
+        }).withMessage(`Last name must be less than ${C_CLIENT.MAX_LENGTH.LAST_NAME} characters long`),
+
+        body('title').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.TITLE,
+            max: C_CLIENT.MAX_LENGTH.TITLE
+        }).withMessage(`Title must be less than ${C_CLIENT.MAX_LENGTH.TITLE} characters long`),
+
+        body('company_name').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.COMPANY_NAME,
+            max: C_CLIENT.MAX_LENGTH.COMPANY_NAME
+        }).withMessage(`Company name must be less than ${C_CLIENT.MAX_LENGTH.COMPANY_NAME} characters long`),
+
+        body('email').optional().isEmail().isLength({
+            min: C_CLIENT.MIN_LENGTH.EMAIL,
+            max: C_CLIENT.MAX_LENGTH.EMAIL
+        }).withMessage(`Email must be an email and less than ${C_CLIENT.MAX_LENGTH.EMAIL} characters long`),
+
+        body('phone_number').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.PHONE,
+            max: C_CLIENT.MAX_LENGTH.PHONE
+        }).withMessage(`Phone number must be less than ${C_CLIENT.MAX_LENGTH.PHONE} characters long`),
+
+        body('website').optional().isURL().isLength({
+            min: C_CLIENT.MIN_LENGTH.WEBSITE,
+            max: C_CLIENT.MAX_LENGTH.WEBSITE
+        }).withMessage(`Website must be a URL and less than ${C_CLIENT.MAX_LENGTH.WEBSITE} characters long`),
+
+        body('notes').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.NOTES,
+            max: C_CLIENT.MAX_LENGTH.NOTES
+        }).withMessage(`Notes must be less than ${C_CLIENT.MAX_LENGTH.NOTES} characters long`),
+
+        body('address_line1').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ADDRESS_LINE,
+            max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE
+        }).withMessage(`Address line 1 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+
+        body('address_line2').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ADDRESS_LINE,
+            max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE
+        }).withMessage(`Address line 2 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+
+        body('city').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.CITY,
+            max: C_CLIENT.MAX_LENGTH.CITY
+        }).withMessage(`City must be less than ${C_CLIENT.MAX_LENGTH.CITY} characters long`),
+
+        body('state').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.STATE,
+            max: C_CLIENT.MAX_LENGTH.STATE
+        }).withMessage(`State must be less than ${C_CLIENT.MAX_LENGTH.STATE} characters long`),
+
+        body('postal_code').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ZIP,
+            max: C_CLIENT.MAX_LENGTH.ZIP
+        }).withMessage(`Postal Code must be less than ${C_CLIENT.MAX_LENGTH.ZIP} characters long`),
+
+        body('country').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.COUNTRY,
+            max: C_CLIENT.MAX_LENGTH.COUNTRY
+        }).withMessage(`Country must be less than ${C_CLIENT.MAX_LENGTH.COUNTRY} characters long`),
+
+        body('billing_address_line1').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ADDRESS_LINE,
+            max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE
+        }).withMessage(`Address line 1 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+
+        body('billing_address_line2').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ADDRESS_LINE,
+            max: C_CLIENT.MAX_LENGTH.ADDRESS_LINE
+        }).withMessage(`Address line 2 must be less than ${C_CLIENT.MAX_LENGTH.ADDRESS_LINE} characters long`),
+
+        body('billing_city').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.CITY,
+            max: C_CLIENT.MAX_LENGTH.CITY
+        }).withMessage(`City must be less than ${C_CLIENT.MAX_LENGTH.CITY} characters long`),
+
+        body('billing_state').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.STATE,
+            max: C_CLIENT.MAX_LENGTH.STATE
+        }).withMessage(`State must be less than ${C_CLIENT.MAX_LENGTH.STATE} characters long`),
+
+        body('billing_postal_code').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.ZIP,
+            max: C_CLIENT.MAX_LENGTH.ZIP
+        }).withMessage(`Postal Code must be less than ${C_CLIENT.MAX_LENGTH.ZIP} characters long`),
+
+        body('billing_country').optional().isString().isLength({
+            min: C_CLIENT.MIN_LENGTH.COUNTRY,
+            max: C_CLIENT.MAX_LENGTH.COUNTRY
+        }).withMessage(`Country must be less than ${C_CLIENT.MAX_LENGTH.COUNTRY} characters long`),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'UPDATE Client:id - ');
         const { id } = req.params;
-        const fields = ['first_name', 'last_name', 'company_name', 'email'];
+        const fields = Object.values(C_CLIENT.CREATED_COLUMNS);
         const set = [];
         const params = [];
         fields.forEach((f) => {

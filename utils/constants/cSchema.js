@@ -1,14 +1,4 @@
 // Constants for PostgreSQL Schema
-const USER_ROLES = ['Manager', 'Employee'];
-const SAFE_USER_RETURN = `
-    user_id,
-    first_name,
-    last_name,
-    email,
-    last_login,
-    created_at,
-    updated_at,
-    account_role`;
 const TASK_CATEGORIES = ['Import', 'Cull', 'Edit', 'Quality Review', 'Export', 'Delivery', 'Other'];
 
 const STATUS = {
@@ -18,8 +8,6 @@ const STATUS = {
 }
 
 let MIN = {
-    //For Clients and Users
-
 
     //For Projects
     PROJECT_NAME_LENGTH: 1,
@@ -38,11 +26,6 @@ let MIN = {
 
 }
 const MAX = {
-    //For Clients
-    FIRST_NAME_LENGTH: 100,
-    LAST_NAME_LENGTH: 100,
-    COMPANY_NAME_LENGTH: 255,
-    EMAIL_LENGTH: 255,
 
     //For Projects
     PROJECT_NAME_LENGTH: 255,
@@ -60,4 +43,4 @@ const MAX = {
     //For Time Entries
 }
 
-module.exports = { CLIENTS, USER_ROLES, SAFE_USER_RETURN, TASK_CATEGORIES, STATUS, MIN, MAX  };
+module.exports = { TASK_CATEGORIES, STATUS, MIN, MAX  };
