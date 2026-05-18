@@ -1,3 +1,15 @@
+// -----------------------------------------------------------------------------
+// PhotoMetrics Dashboard Application
+// -----------------------------------------------------------------------------
+// This file contains the main React application shell, page components, mock
+// data, API integration helpers, role-based access logic, table utilities,
+// reporting exports, and task timer workflows.
+//
+// Mock data remains available for local development and demonstrations. When
+// database/API mode is enabled, the application uses live backend responses and
+// intentionally avoids falling back to mock records after an API failure.
+// -----------------------------------------------------------------------------
+
 import React, { useEffect, useMemo, useState } from "react";
 
 // Icons used throughout the UI
@@ -45,30 +57,51 @@ import {
 
 
 // -----------------------------------------------------------------------------
-// API PLACEHOLDERS
+// API CONFIGURATION
 // -----------------------------------------------------------------------------
-// The app is currently using the mock data below so the UI can keep working while
-// Jesse is building the backend database. When the backend is ready, set
-// VITE_USE_API_DATA=true in your .env file and update VITE_API_BASE_URL if needed.
-// Expected API response format can be either a plain array/object or { data: ... }.
-const USE_API_DATA = import.meta.env.VITE_USE_API_DATA === "true";
+// These constants control whether the application reads from live backend API
+// routes or from the local mock data sets in this file. The frontend supports
+// standard API response shapes such as a plain array/object or an object with a
+// top-level data/items property.
+const DEFAULT_USE_API_DATA = import.meta.env.VITE_USE_API_DATA === "true";
+const API_DATA_SETTING_KEY = "photometrics-use-api-data";
+const API_DATA_SETTING_EVENT = "photometrics-api-data-setting-changed";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+const DEFAULT_PAGE_LIMIT = 50;
 
-// Maps front-end data areas to backend routes. Backend paths can change here without touching the UI components.
+function getUseApiDataSetting() {
+    if (typeof window === "undefined") return DEFAULT_USE_API_DATA;
+
+    const savedValue = window.localStorage.getItem(API_DATA_SETTING_KEY);
+    if (savedValue === null) return DEFAULT_USE_API_DATA;
+
+    return savedValue === "true";
+}
+
+function saveUseApiDataSetting(value) {
+    if (typeof window === "undefined") return;
+
+    window.localStorage.setItem(API_DATA_SETTING_KEY, String(value));
+    window.dispatchEvent(new CustomEvent(API_DATA_SETTING_EVENT, { detail: value }));
+}
+
+// Centralized route map for backend resources. Updating routes here keeps the UI components decoupled from backend path changes.
 const API_ENDPOINTS = {
-    //I will work on this later.
-    // Authentication endpoints for login/logout and session handling
-    // Frontend expects JWT or session token response on login
+    // Authentication endpoints for login/logout and session handling.
+    // The frontend expects the login response to include user details and, when available, an auth token or session identifier.
     auth: {
+        // Primary authentication route. Until this route is available, the app uses
+        // /users?all=true as a temporary database-backed login bridge.
         login: "/auth/login",
         logout: "/auth/logout",
     },
-    //These will be done later. We will probably need a non SQL database for these.
+    // Future analytics and dashboard routes. These can be backed by SQL views,
+    // reporting tables, or a separate analytics store as the backend evolves.
     
     //---------------------------------------------------------------------------------
     // Dashboard endpoints are read-only aggregated/statistical data.
     // These power charts, KPI cards, graphs, workload tracking, and progress widgets.
-    // Does not necessarily require NoSQL unless you want faster analytics aggregation.
+    // Implemented data source can be optimized independently of the frontend.
     //----------------------------------------------------------------------------------
     dashboard: {
         kpis: "/dashboard/kpis",
@@ -81,32 +114,20 @@ const API_ENDPOINTS = {
     //-----------------------------------------------------------------
     // CRUD for client accounts.
     // Backend provides:
-    // GET all clients                                      DONE
-    // GET single client                                    DONE
-    // POST create                                          DONE
-    // PUT update                                           DONE
-    // DELETE remove/deactivate                             DONE
+    // Expected operations: list, read by ID, create, patch update, and delete/deactivate.
     clients: "/clients",
 
     //-----------------------------------------------------------------
     // CRUD for ALL user accounts.
     // Frontend expects:
-    // GET all users                                        DONE
-    // GET single user                                      DONE
-    // POST create                                          DONE
-    // PUT update                                           DONE
-    // DELETE remove/deactivate                             DONE
-    // Also used for authentication roles/permissions.
+    // Expected operations: list, read by ID, create, patch update, and delete/deactivate.
+    // Also used for user role and permission metadata.
     users: "/users",
 
     //------------------------------------------------------------------
     // CRUD for projects.
     // Frontend expects:
-    // GET all projects                                        
-    // GET single project                                      
-    // POST create                                          
-    // PUT update                                           
-    // DELETE remove/deactivate                             
+    // Expected operations: list, read by ID, create, patch update, and delete/deactivate.
     // Main project management endpoint.
     // Stores project details, status, deadlines, linked client, assigned employees, uploaded files, etc.
     projects: "/projects",
@@ -126,7 +147,7 @@ const API_ENDPOINTS = {
     // Expected relationships:
     // employeeId <-> projectId <-> taskId
     //----------------------------------------------------------------------
-    assignments: "/assignments", //How are you trying to use this API?
+    assignments: "/assignments",
 
     //-----------------------------------------------------------------------
     // This API endpoint will be READ-ONLY. Use "/users" for all user management.
@@ -138,7 +159,7 @@ const API_ENDPOINTS = {
     // - availability/status
     // - employee dashboard displays
     //-----------------------------------------------------------------------
-    employees: "/employees", //Is this for employee CRUD?
+    employees: "/employees",
 
     //-----------------------------------------------------------------------
     // Task CRUD tied to projects and employees.
@@ -168,13 +189,13 @@ const API_ENDPOINTS = {
     // - utilization
     // - client/project summaries
     //------------------------------------------------------------------------
-    reports: "/reports", //Will most likely be part of the above mentioned non SQL database.
+    reports: "/reports",
 
     //------------------------------------------------------------------------
     // Analytics endpoints for graphs, trends, forecasting, workload analysis, etc.
     // Mostly aggregated/calculated data.
     //------------------------------------------------------------------------
-    analytics: "/analytics", //Will most likely be part of the above mentioned non SQL database.
+    analytics: "/analytics",
 
     //------------------------------------------------------------------------
     // Application/system settings storage.
@@ -187,14 +208,20 @@ const API_ENDPOINTS = {
     // - role/permission settings
     // - company settings
     //-------------------------------------------------------------------------
-    settings: "/settings", //What settings do you need to store?
+    settings: "/settings",
 };
 
 /**
  * Sends a JSON request to the configured backend API and throws a clear error when the response fails.
  */
+function buildApiUrl(endpoint) {
+    const baseUrl = String(API_BASE_URL || "").replace(/\/$/, "");
+    const path = String(endpoint || "").startsWith("/") ? endpoint : `/${endpoint}`;
+    return `${baseUrl}${path}`;
+}
+
 async function apiRequest(endpoint, options = {}) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(buildApiUrl(endpoint), {
         headers: {
             "Content-Type": "application/json",
             ...(options.headers || {}),
@@ -203,7 +230,27 @@ async function apiRequest(endpoint, options = {}) {
     });
 
     if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+
+        try {
+            const errorPayload = await response.json();
+            errorMessage = errorPayload?.error?.message || errorPayload?.message || errorMessage;
+        } catch {
+            // Some failed responses do not include a JSON body. Keep the status-based message.
+        }
+
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        throw error;
+    }
+
+    if (response.status === 204) {
+        return null;
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+        return null;
     }
 
     return response.json();
@@ -219,21 +266,89 @@ function unwrapApiPayload(payload) {
     return payload;
 }
 
+function normalizeBackendUser(user) {
+    if (!user) return null;
+
+    const firstName = user.first_name || "";
+    const lastName = user.last_name || "";
+    const displayName = user.display_name || `${firstName} ${lastName}`.trim() || user.email || "User";
+    const role = user.account_role || user.role || user.title || "Employee";
+    const accessLevel = user.is_admin || String(role).toLowerCase().includes("manager") || String(role).toLowerCase().includes("admin")
+        ? "manager"
+        : "employee";
+
+    return {
+        ...user,
+        id: user.user_id || user.id,
+        userId: user.user_id || user.id,
+        employeeId: user.employee_id || user.employeeId || user.user_id || user.id,
+        employeeName: displayName,
+        name: displayName,
+        email: user.email,
+        role,
+        accessLevel,
+        title: user.title || role,
+        department: user.department || "",
+        status: user.status || (user.is_active === false ? "Inactive" : "Active"),
+    };
+}
+
+async function loginWithUsersEndpoint(credentials) {
+    const payload = await apiRequest(`${API_ENDPOINTS.users}?all=true`);
+    const users = unwrapApiPayload(payload) || [];
+    const normalizedEmail = String(credentials?.email || "").trim().toLowerCase();
+    const matchedUser = users.find((user) => String(user.email || "").trim().toLowerCase() === normalizedEmail);
+
+    if (!matchedUser) {
+        const error = new Error("No backend user exists for that email address.");
+        error.status = 404;
+        throw error;
+    }
+
+    return { user: normalizeBackendUser(matchedUser), authMode: "users-endpoint" };
+}
+
 /**
- * Reusable data-loading hook that uses live API data when enabled and gracefully falls back to mock data during front-end development.
+ * Returns an empty value that matches the mock/fallback shape so API mode never renders mock records while waiting or after an API failure.
+ */
+function getEmptyDataForFallback(fallbackData) {
+    if (Array.isArray(fallbackData)) return [];
+    if (fallbackData && typeof fallbackData === "object") return {};
+    return null;
+}
+
+/**
+ * Reusable data-loading hook. When database/API mode is enabled, it only uses live API data.
+ * Mock data is used only when the Data Source setting is unchecked.
  */
 function useApiPlaceholder(endpoint, fallbackData) {
-    const [data, setData] = useState(fallbackData);
+    const [useApiData, setUseApiData] = useState(getUseApiDataSetting);
+    const [data, setData] = useState(() => (getUseApiDataSetting() ? getEmptyDataForFallback(fallbackData) : fallbackData));
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        const syncApiDataSetting = () => setUseApiData(getUseApiDataSetting());
+
+        window.addEventListener("storage", syncApiDataSetting);
+        window.addEventListener(API_DATA_SETTING_EVENT, syncApiDataSetting);
+
+        return () => {
+            window.removeEventListener("storage", syncApiDataSetting);
+            window.removeEventListener(API_DATA_SETTING_EVENT, syncApiDataSetting);
+        };
+    }, []);
+
+    useEffect(() => {
         let isMounted = true;
 
-        if (!USE_API_DATA || !endpoint) {
+        if (!useApiData || !endpoint) {
+            setError(null);
             setData(fallbackData);
             return undefined;
         }
+
+        setData(getEmptyDataForFallback(fallbackData));
 
         async function loadData() {
             setIsLoading(true);
@@ -249,10 +364,10 @@ function useApiPlaceholder(endpoint, fallbackData) {
             } catch (apiError) {
                 if (isMounted) {
                     setError(apiError.message);
-                    setData(fallbackData);
+                    setData(getEmptyDataForFallback(fallbackData));
                 }
 
-                console.warn(`Using mock data for ${endpoint}.`, apiError);
+                console.warn(`API data failed for ${endpoint}. Mock data is disabled while database mode is on.`, apiError);
             } finally {
                 if (isMounted) {
                     setIsLoading(false);
@@ -265,19 +380,31 @@ function useApiPlaceholder(endpoint, fallbackData) {
         return () => {
             isMounted = false;
         };
-    }, [endpoint, fallbackData]);
+    }, [endpoint, fallbackData, useApiData]);
 
     return { data, isLoading, error };
 }
 
-// These functions are not wired to forms yet. They are API holders for Jesse
-//  to connect later when Create, Edit, Delete, and Export are built.
-// API action placeholders for future create, update, delete, authentication, settings, and timer workflows.
+// API action wrappers used by create, update, delete, authentication, settings, and timer workflows.
+// Some routes are placeholders until the corresponding backend endpoints are implemented.
 const apiPlaceholders = {
-    login: (credentials) => apiRequest(API_ENDPOINTS.auth.login, {
-        method: "POST",
-        body: JSON.stringify(credentials),
-    }),
+    login: async (credentials) => {
+        try {
+            const response = await apiRequest(API_ENDPOINTS.auth.login, {
+                method: "POST",
+                body: JSON.stringify(credentials),
+            });
+            const payload = unwrapApiPayload(response);
+            return { ...payload, user: normalizeBackendUser(payload?.user || payload) };
+        } catch (authError) {
+            if (authError.status === 404 || authError.status === 405) {
+                console.warn("Auth endpoint is not available. Using /users?all=true as a temporary database-backed login bridge.", authError);
+                return loginWithUsersEndpoint(credentials);
+            }
+
+            throw authError;
+        }
+    },
     logout: () => apiRequest(API_ENDPOINTS.auth.logout, {
         method: "POST",
     }),
@@ -286,7 +413,7 @@ const apiPlaceholders = {
         body: JSON.stringify(project),
     }),
     updateProject: (projectId, project) => apiRequest(`${API_ENDPOINTS.projects}/${projectId}`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify(project),
     }),
     deleteProject: (projectId) => apiRequest(`${API_ENDPOINTS.projects}/${projectId}`, {
@@ -297,7 +424,7 @@ const apiPlaceholders = {
         body: JSON.stringify(assignment),
     }),
     updateAssignment: (assignmentId, assignment) => apiRequest(`${API_ENDPOINTS.assignments}/${assignmentId}`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify(assignment),
     }),
     deleteAssignment: (assignmentId) => apiRequest(`${API_ENDPOINTS.assignments}/${assignmentId}`, {
@@ -308,26 +435,26 @@ const apiPlaceholders = {
         body: JSON.stringify(employee),
     }),
     updateEmployee: (employeeId, employee) => apiRequest(`${API_ENDPOINTS.employees}/${employeeId}`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify(employee),
     }),
     deleteEmployee: (employeeId) => apiRequest(`${API_ENDPOINTS.employees}/${employeeId}`, {
         method: "DELETE",
     }),
     updateSettings: (settings) => apiRequest(API_ENDPOINTS.settings, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify(settings),
     }),
     updateUserProfile: (userId, profile) => apiRequest(`/users/${userId}/profile`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify(profile),
     }),
     changeUserPassword: (userId, passwordData) => apiRequest(`/users/${userId}/password`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify(passwordData),
     }),
     updateUserPreferences: (userId, preferences) => apiRequest(`/users/${userId}/preferences`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify(preferences),
     }),
     createTask: (task) => apiRequest(API_ENDPOINTS.tasks, {
@@ -335,7 +462,7 @@ const apiPlaceholders = {
         body: JSON.stringify(task),
     }),
     updateTask: (taskId, task) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify(task),
     }),
     deleteTask: (taskId) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}`, {
@@ -782,7 +909,7 @@ function rowMatchesSearch(row, searchText, keys) {
     return searchableText.includes(normalizedSearch);
 }
 
-// Mock dashboard KPI values used when the API placeholder mode is disabled.
+// Mock dashboard KPI values used when live API data is disabled.
 const kpis = [
     ["Total Projects", "12"],
     ["Tasks Completed Today", "45"],
@@ -1424,9 +1551,12 @@ const settingsData = {
         compactTables: false,
         showDashboardTips: true,
     },
+    dataSource: {
+        useDatabaseData: DEFAULT_USE_API_DATA,
+    },
 };
 
-// Labels for routes that currently use the placeholder page component.
+// Labels for routes that currently render informational placeholder pages.
 const placeholderPages = {
     reports: "Reports",
     analytics: "Analytics",
@@ -1590,8 +1720,19 @@ function LoginPage({ onLogin }) {
     const [rememberMe, setRememberMe] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [useMockLoginData, setUseMockLoginData] = useState(() => !getUseApiDataSetting());
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+
+    const handleMockDataToggle = (checked) => {
+        setUseMockLoginData(checked);
+        saveUseApiDataSetting(!checked);
+        setError("");
+        setMessage(checked
+            ? "Mock data is enabled. Demo logins will use front-end mock accounts."
+            : "Mock data is off. Sign in will use the backend API/database only."
+        );
+    };
 
     const fillDemoCredentials = () => {
         setEmail("manager@photometrics.com");
@@ -1624,14 +1765,14 @@ function LoginPage({ onLogin }) {
         try {
             let user = null;
 
-            if (USE_API_DATA) {
+            if (!useMockLoginData) {
                 const response = await apiPlaceholders.login({
                     email: email.trim(),
                     password,
                     rememberMe,
                 });
                 const payload = unwrapApiPayload(response);
-                user = payload?.user || payload;
+                user = normalizeBackendUser(payload?.user || payload);
             } else {
                 const matchedUser = findMockUserByEmail(email);
                 if (!matchedUser || matchedUser.password !== password) {
@@ -1641,15 +1782,10 @@ function LoginPage({ onLogin }) {
                 user = getPublicUser(matchedUser);
             }
 
-            onLogin?.(getPublicUser(user), rememberMe);
+            onLogin?.(getPublicUser(normalizeBackendUser(user) || user), rememberMe);
         } catch (apiError) {
-            console.warn("Login API holder is not connected yet. Using mock login fallback.", apiError);
-            const matchedUser = findMockUserByEmail(email);
-            if (matchedUser && matchedUser.password === password) {
-                onLogin?.(getPublicUser(matchedUser), rememberMe);
-                return;
-            }
-            setError("The login API is not connected yet. Use a valid demo login to review role-based access.");
+            console.warn("Login API failed while mock data is turned off. Mock login fallback is disabled.", apiError);
+            setError("The login API/database request failed. Mock login will not be used unless Use Mock Data is turned on.");
         } finally {
             setIsSubmitting(false);
         }
@@ -1672,7 +1808,7 @@ function LoginPage({ onLogin }) {
                                 Sign in to manage projects, employees, tasks, and reports.
                             </h1>
                             <p className="mt-4 text-sm leading-6 text-slate-300">
-                                This login page is ready for Jesse to connect to backend authentication. For now, it supports a front-end demo login so the app can be reviewed without a live database.
+                                This login page can use backend authentication or front-end mock accounts. Turn mock data on only when reviewing the app without a live database.
                             </p>
                         </div>
 
@@ -1757,12 +1893,32 @@ function LoginPage({ onLogin }) {
                                     type="button"
                                     onClick={() => {
                                         setError("");
-                                        setMessage("Password reset is a backend feature placeholder for Jesse to connect later.");
+                                        setMessage("Password reset is pending backend implementation.");
                                     }}
                                     className="font-semibold text-amber-700 hover:text-amber-800"
                                 >
                                     Forgot password?
                                 </button>
+                            </div>
+
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                <label className="flex cursor-pointer items-start justify-between gap-4">
+                                    <span>
+                                        <span className="block text-sm font-bold text-slate-800">Use Mock Data</span>
+                                        <span className="mt-1 block text-xs leading-5 text-slate-600">
+                                            When this is off, login uses the backend API/database only and will not fall back to mock accounts if the API fails.
+                                        </span>
+                                    </span>
+                                    <input
+                                        type="checkbox"
+                                        checked={useMockLoginData}
+                                        onChange={(event) => handleMockDataToggle(event.target.checked)}
+                                        className="mt-1 h-5 w-5 rounded border-slate-300 text-amber-500 focus:ring-amber-300"
+                                    />
+                                </label>
+                                <div className="mt-2 text-xs font-semibold text-slate-500">
+                                    Current login mode: {useMockLoginData ? "Mock demo accounts" : "Database/API only"}
+                                </div>
                             </div>
 
                             {error && (
@@ -1790,7 +1946,7 @@ function LoginPage({ onLogin }) {
                                 onClick={fillDemoCredentials}
                                 className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-800 shadow-sm transition hover:bg-slate-50"
                             >
-                                Use Demo Login
+                                {useMockLoginData ? "Use Demo Login" : "Load Demo Credentials"}
                             </button>
                         </form>
 
@@ -3190,7 +3346,7 @@ function ProjectsAndAssignments() {
             client: project.client.trim() || "Unassigned Client",
         };
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 if (projectModal.mode === "create") {
                     await apiPlaceholders.createProject(cleanProject);
@@ -3198,7 +3354,7 @@ function ProjectsAndAssignments() {
                     await apiPlaceholders.updateProject(cleanProject.id, cleanProject);
                 }
             } catch (apiError) {
-                console.warn("Project API holder is not connected yet. Saving locally.", apiError);
+                console.warn("Project API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
@@ -3221,7 +3377,7 @@ function ProjectsAndAssignments() {
             assignedTo: assignment.assignedTo.trim() || "Unassigned",
         };
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 if (assignmentModal.mode === "create") {
                     await apiPlaceholders.createAssignment(cleanAssignment);
@@ -3229,7 +3385,7 @@ function ProjectsAndAssignments() {
                     await apiPlaceholders.updateAssignment(cleanAssignment.id, cleanAssignment);
                 }
             } catch (apiError) {
-                console.warn("Assignment API holder is not connected yet. Saving locally.", apiError);
+                console.warn("Assignment API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
@@ -3247,11 +3403,11 @@ function ProjectsAndAssignments() {
     const deleteProject = async (project) => {
         if (!window.confirm(`Delete ${project.name}?`)) return;
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.deleteProject(project.id);
             } catch (apiError) {
-                console.warn("Project delete API holder is not connected yet. Deleting locally.", apiError);
+                console.warn("Project delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
         }
 
@@ -3261,11 +3417,11 @@ function ProjectsAndAssignments() {
     const deleteAssignment = async (assignment) => {
         if (!window.confirm(`Delete ${assignment.id}?`)) return;
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.deleteAssignment(assignment.id);
             } catch (apiError) {
-                console.warn("Assignment delete API holder is not connected yet. Deleting locally.", apiError);
+                console.warn("Assignment delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
         }
 
@@ -3746,7 +3902,7 @@ function EmployeesPage({ globalSearch = "" }) {
             availability: employee.availability.trim() || employee.status,
         };
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 if (employeeModal.mode === "create") {
                     await apiPlaceholders.createEmployee(cleanEmployee);
@@ -3754,7 +3910,7 @@ function EmployeesPage({ globalSearch = "" }) {
                     await apiPlaceholders.updateEmployee(cleanEmployee.id, cleanEmployee);
                 }
             } catch (apiError) {
-                console.warn("Employee API holder is not connected yet. Saving locally.", apiError);
+                console.warn("Employee API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
@@ -3772,11 +3928,11 @@ function EmployeesPage({ globalSearch = "" }) {
     const deleteEmployee = async (employee) => {
         if (!window.confirm(`Delete ${employee.name}?`)) return;
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.deleteEmployee(employee.id);
             } catch (apiError) {
-                console.warn("Employee delete API holder is not connected yet. Deleting locally.", apiError);
+                console.warn("Employee delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
         }
 
@@ -4282,7 +4438,7 @@ function TaskManagementPage() {
             trackedSeconds: normalizeNumber(task.trackedSeconds),
         };
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 if (taskModal.mode === "create") {
                     await apiPlaceholders.createTask(cleanTask);
@@ -4290,7 +4446,7 @@ function TaskManagementPage() {
                     await apiPlaceholders.updateTask(cleanTask.id, cleanTask);
                 }
             } catch (apiError) {
-                console.warn("Task API holder is not connected yet. Saving locally.", apiError);
+                console.warn("Task API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
@@ -4308,11 +4464,11 @@ function TaskManagementPage() {
     const deleteTask = async (task) => {
         if (!window.confirm(`Delete ${task.taskName}?`)) return;
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.deleteTask(task.id);
             } catch (apiError) {
-                console.warn("Task delete API holder is not connected yet. Deleting locally.", apiError);
+                console.warn("Task delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
         }
 
@@ -4331,11 +4487,11 @@ function TaskManagementPage() {
 
         const startedAt = Date.now();
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.startTaskTimer(task.id, new Date(startedAt).toISOString());
             } catch (apiError) {
-                console.warn("Start timer API holder is not connected yet. Starting locally.", apiError);
+                console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
             }
         }
 
@@ -4362,7 +4518,7 @@ function TaskManagementPage() {
             minute: "2-digit",
         });
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.stopTaskTimer(task.id, {
                     stoppedAt: new Date(stoppedAt).toISOString(),
@@ -4370,7 +4526,7 @@ function TaskManagementPage() {
                     totalTrackedSeconds: nextTrackedSeconds,
                 });
             } catch (apiError) {
-                console.warn("Stop timer API holder is not connected yet. Stopping locally.", apiError);
+                console.warn("Stop timer API endpoint is not connected yet. Stopping locally.", apiError);
             }
         }
 
@@ -4787,7 +4943,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
             client: project.client.trim() || "Unassigned Client",
         };
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 if (projectModal.mode === "create") {
                     await apiPlaceholders.createProject(cleanProject);
@@ -4795,7 +4951,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                     await apiPlaceholders.updateProject(cleanProject.id, cleanProject);
                 }
             } catch (apiError) {
-                console.warn("Project API holder is not connected yet. Saving locally.", apiError);
+                console.warn("Project API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
@@ -4816,7 +4972,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
             assignedTo: assignment.assignedTo.trim() || "Unassigned",
         };
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 if (assignmentModal.mode === "create") {
                     await apiPlaceholders.createAssignment(cleanAssignment);
@@ -4824,7 +4980,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                     await apiPlaceholders.updateAssignment(cleanAssignment.id, cleanAssignment);
                 }
             } catch (apiError) {
-                console.warn("Assignment API holder is not connected yet. Saving locally.", apiError);
+                console.warn("Assignment API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
@@ -4838,11 +4994,11 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
 
     const deleteProject = async (project) => {
         if (!hasManagerAccess || !window.confirm(`Delete ${project.name}?`)) return;
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.deleteProject(project.id);
             } catch (apiError) {
-                console.warn("Project delete API holder is not connected yet. Deleting locally.", apiError);
+                console.warn("Project delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
         }
         setProjectRows((currentRows) => currentRows.filter((row) => row.id !== project.id));
@@ -4850,11 +5006,11 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
 
     const deleteAssignment = async (assignment) => {
         if (!hasManagerAccess || !window.confirm(`Delete ${assignment.id}?`)) return;
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.deleteAssignment(assignment.id);
             } catch (apiError) {
-                console.warn("Assignment delete API holder is not connected yet. Deleting locally.", apiError);
+                console.warn("Assignment delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
         }
         setAssignmentRows((currentRows) => currentRows.filter((row) => row.id !== assignment.id));
@@ -5207,7 +5363,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             trackedSeconds: normalizeNumber(task.trackedSeconds),
         });
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 if (taskModal.mode === "create") {
                     await apiPlaceholders.createTask(cleanTask);
@@ -5215,7 +5371,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                     await apiPlaceholders.updateTask(cleanTask.id, cleanTask);
                 }
             } catch (apiError) {
-                console.warn("Task API holder is not connected yet. Saving locally.", apiError);
+                console.warn("Task API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
@@ -5229,11 +5385,11 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
 
     const deleteTask = async (task) => {
         if (!hasManagerAccess || !window.confirm(`Delete ${task.taskName}?`)) return;
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.deleteTask(task.id);
             } catch (apiError) {
-                console.warn("Task delete API holder is not connected yet. Deleting locally.", apiError);
+                console.warn("Task delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
         }
         setTaskRows((currentRows) => currentRows.filter((row) => row.id !== task.id));
@@ -5259,11 +5415,11 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             ? session.trackedSeconds
             : 0;
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.startTaskTimer(task.id, new Date(startedAt).toISOString(), currentUser);
             } catch (apiError) {
-                console.warn("Start timer API holder is not connected yet. Starting locally.", apiError);
+                console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
             }
         }
 
@@ -5303,7 +5459,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
         });
         const userKey = getTimerUserKey(currentUser);
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.stopTaskTimer(task.id, {
                     userId: currentUser?.id,
@@ -5314,7 +5470,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                     userTrackedSeconds: nextTrackedSeconds,
                 });
             } catch (apiError) {
-                console.warn("Stop timer API holder is not connected yet. Stopping locally.", apiError);
+                console.warn("Stop timer API endpoint is not connected yet. Stopping locally.", apiError);
             }
         }
 
@@ -5529,7 +5685,13 @@ function downloadSettingsReport(settings) {
  */
 function SettingsPage() {
     const { data: loadedSettings } = useApiPlaceholder(API_ENDPOINTS.settings, settingsData);
-    const [settings, setSettings] = useState(settingsData);
+    const [settings, setSettings] = useState(() => ({
+        ...settingsData,
+        dataSource: {
+            ...settingsData.dataSource,
+            useDatabaseData: getUseApiDataSetting(),
+        },
+    }));
     const [savedMessage, setSavedMessage] = useState("");
 
     useEffect(() => {
@@ -5543,12 +5705,18 @@ function SettingsPage() {
                 security: { ...current.security, ...(loadedSettings.security || {}) },
                 exportBackup: { ...current.exportBackup, ...(loadedSettings.exportBackup || {}) },
                 appearance: { ...current.appearance, ...(loadedSettings.appearance || {}) },
+                dataSource: { ...current.dataSource, ...(loadedSettings.dataSource || {}) },
             }));
         }
     }, [loadedSettings]);
 
     const updateSection = (section, field, value) => {
         setSavedMessage("");
+
+        if (section === "dataSource" && field === "useDatabaseData") {
+            saveUseApiDataSetting(value);
+        }
+
         setSettings((current) => ({
             ...current,
             [section]: {
@@ -5559,20 +5727,29 @@ function SettingsPage() {
     };
 
     const saveSettings = async () => {
-        if (USE_API_DATA) {
+        saveUseApiDataSetting(settings.dataSource.useDatabaseData);
+
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.updateSettings(settings);
             } catch (apiError) {
-                console.warn("Settings API holder is not connected yet. Saving locally.", apiError);
+                console.warn("Settings API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
-        setSavedMessage("Settings saved locally. Backend save endpoint is ready for Jesse to connect.");
+        setSavedMessage(settings.dataSource.useDatabaseData ? "Settings saved. The app will use database/API data only. Mock data will not be used if an API call fails." : "Settings saved. Mock data is enabled for front-end review.");
     };
 
     const resetSettings = () => {
-        setSettings(settingsData);
-        setSavedMessage("Settings reset to default mock values.");
+        saveUseApiDataSetting(DEFAULT_USE_API_DATA);
+        setSettings({
+            ...settingsData,
+            dataSource: {
+                ...settingsData.dataSource,
+                useDatabaseData: DEFAULT_USE_API_DATA,
+            },
+        });
+        setSavedMessage("Settings reset to default values.");
     };
 
     const activeNotificationCount = Object.entries(settings.notifications)
@@ -5643,6 +5820,22 @@ function SettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                <SettingsPanel
+                    title="Data Source"
+                    description="Choose whether the app should use front-end mock data or try the backend database APIs."
+                    icon={Settings}
+                >
+                    <SettingToggle
+                        label="Use Database Data"
+                        description="Turn this on to use only backend API/database data. If an endpoint fails, mock data will not be used unless this setting is turned off."
+                        checked={settings.dataSource.useDatabaseData}
+                        onChange={(value) => updateSection("dataSource", "useDatabaseData", value)}
+                    />
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        Current mode: <span className="font-bold text-slate-800">{settings.dataSource.useDatabaseData ? "Database/API only" : "Mock data"}</span>
+                    </div>
+                </SettingsPanel>
+
                 <SettingsPanel
                     title="Company Profile"
                     description="Controls the company details shown in reports and exported files."
@@ -5853,9 +6046,9 @@ function SettingsPage() {
 
             <div className="flex flex-col gap-3 rounded-xl border border-slate-300 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-lg font-bold">Reset mock settings</h2>
+                    <h2 className="text-lg font-bold">Reset settings</h2>
                     <p className="mt-1 text-sm text-slate-500">
-                        This returns the Settings page to the default front-end placeholder values.
+                        This returns the Settings page to the default values, including the default data source mode.
                     </p>
                 </div>
                 <button
@@ -5922,11 +6115,11 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
             email: profile.email.trim() || currentUser?.email || "",
         };
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.updateUserProfile(currentUser.id, cleanProfile);
             } catch (apiError) {
-                console.warn("Employee profile API holder is not connected yet. Saving locally.", apiError);
+                console.warn("Employee profile API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
@@ -5942,15 +6135,15 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
             employeeName: currentUser?.employeeName,
         };
         onUserUpdate?.(nextUser);
-        setSavedMessage("Personal information saved locally. Backend endpoint is ready for Jesse to connect.");
+        setSavedMessage("Personal information saved locally. Backend endpoint is ready for implementation.");
     };
 
     const saveAppearance = async () => {
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.updateUserPreferences(currentUser.id, appearance);
             } catch (apiError) {
-                console.warn("Employee preferences API holder is not connected yet. Saving locally.", apiError);
+                console.warn("Employee preferences API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
@@ -5978,17 +6171,17 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
             return;
         }
 
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.changeUserPassword(currentUser.id, passwordForm);
             } catch (apiError) {
-                console.warn("Change password API holder is not connected yet. Saving locally.", apiError);
+                console.warn("Change password API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
         setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
         setErrorMessage("");
-        setSavedMessage("Password change saved locally. Backend password endpoint is ready for Jesse to connect.");
+        setSavedMessage("Password change saved locally. Backend password endpoint is ready for implementation.");
     };
 
     return (
@@ -6145,7 +6338,7 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
     );
 }
 
-// Placeholder pages for tabs that are not yet built
+// Informational pages for sections that are not yet implemented
 /**
  * Temporary page shell for sections that are not fully built yet.
  */
@@ -6199,11 +6392,11 @@ export default function App() {
     };
 
     const handleLogout = async () => {
-        if (USE_API_DATA) {
+        if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.logout();
             } catch (apiError) {
-                console.warn("Logout API holder is not connected yet. Logging out locally.", apiError);
+                console.warn("Logout API endpoint is not connected yet. Logging out locally.", apiError);
             }
         }
 
