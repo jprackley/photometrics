@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "node server/api/index.js",
+    "server": "node api/server.js",
     "test": "node --test"
+    "dev:frontend": "vite",
+    "dev:api": "node api/server.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
