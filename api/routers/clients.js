@@ -160,8 +160,14 @@ router.get(
     [paginate],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ Clients - ');
-        const { all = C_NODE.PAGINATE.ALL, page = C_NODE.PAGINATE.PAGE, limit = C_NODE.PAGINATE.LIMIT,
-            sort = C_NODE.PAGINATE.SORT, order = C_NODE.PAGINATE.ORDER, q } = req.query;
+        const {
+            all = C_NODE.PAGINATE.ALL,
+            page = C_NODE.PAGINATE.PAGE,
+            limit = C_NODE.PAGINATE.LIMIT,
+            sort = C_NODE.PAGINATE.SORT,
+            order = C_NODE.PAGINATE.ORDER,
+            q
+        } = req.query;
 
         // If all is true, return all clients, Else return paginated results
         if (all === true) {

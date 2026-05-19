@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS addresses CASCADE;
 
 DROP TYPE IF EXISTS image_status CASCADE;
+DROP TYPE IF EXISTS task_priority CASCADE;
 DROP TYPE IF EXISTS task_category CASCADE;
 DROP TYPE IF EXISTS task_status CASCADE;
 DROP TYPE IF EXISTS project_status CASCADE;
@@ -49,6 +50,12 @@ CREATE TYPE task_category AS ENUM (
     'Export',
     'Delivery',
     'Other'
+    );
+CREATE TYPE task_priority AS ENUM (
+    'Low',
+    'Normal',
+    'High',
+    'Urgent'
     );
 CREATE TYPE image_status AS ENUM (
     'Pending',
@@ -177,9 +184,11 @@ CREATE TABLE tasks
     task_id      UUID PRIMARY KEY       DEFAULT gen_random_uuid(),
     project_id   UUID          NOT NULL,
     task_name    VARCHAR(255)  NOT NULL,
-    category     task_category NOT NULL DEFAULT 'Other',
+    category     task_category          DEFAULT 'Other',
+    priority     task_priority          DEFAULT 'Normal',
     description  TEXT                   DEFAULT NULL,
     status       task_status            DEFAULT 'To-Do',
+    progress     DECIMAL                DEFAULT 0,
     start_time   TIMESTAMPTZ            DEFAULT now(),
     due_time     TIMESTAMPTZ            DEFAULT NULL,
     completed_at TIMESTAMPTZ            DEFAULT NULL,
