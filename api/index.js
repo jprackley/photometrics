@@ -22,12 +22,10 @@ app.use('/api/time-entries', require('./routers/time.entries'));
 app.use('/api/users', require('./routers/users'));
 app.use('/api/employees', require('./routers/read-only/employees'));
 
-
-// Error handler MUST BE LAST
 // Error handler MUST BE LAST
 app.use((err, req, res, next) => {
     const status = err.status || C_HTTP.STATUS.INTERNAL_SERVER_ERROR;
-    const code = err.code || C_HTTP.REASON.INTERNAL_SERVER_ERROR;
+    const code = err.code || C_HTTP.MESSAGE.INTERNAL_SERVER_ERROR;
 
     console.error('[error]', {
         status,

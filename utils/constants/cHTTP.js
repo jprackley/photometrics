@@ -20,7 +20,7 @@ const STATUS = {
     SERVICE_UNAVAILABLE : 503,
 };
 
-const REASON = {
+const CODE = {
     OK : 'OK',
     CREATED : 'Created',
     NO_CONTENT : 'No Content',
@@ -36,4 +36,9 @@ const REASON = {
     SERVICE_UNAVAILABLE : 'Service Unavailable',
 };
 
-module.exports = {  STATUS, REASON };
+const MESSAGE = {
+    LOGIN: {
+        UNAUTHORIZED: 'Invalid email or password',
+    }
+}
+module.exports = {  STATUS, CODE, MESSAGE };

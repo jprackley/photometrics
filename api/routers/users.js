@@ -3,7 +3,7 @@ const { body, param} = require("express-validator");
 const router = express.Router();
 
 const bcrypt = require('bcrypt');
-const SALT_ROUNDS = 10;
+const C_AUTH = require('../../utils/constants/cAuth');
 
 const C_USER = require('../../utils/constants/cUsers');
 const C_HTTP = require('../../utils/constants/cHTTP');
@@ -115,7 +115,7 @@ router.post(
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE User - ');
 
-        const hashedPassword = await bcrypt.hash(req.body.password_hash, SALT_ROUNDS);
+        const hashedPassword = await bcrypt.hash(req.body.password_hash, C_AUTH.SALT_ROUNDS);
 
         const createdColumns = Object.values(C_USER.CREATED_COLUMNS);
 
@@ -210,7 +210,7 @@ router.get(
         handleValidation(req, 'READ User:id - ');
         const { id } = req.params;
         const { rows } = await query(`SELECT ${C_USER.SAFE_RETURN} FROM users WHERE user_id = $1`, [id]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'User ID not found' } });
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'User ID not found' } });
         res.json(rows[0]);
     })
 )
@@ -238,7 +238,7 @@ router.patch(
             }
         });
         if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json(
-            { error: { code: C_HTTP.REASON.BAD_REQUEST, message: 'No updatable fields provided' } });
+            { error: { code: C_HTTP.MESSAGE.BAD_REQUEST, message: 'No updatable fields provided' } });
         params.push(id);
         const sql = `
             UPDATE users SET ${set.join(', ')}, updated_at = now()
@@ -246,7 +246,7 @@ router.patch(
             RETURNING ${C_USER.SAFE_RETURN}
         `;
         const { rows } = await query(sql, params);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'User not found' } });
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'User not found' } });
         res.json(rows[0]);
     })
 )
@@ -261,7 +261,7 @@ router.delete(
         handleValidation(req, 'DELETE User - ');
         const { id } = req.params;
         const { rowCount } = await query('DELETE FROM users WHERE user_id = $1', [id]);
-        if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'User not found' } });
+        if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'User not found' } });
         res.status(C_HTTP.STATUS.NO_CONTENT).send();
     })
 )

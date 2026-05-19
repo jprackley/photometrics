@@ -105,6 +105,7 @@ const API_ENDPOINTS = {
         login: "/auth/login",
         logout: "/auth/logout",
     },
+    //---------------------------------------------------------------------------------
     // Future analytics and dashboard routes. These can be backed by SQL views,
     // reporting tables, or a separate analytics store as the backend evolves.
     
@@ -121,20 +122,20 @@ const API_ENDPOINTS = {
         projectProgress: "/dashboard/project-progress",
     },
 
-    //-----------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     // CRUD for client accounts.
     // Backend provides:
     // Expected operations: list, read by ID, create, patch update, and delete/deactivate.
     clients: "/clients",
 
-    //-----------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     // CRUD for ALL user accounts.
     // Frontend expects:
     // Expected operations: list, read by ID, create, patch update, and delete/deactivate.
     // Also used for user role and permission metadata.
     users: "/users",
 
-    //------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     // CRUD for projects.
     // Frontend expects:
     // Expected operations: list, read by ID, create, patch update, and delete/deactivate.
@@ -142,12 +143,12 @@ const API_ENDPOINTS = {
     // Stores project details, status, deadlines, linked client, assigned employees, uploaded files, etc.
     projects: "/projects",
 
-    //------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     // Image/file upload CRUD for project attachments.
     // Used for project reference images, screenshots, documents, deliverables, etc.
     images: "/images",
 
-    //-----------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     // Assignment API links employees/users to projects/tasks.
     // Frontend uses this for:
     // - assigning employees to projects
@@ -156,10 +157,10 @@ const API_ENDPOINTS = {
     // - showing employee project lists
     // Expected relationships:
     // employeeId <-> projectId <-> taskId
-    //----------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     assignments: "/assignments",
 
-    //-----------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     // This API endpoint will be READ-ONLY. Use "/users" for all user management.
     // Frontend uses it for:
     // - employee directory
@@ -168,10 +169,10 @@ const API_ENDPOINTS = {
     // - role/title info
     // - availability/status
     // - employee dashboard displays
-    //-----------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     employees: "/employees",
 
-    //-----------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     // Task CRUD tied to projects and employees.
     // Includes:
     // - task status
@@ -179,18 +180,18 @@ const API_ENDPOINTS = {
     // - due dates
     // - progress %
     // - timer tracking linkage
-    //-----------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     tasks: "/tasks",
 
-    //-----------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     // Stores clocked work time for tasks/projects.
     // Frontend timer system posts here.
     // Expected fields:
     // employeeId, taskId, startTime, endTime, duration
-    //-----------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     timeEntries: "/time-entries",
 
-    //-----------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     // Generated reports endpoint.
     // Used for exporting/filtering:
     // - employee productivity
@@ -198,16 +199,16 @@ const API_ENDPOINTS = {
     // - time tracking
     // - utilization
     // - client/project summaries
-    //------------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     reports: "/reports",
 
-    //------------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     // Analytics endpoints for graphs, trends, forecasting, workload analysis, etc.
     // Mostly aggregated/calculated data.
-    //------------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     analytics: "/analytics",
 
-    //------------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     // Application/system settings storage.
     // Frontend currently needs:
     // - theme/dark mode
@@ -217,7 +218,7 @@ const API_ENDPOINTS = {
     // - default filters/views
     // - role/permission settings
     // - company settings
-    //-------------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
     settings: "/settings",
 };
 

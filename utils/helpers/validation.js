@@ -32,7 +32,7 @@ function handleValidation(req, desc) {
 
         const error = new Error(desc + 'Validation failed');
         error.status = C_HTTP.STATUS.BAD_REQUEST;
-        error.code = C_HTTP.REASON.BAD_REQUEST;
+        error.code = C_HTTP.MESSAGE.BAD_REQUEST;
         error.details = details;
 
         throw error;
