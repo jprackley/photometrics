@@ -53,6 +53,39 @@ function saveUseApiDataSetting(value) {
     window.dispatchEvent(new CustomEvent(API_DATA_SETTING_EVENT, { detail: value }));
 }
 
+/**
+ * Adapter function so the frontend matches the backend data.
+ */
+function projectFromApi(project) {
+    return {
+        id: project.project_id,
+        backendId: project.project_id,
+        name: project.project_name,
+        clientId: project.client_id,
+        client: project.client_name || project.client_id || "Unassigned Client",
+        startDate: project.start_time,
+        dueDate: project.due_time,
+        status: project.status,
+        priority: project.priority,
+        description: project.description || "",
+        images: project.images || "0",
+        progress: project.progress || 0,
+    };
+}
+
+function projectToApi(project) {
+    return {
+        client_id: project.clientId,
+        managed_by: project.managedBy || null,
+        project_name: project.name,
+        description: project.description || "",
+        status: project.status,
+        priority: project.priority || "Normal",
+        start_time: project.startDate,
+        due_time: project.dueDate,
+    };
+}
+
 // Centralized route map for backend resources. Updating routes here keeps the UI components decoupled from backend path changes.
 const API_ENDPOINTS = {
     // Authentication endpoints for login/logout and session handling.
