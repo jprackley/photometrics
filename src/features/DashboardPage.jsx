@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// Split from features/Pages.jsx to keep each page easier to maintain.
+// Dashboard Page.
 // -----------------------------------------------------------------------------
 
 import React, { useEffect, useMemo, useState } from "react";
