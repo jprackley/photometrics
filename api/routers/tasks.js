@@ -131,7 +131,10 @@ router.get('/',
             params.push(`%${q}%`);
             where = `
             WHERE task_name ILIKE $${params.length} 
+            OR category::TEXT ILIKE $${params.length} 
+            OR priority::TEXT ILIKE $${params.length}
             OR description ILIKE $${params.length}
+            OR status::TEXT ILIKE $${params.length}
             `;
         }
         const sql = `

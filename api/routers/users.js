@@ -182,8 +182,27 @@ router.get(
         //Basic whitelist for sort fields to avoid SQL injection
         if (q) {
             params.push(`%${q}%`);
-            where = `WHERE first_name ILIKE $${params.length} OR last_name ILIKE $${params.length} 
-            OR email ILIKE $${params.length} OR account_role::text ILIKE $${params.length}`;
+            where = `
+            WHERE first_name ILIKE $${params.length} 
+            OR middle_name ILIKE $${params.length}
+            OR last_name ILIKE $${params.length} 
+            OR display_name ILIKE $${params.length}
+            OR title ILIKE $${params.length}
+            OR company ILIKE $${params.length}
+            OR department ILIKE $${params.length}
+            OR location ILIKE $${params.length} 
+            OR status ILIKE $${params.length}
+            OR email ILIKE $${params.length} 
+            OR phone_number ILIKE $${params.length}
+            OR website ILIKE $${params.length}
+            OR notes ILIKE $${params.length}
+            OR address_line1 ILIKE $${params.length}
+            OR address_line2 ILIKE $${params.length}
+            OR city ILIKE $${params.length}
+            OR state ILIKE $${params.length}
+            OR postal_code ILIKE $${params.length}
+            OR country ILIKE $${params.length}
+            OR account_role::text ILIKE $${params.length}`;
         }
         const sql = `
             SELECT ${C_USER.SAFE_RETURN} FROM users
