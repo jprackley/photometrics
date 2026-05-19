@@ -39,6 +39,10 @@ const CODE = {
 const MESSAGE = {
     LOGIN: {
         UNAUTHORIZED: 'Invalid email or password',
+    },
+    LOGOUT: {
+        OK: 'Logged out successfully',
+        NOT_FOUND: 'Could not logout, no user found',
     }
 }
 module.exports = {  STATUS, CODE, MESSAGE };

@@ -14,6 +14,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/login', require('./routers/auth/login'));
+app.use('/api/logout', require('./routers/auth/logout'));
 app.use('/api/clients', require('./routers/clients'));
 app.use('/api/projects', require('./routers/projects'));
 app.use('/api/tasks', require('./routers/tasks'));
