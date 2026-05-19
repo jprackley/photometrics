@@ -2,7 +2,7 @@
 // Page exports
 // -----------------------------------------------------------------------------
 // I chopped up the original Pages.jsx file into smaller files so each major screen
-// can be maintained independently and changed App.jsx into an import hub.
+// can be maintained independently and changed Pages.jsx into an import hub.
 // -----------------------------------------------------------------------------
 
 export { LoginPage } from "./LoginPage";
