@@ -18,7 +18,7 @@ const UPDATED_COLUMNS = {
 const MIN_LENGTH = {
     NAME: 1,
     DESCRIPTION: 0,
-    NOTES: 5000,
+    NOTES: 0,
 }
 const MAX_LENGTH = {
     NAME: 255,
