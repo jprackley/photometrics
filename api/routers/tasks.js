@@ -129,8 +129,10 @@ router.get('/',
         let where = '';
         if (q) {
             params.push(`%${q}%`);
-            where = `WHERE task_name ILIKE $${params.length} OR description ILIKE $${params.length} 
-            OR status ILIKE $${params.length} OR category ILIKE $${params.length}`;
+            where = `
+            WHERE task_name ILIKE $${params.length} 
+            OR description ILIKE $${params.length}
+            `;
         }
         const sql = `
             SELECT *
