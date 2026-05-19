@@ -60,8 +60,8 @@ const API_ENDPOINTS = {
     auth: {
         // Primary authentication route. Until this route is available, the app uses
         // /users?all=true as a temporary database-backed login bridge.
-        login: "/auth/login",
-        logout: "/auth/logout",
+        login: "/login",
+        logout: "/logout",
     },
     // Future analytics and dashboard routes. These can be backed by SQL views,
     // reporting tables, or a separate analytics store as the backend evolves.
