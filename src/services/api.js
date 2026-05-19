@@ -33,14 +33,19 @@ const DEFAULT_PAGE_LIMIT = 50;
 function getUseApiDataSetting() {
     if (typeof window === "undefined") return DEFAULT_USE_API_DATA;
 
-    // Clear the old key once so a browser that previously saved API-only mode
-    // cannot keep causing a blank screen after the mock-data default is restored.
-    window.localStorage.removeItem(LEGACY_API_DATA_SETTING_KEY);
+    try {
+        // Clear the old key once so a browser that previously saved API-only mode
+        // cannot keep causing a blank screen after the mock-data default is restored.
+        window.localStorage.removeItem(LEGACY_API_DATA_SETTING_KEY);
 
-    const savedValue = window.localStorage.getItem(API_DATA_SETTING_KEY);
-    if (savedValue === null) return DEFAULT_USE_API_DATA;
+        const savedValue = window.localStorage.getItem(API_DATA_SETTING_KEY);
+        if (savedValue === null) return DEFAULT_USE_API_DATA;
 
-    return savedValue === "true";
+        return savedValue === "true";
+    } catch (storageError) {
+        console.warn("Data-source preference could not be read from localStorage. Using default.", storageError);
+        return DEFAULT_USE_API_DATA;
+    }
 }
 
 /**
@@ -49,7 +54,12 @@ function getUseApiDataSetting() {
 function saveUseApiDataSetting(value) {
     if (typeof window === "undefined") return;
 
-    window.localStorage.setItem(API_DATA_SETTING_KEY, String(value));
+    try {
+        window.localStorage.setItem(API_DATA_SETTING_KEY, String(value));
+    } catch (storageError) {
+        console.warn("Data-source preference could not be saved to localStorage.", storageError);
+    }
+
     window.dispatchEvent(new CustomEvent(API_DATA_SETTING_EVENT, { detail: value }));
 }
 
