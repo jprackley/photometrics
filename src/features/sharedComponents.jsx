@@ -357,6 +357,45 @@ function Modal({ title, children, onClose }) {
     );
 }
 
+
+/**
+ * Small metric card used by the Reports and Analytics sections.
+ */
+function InsightCard({ label, value, note, icon: Icon = BarChart3 }) {
+    return (
+        <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+                <div>
+                    <div className="text-sm font-bold text-slate-600">{label}</div>
+                    <div className="mt-3 text-3xl font-bold text-slate-950">{value}</div>
+                </div>
+                <div className="rounded-xl bg-violet-50 p-3 text-violet-700">
+                    <Icon size={24} />
+                </div>
+            </div>
+            {note && <p className="mt-3 text-sm text-slate-500">{note}</p>}
+        </div>
+    );
+}
+
+/**
+ * Displays deadline risk in report tables.
+ */
+function DueStatusBadge({ value }) {
+    const style =
+        value === "Overdue"
+            ? "bg-red-100 text-red-700"
+            : value === "Due Soon"
+                ? "bg-orange-100 text-orange-700"
+                : value === "Upcoming"
+                    ? "bg-blue-100 text-blue-700"
+                    : value === "Complete"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-slate-100 text-slate-700";
+
+    return <span className={`rounded-md px-3 py-1 text-xs font-medium ${style}`}>{value}</span>;
+}
+
 export {
     Badge,
     PriorityBadge,
@@ -368,4 +407,6 @@ export {
     FormField,
     TextInput,
     Modal,
+    InsightCard,
+    DueStatusBadge,
 };
