@@ -313,7 +313,7 @@ function LoginPage({ onLogin }) {
             if (!useMockLoginData) {
                 const response = await apiPlaceholders.login({
                     email: email.trim(),
-                    password,
+                    password_hash: password,
                     rememberMe,
                 });
                 const payload = unwrapApiPayload(response);
