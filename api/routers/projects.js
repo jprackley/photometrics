@@ -5,7 +5,8 @@ const router = express.Router();
 const {
     paginate,
     handleValidation,
-    buildPagination
+    buildPagination,
+    projectQueryParams
 } = require("../../utils/helpers/validation");
 const asyncHandler = require("../../utils/helpers/asyncHandler");
 const {query} = require("../db");
@@ -192,7 +193,7 @@ router.get(
         handleValidation(req, 'READ Project:id - ');
         const { id } = req.params;
         const { rows } = await query('SELECT * FROM projects WHERE project_id = $1', [id]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'Project ID not found' } });
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Project ID not found' } });
         res.json(rows[0]);
     })
 );
@@ -285,7 +286,7 @@ router.patch(
             }
         });
 
-        if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({ error: { code: C_HTTP.REASON.BAD_REQUEST, message: 'No updatable fields provided' } });
+        if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({ error: { code: C_HTTP.MESSAGE.BAD_REQUEST, message: 'No updatable fields provided' } });
         params.push(id);
 
         const sql = `
@@ -294,7 +295,7 @@ router.patch(
             RETURNING *
         `;
         const { rows } = await query(sql, params);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'Project not found' } });
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Project not found' } });
         res.json(rows[0]);
     })
 )
@@ -330,7 +331,7 @@ router.delete(
         handleValidation(req, 'DELETE Project:id - ');
         const { id } = req.params;
         const { rows } = await query('DELETE FROM projects WHERE project_id = $1 RETURNING *', [id]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'Project not found' } });
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Project not found' } });
         res.status(C_HTTP.STATUS.NO_CONTENT).send();
     })
 )

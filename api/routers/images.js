@@ -68,8 +68,8 @@ router.get(
         if (rows.length === 0) {
             return res.status(C_HTTP.STATUS.NOT_FOUND).json({
                 error: {
-                    code: C_HTTP.REASON.NOT_FOUND,
-                    message: 'Image not found',
+                    code: C_HTTP.CODE.NOT_FOUND,
+                    message: C_HTTP.MESSAGE.NOT_FOUND,
                 },
             });
         }
@@ -182,8 +182,8 @@ router.patch(
         if (set.length === 0) {
             return res.status(C_HTTP.STATUS.BAD_REQUEST).json({
                 error: {
-                    code: C_HTTP.REASON.BAD_REQUEST,
-                    message: 'No updatable fields provided',
+                    code: C_HTTP.CODE.BAD_REQUEST,
+                    message: C_HTTP.MESSAGE.BAD_REQUEST,
                 },
             });
         }
@@ -202,8 +202,8 @@ router.patch(
         if (rows.length === 0) {
             return res.status(C_HTTP.STATUS.NOT_FOUND).json({
                 error: {
-                    code: C_HTTP.REASON.NOT_FOUND,
-                    message: 'Image not found',
+                    code: C_HTTP.CODE.NOT_FOUND,
+                    message: C_HTTP.MESSAGE.NOT_FOUND,
                 },
             });
         }
@@ -224,8 +224,8 @@ router.delete(
         if (rowCount === 0) {
             return res.status(C_HTTP.STATUS.NOT_FOUND).json({
                 error: {
-                    code: C_HTTP.REASON.NOT_FOUND,
-                    message: 'Image not found',
+                    code: C_HTTP.CODE.NOT_FOUND,
+                    message: C_HTTP.MESSAGE.NOT_FOUND,
                 },
             });
         }

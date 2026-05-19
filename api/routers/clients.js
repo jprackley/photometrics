@@ -213,7 +213,7 @@ router.get(
         handleValidation(req, 'READ Client:id - ');
         const { id } = req.params;
         const { rows } = await query('SELECT * FROM clients WHERE client_id = $1', [id]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'Client ID not found' } });
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Client ID not found' } });
         res.json(rows[0]);
     })
 );
@@ -342,7 +342,7 @@ router.patch(
                 set.push(`${f} = $${params.length}`);
             }
         });
-        if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({ error: { code: C_HTTP.REASON.BAD_REQUEST, message: 'No updatable fields provided' } });
+        if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({ error: { code: C_HTTP.MESSAGE.BAD_REQUEST, message: 'No updatable fields provided' } });
         params.push(id);
 
         const sql = `
@@ -351,7 +351,7 @@ router.patch(
             RETURNING *
         `;
         const { rows } = await query(sql, params);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'Client not found' } });
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Client not found' } });
         res.json(rows[0]);
     })
 );
@@ -367,7 +367,7 @@ router.delete(
         handleValidation(req, 'DELETE Client:id - ');
         const { id } = req.params;
         const { rowCount } = await query('DELETE FROM clients WHERE client_id = $1', [id]);
-        if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.REASON.NOT_FOUND, message: 'Client not found' } });
+        if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Client not found' } });
         res.status(C_HTTP.STATUS.NO_CONTENT).send();
     })
 );

@@ -9,11 +9,12 @@ const PAGINATE = {
     SORT: 'created_at',
     ORDER: 'desc',
 }
-ASCENDING = 'asc';
-DESCENDING = 'desc';
+const PAGINATE_KEYS = ['limit', 'page', 'sort', 'order'];
+const ASCENDING = 'asc';
+const DESCENDING = 'desc';
 /*
     PROJECTS: ['created_at', 'updated_at', 'project_name', 'status', 'start_time', 'due_time', 'completed_at'],
     TASKS: ['created_at', 'updated_at', 'task_name', 'category', 'status', 'start_time', 'due_time', 'completed_at'],
     IMAGE:['image_id', 'project_id', 'task_id', 'name', 'status', 'completed', 'created_at', 'updated_at'],
 */
-module.exports = { PAGINATE, ASCENDING, DESCENDING };
+module.exports = { PAGINATE, PAGINATE_KEYS, ASCENDING, DESCENDING };

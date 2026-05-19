@@ -163,7 +163,7 @@ CREATE TABLE projects
     CONSTRAINT fk_projects_client
         FOREIGN KEY (client_id)
             REFERENCES clients (client_id)
-            ON DELETE CASCADE,
+            ON DELETE SET NULL,
     CONSTRAINT fk_projects_manager
         FOREIGN KEY (managed_by)
             REFERENCES users (user_id)
@@ -282,7 +282,7 @@ VALUES (
            'Employee',
            'euser@gmail.com',
            '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
-           'Manager'
+           'Employee'
        )
 ON CONFLICT (email)
     DO UPDATE SET
