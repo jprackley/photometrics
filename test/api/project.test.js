@@ -98,20 +98,32 @@ describe('Testing /api/projects', () => {
      * This cleanup runs after all tests have completed.
      */
     after(async () => {
-        for ( const id of projects ) {
-            const sql = `DELETE FROM projects WHERE project_id = $1`;
-            const { rows } = await query(sql, [id]);
-            if (rows.length === 0) {
-                throw new Error('Failed to delete Test Project from the database');
-            } clients.splice(clients.indexOf(id), 1);
+        console.log('[POST] Cleaning up Projects test suite:');
+        if (projects.length === 0) {
+            console.log('[PROJECTS] No projects to delete');
         }
-        for ( const client of clients ) {
-            const sql = `DELETE FROM clients WHERE client_id = $1`;
-            const { rows } = await query(sql, [client]);
-            if (rows.length === 0) {
-                throw new Error('Failed to delete Test Client from the database');
-            } clients.splice(clients.indexOf(client), 1);
+        else {
+            for ( const id of projects ) {
+                const sql = `DELETE FROM projects WHERE project_id = $1 RETURNING project_id`;
+                const { rows } = await query(sql, [id]);
+                if (rows.length === 0) {
+                    throw new Error('[PROJECTS] Failed to delete Test Project from the database');
+                } projects.splice(projects.indexOf(id), 1);
+            } console.log('[PROJECTS] Deleted Projects');
         }
+        if (clients.length === 0) {
+            console.log('[CLIENTS] No Clients to delete');
+        } else {
+            for ( const client of clients ) {
+                const sql = `DELETE FROM clients WHERE client_id = $1 RETURNING client_id;`;
+                const { rows } = await query(sql, [client]);
+                if (rows.length === 0) {
+                    throw new Error('[CLIENTS] Failed to delete Test Client from the database');
+                } clients.splice(clients.indexOf(client), 1);
+            }
+            console.log('[CLIENTS] Deleted Clients');
+        }
+
         /*for (const id of projects) {
             const response = await request(app).delete(`/api/projects/${id}`);
             if (response.statusCode === C_HTTP.STATUS.NO_CONTENT) {

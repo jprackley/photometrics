@@ -72,17 +72,17 @@ const CREATED_COLUMNS = {
     COUNTRY: 'country',
     ROLE: 'account_role'
 }
-const UPDATED_COLUMNS = {
-    PASSWORD_UPDATED: 'password_updated_at',
-    PASSWORD_EXPIRES: 'password_expires_at',
+const UPDATABLE_COLUMNS = {
     LAST_LOGIN: 'last_login',
-    CREATED: 'created_at',
     UPDATED: 'updated_at',
     IS_ADMIN: 'is_admin',
     IS_ACTIVE: 'is_active',
 }
 const SECURE_COLUMNS = {
     PASSWORD: 'password_hash',
+    PASSWORD_UPDATED: 'password_updated_at',
+    PASSWORD_EXPIRES: 'password_expires_at',
+    CREATED: 'created_at',
 }
 const SAFE_RETURN = `
     user_id,
@@ -114,4 +114,4 @@ const SAFE_RETURN = `
     is_admin,
     is_active`;
 
-module.exports = {SAFE_RETURN,UPDATED_COLUMNS, SECURE_COLUMNS, CREATED_COLUMNS, MIN_LENGTH, MAX_LENGTH, ROLES};
+module.exports = {SAFE_RETURN, UPDATABLE_COLUMNS, SECURE_COLUMNS, CREATED_COLUMNS, MIN_LENGTH, MAX_LENGTH, ROLES};

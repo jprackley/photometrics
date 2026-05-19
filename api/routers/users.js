@@ -11,7 +11,6 @@ const C_NODE = require('../../utils/constants/cNodeServer');
 
 const asyncHandler = require('../../utils/helpers/asyncHandler');
 const {handleValidation, paginate, buildPagination} = require("../../utils/helpers/validation");
-const hashPassword = require("../../utils/helpers/hashString");
 const { query } = require('../db');
 
 //------------------------------//
@@ -222,21 +221,29 @@ router.patch(
     asyncHandler(async (req, res) => {
         handleValidation(req, 'UPDATE User - ');
         const {id} = req.params;
-        const fields = ['first_name', 'last_name', 'email', 'password_hash', 'account_role'];
+        const fields = [
+            ...Object.values(C_USER.CREATED_COLUMNS),
+            ...Object.values(C_USER.UPDATABLE_COLUMNS),
+            C_USER.SECURE_COLUMNS.PASSWORD
+        ];
         const set = [];
         const params = [];
-        fields.forEach((f) => {
+
+        for (const f of fields) {
             if (req.body[f] != null) {
-                if (req.body[f] === 'password_hash') {
-                    const hashedPassword = hashPassword(req.body[f]);
+                console.log(`The Field is: ${f} The Expected Field is: ${req.body[f]}`);
+                if (f === 'password_hash') {
+                    const hashedPassword = await bcrypt.hash(req.body.password_hash, C_AUTH.SALT_ROUNDS);
                     params.push(hashedPassword);
+                    set.push(`${f} = $${params.length}`);
                 }
                 else {
                     params.push(req.body[f]);
                     set.push(`${f} = $${params.length}`);
                 }
             }
-        });
+        }
+
         if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json(
             { error: { code: C_HTTP.MESSAGE.BAD_REQUEST, message: 'No updatable fields provided' } });
         params.push(id);
@@ -245,6 +252,7 @@ router.patch(
             WHERE user_id = $${params.length}
             RETURNING ${C_USER.SAFE_RETURN}
         `;
+
         const { rows } = await query(sql, params);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'User not found' } });
         res.json(rows[0]);

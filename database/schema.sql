@@ -240,6 +240,7 @@ CREATE TABLE time_entries
         CHECK (end_time IS NULL OR end_time >= start_time)
 );
 
+-- noinspection SpellCheckingInspection
 INSERT INTO users (
     first_name,
     last_name,
@@ -270,6 +271,7 @@ RETURNING
     created_at,
     updated_at;
 
+-- noinspection SpellCheckingInspection
 INSERT INTO users (
     first_name,
     last_name,

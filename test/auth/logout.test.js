@@ -2,7 +2,7 @@ const request = require('supertest');
 const app = require('../../api');
 const { describe, test, before, after } = require('node:test');
 const {query} = require("../../api/db");
-const CUSER = require("../../utils/constants/cUsers");
+const C_USER = require("../../utils/constants/cUsers");
 const assert = require("node:assert");
 
 describe('Testing /api/logout', () => {
@@ -19,7 +19,7 @@ describe('Testing /api/logout', () => {
             ['TestUser',
                 'LogOutSuite',
                 `test.logout${Date.now()}@test.user.com`,
-                'password', `${CUSER.ROLES.EMPLOYEE}`
+                'password', `${C_USER.ROLES.EMPLOYEE}`
             ]);
         if (rows.length === 0) {
             throw new Error('Failed to insert test user');

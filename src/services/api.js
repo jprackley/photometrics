@@ -101,7 +101,7 @@ const API_ENDPOINTS = {
     
     //---------------------------------------------------------------------------------
     // Dashboard endpoints are read-only aggregated/statistical data.
-    // These power charts, KPI cards, graphs, workload tracking, and progress widgets.
+    // These power charts, KPI cards, graph, workload tracking, and progress widgets.
     // Implemented data source can be optimized independently of the frontend.
     //----------------------------------------------------------------------------------
     dashboard: {

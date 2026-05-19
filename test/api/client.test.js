@@ -33,7 +33,7 @@ const clients_undefined = {
     }
 }
 const clients_overrun = {
-    firtsName: {
+    firstName: {
         first_name: "C".repeat(C_CLIENT.MAX_LENGTH.FIRST_NAME + 1),
         last_name: "Client",
         company_name: "First Name Too Long",
@@ -350,7 +350,7 @@ describe('Testing /api/clients', () => {
         });
 
         /**
-         * Verifies that client creation fails when email is missing or overrun.
+         * Verifies that client creation fails when an email is missing or overrun.
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */

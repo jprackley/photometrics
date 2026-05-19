@@ -112,7 +112,7 @@ The system supports:
 
 #### Analytics & Decision Support
 - Project feasibility insights
-- Data-driven decision making
+- Data-driven decision-making
 
 #### Security
 - Authentication
@@ -239,13 +239,13 @@ The project is developed using Agile methodology with:
 
 ## Risks and Mitigation
 
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| Limited timeline | High | Focus on MVP features |
-| Small team | Medium | Clear roles and communication |
-| No real data | Medium | Use mock data |
-| Tech inexperience | Medium | Use familiar tools |
-| Scope creep | High | Strict scope control |
+| Risk              | Impact | Mitigation                    |
+|-------------------|--------|-------------------------------|
+| Limited timeline  | High   | Focus on MVP features         |
+| Small team        | Medium | Clear roles and communication |
+| No real data      | Medium | Use mock data                 |
+| Tech inexperience | Medium | Use familiar tools            |
+| Scope creep       | High   | Strict scope control          |
 
 ---
 

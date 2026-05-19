@@ -5,6 +5,7 @@
 // Keeping demo data separate from page components makes the frontend easier to
 // test, update, and eventually connect to database-backed records.
 // -----------------------------------------------------------------------------
+// noinspection SpellCheckingInspection
 
 import { DEFAULT_USE_API_DATA } from "../services/api";
 
@@ -59,7 +60,7 @@ const projectProgress = [
     ["Graduation - McDougal", "1000", "100", "900", 10],
 ];
 
-// Projects table data
+// Project table data
 // Mock project records used by the Projects page while backend data is unavailable.
 const projects = [
     {
