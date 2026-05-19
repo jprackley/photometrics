@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// Split from features/Pages.jsx to keep each page easier to maintain.
+// Shared Components.
 // -----------------------------------------------------------------------------
 
 import React, { useEffect, useMemo, useState } from "react";
