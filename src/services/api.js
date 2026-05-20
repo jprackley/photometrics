@@ -314,7 +314,7 @@ function unwrapApiPayload(payload) {
     if (Array.isArray(payload)) return payload;
     if (payload?.data !== undefined) return payload.data;
     if (payload?.items !== undefined) return payload.items;
-    return payload;
+    return payload ?? [];
 }
 
 /**
