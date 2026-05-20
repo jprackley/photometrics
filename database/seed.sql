@@ -60,7 +60,7 @@ VALUES (
     900,    -- images per project
     5,      -- time entries per task
     'Photometrics',
-    'seed_password_hash',
+    '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
     ARRAY[
         'Alex', 'Jordan', 'Taylor', 'Morgan', 'Casey',
         'Riley', 'Jamie', 'Cameron', 'Avery', 'Quinn',

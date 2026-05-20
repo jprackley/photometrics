@@ -52,14 +52,25 @@ router.post(
                 },
             });
         }
-        //If the password matches, generate a JWT token
+        // If the password matches, generate a JWT token.
+        // JWT_SECRET is required outside local development so deployed auth does not silently use a weak secret.
+        const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV !== 'production' ? 'photometrics-local-dev-secret' : null);
+        if (!jwtSecret) {
+            return res.status(C_HTTP.STATUS.INTERNAL_SERVER_ERROR).json({
+                error: {
+                    code: C_HTTP.CODE.INTERNAL_SERVER_ERROR || 500,
+                    message: 'Login is not configured. Set JWT_SECRET in the server environment.',
+                },
+            });
+        }
+
         const token = jwt.sign(
             {
                 user_id: rows[0].user_id,
                 email: rows[0].email,
                 account_role: rows[0].account_role,
             },
-            process.env.JWT_SECRET,
+            jwtSecret,
             {
                 expiresIn: process.env.JWT_EXPIRES_IN || '1h',
             }
