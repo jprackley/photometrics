@@ -118,7 +118,7 @@ const API_ENDPOINTS = {
     // Implemented data source can be optimized independently of the frontend.
     //----------------------------------------------------------------------------------
     dashboard: {
-        kpis: "/kpi/projects/active",
+        kpis: "/dashboard/kpis",
         productivity: "/dashboard/productivity",
         workflow: "/dashboard/workflow",
         employeeActivity: "/dashboard/employee-activity",
