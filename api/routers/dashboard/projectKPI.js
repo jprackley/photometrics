@@ -14,6 +14,10 @@ const {query} = require("../../db");
 router.get('/active',
     [kpi],
     asyncHandler(async (req, res) => {
+        let activeProjects = {
+            active: 0,
+            projects: {}
+        }
         const isAcitveSQL = `
             SELECT *
             FROM projects
@@ -21,7 +25,7 @@ router.get('/active',
               AND status::TEXT = ${C_PROJECT.STATUS.IN_PROGRESS};
         `
         const { rows } = await query(isAcitveSQL);
-        const activeProjects = rows.length;
+        activeProjects.active = rows.length;
 
         res.json(activeProjects);
     }))
