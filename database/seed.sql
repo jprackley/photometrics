@@ -1,438 +1,663 @@
-ROLLBACK;
+-- database/seed.sql
+-- Photometrics configurable seed file
+-- Adjust the constants in the CONFIG section only.
+
 BEGIN;
-
--- =========================================================
--- Photometrics seed data
--- Matches database/schema.sql uploaded May 15, 2026.
--- Edit only seed_config values to change the amount of data.
--- =========================================================
-
-CREATE TEMP TABLE seed_config (
-    config_id INT PRIMARY KEY,
-    manager_count INT NOT NULL,
-    employee_count INT NOT NULL,
-    client_count INT NOT NULL,
-    project_count INT NOT NULL,
-    tasks_per_project INT NOT NULL,
-    images_per_project INT NOT NULL,
-    time_entries_per_task INT NOT NULL,
-    internal_company_name TEXT NOT NULL,
-    default_password_hash TEXT NOT NULL,
-    first_names TEXT[] NOT NULL,
-    last_names TEXT[] NOT NULL,
-    company_names TEXT[] NOT NULL,
-    project_prefixes TEXT[] NOT NULL,
-    project_subjects TEXT[] NOT NULL,
-    task_categories task_category[] NOT NULL,
-    project_statuses project_status[] NOT NULL,
-    task_statuses task_status[] NOT NULL,
-    image_statuses image_status[] NOT NULL
-) ON COMMIT DROP;
-
-INSERT INTO seed_config (
-    config_id,
-    manager_count,
-    employee_count,
-    client_count,
-    project_count,
-    tasks_per_project,
-    images_per_project,
-    time_entries_per_task,
-    internal_company_name,
-    default_password_hash,
-    first_names,
-    last_names,
-    company_names,
-    project_prefixes,
-    project_subjects,
-    task_categories,
-    project_statuses,
-    task_statuses,
-    image_statuses
-)
-VALUES (
-    1,
-    4,      -- managers
-    15,     -- employees
-    197,    -- clients
-    250,    -- projects
-    10,     -- tasks per project
-    900,    -- images per project
-    5,      -- time entries per task
-    'Photometrics',
-    '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
-    ARRAY[
-        'Alex', 'Jordan', 'Taylor', 'Morgan', 'Casey',
-        'Riley', 'Jamie', 'Cameron', 'Avery', 'Quinn',
-        'Parker', 'Reese', 'Dakota', 'Skyler', 'Rowan',
-        'Emerson', 'Finley', 'Harper', 'Kendall', 'Logan'
-    ],
-    ARRAY[
-        'Smith', 'Johnson', 'Williams', 'Brown', 'Jones',
-        'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez',
-        'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson',
-        'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'
-    ],
-    ARRAY[
-        'Aperture Studio', 'Bright Lens', 'Cedar Gallery', 'Dawn Creative', 'Evergreen Media',
-        'Frame House', 'Golden Hour', 'Harbor Portraits', 'Indigo Imaging', 'Juniper Photo',
-        'Keystone Studio', 'Lumen Works', 'Maple Media', 'North Star Photo', 'Oak Street Studio',
-        'Pixel Forge', 'Quartz Creative', 'Riverbend Gallery', 'Silverline Media', 'True North Studio'
-    ],
-    ARRAY[
-        'Wedding', 'Portrait', 'Event', 'Product', 'Commercial',
-        'Editorial', 'Graduation', 'Family', 'Branding', 'Real Estate'
-    ],
-    ARRAY[
-        'Photo Session', 'Image Delivery', 'Editing Workflow', 'Gallery Build', 'Client Package',
-        'Campaign Assets', 'Album Production', 'Retouching Batch', 'Studio Package', 'Digital Collection'
-    ],
-    ARRAY['Import', 'Cull', 'Edit', 'Quality Review', 'Export', 'Delivery', 'Other']::task_category[],
-    ARRAY['To-Do', 'In Progress', 'On Hold', 'Completed', 'Cancelled', 'Archived']::project_status[],
-    ARRAY['To-Do', 'Assigned', 'In Progress', 'Paused', 'Completed', 'Cancelled']::task_status[],
-    ARRAY['Pending', 'In Progress', 'Completed', 'Rejected']::image_status[]
-);
 
 DO $$
 DECLARE
-    cfg seed_config%ROWTYPE;
+    ---------------------------------------------------------------------------
+    -- CONFIG
+    ---------------------------------------------------------------------------
+    CLEAR_AUTO_SEED_DATA       CONSTANT BOOLEAN := true;
+
+    ADDITIONAL_MANAGER_COUNT   CONSTANT INTEGER := 15;
+    ADDITIONAL_EMPLOYEE_COUNT  CONSTANT INTEGER := 40;
+    CLIENT_COUNT               CONSTANT INTEGER := 560;
+
+    PROJECTS_PER_CLIENT_MIN    CONSTANT INTEGER := 1;
+    PROJECTS_PER_CLIENT_MAX    CONSTANT INTEGER := 4;
+
+    TASKS_PER_PROJECT_MIN      CONSTANT INTEGER := 5;
+    TASKS_PER_PROJECT_MAX      CONSTANT INTEGER := 50;
+
+    IMAGES_PER_PROJECT_MIN     CONSTANT INTEGER := 200;
+    IMAGES_PER_PROJECT_MAX     CONSTANT INTEGER := 1000;
+
+    TIME_ENTRIES_PER_TASK_MIN  CONSTANT INTEGER := 2;
+    TIME_ENTRIES_PER_TASK_MAX  CONSTANT INTEGER := 50;
+
+    SEED_TAG                   CONSTANT TEXT := '[seed:photometrics]';
+    SEED_EMAIL_DOMAIN          CONSTANT TEXT := 'photometrics.local';
+
+    DEFAULT_PASSWORD_HASH      CONSTANT TEXT := '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy';
+
+    ---------------------------------------------------------------------------
+    -- FIXED USER IDS COLLECTED AFTER INSERT
+    ---------------------------------------------------------------------------
+    hardcoded_manager_id       UUID;
+    hardcoded_employee_id      UUID;
+
+    ---------------------------------------------------------------------------
+    -- WORKING ARRAYS
+    ---------------------------------------------------------------------------
+    manager_ids                UUID[] := ARRAY[]::UUID[];
+    employee_ids               UUID[] := ARRAY[]::UUID[];
+    client_ids                 UUID[] := ARRAY[]::UUID[];
+
+    ---------------------------------------------------------------------------
+    -- LOOP VARIABLES
+    ---------------------------------------------------------------------------
+    i                          INTEGER;
+    j                          INTEGER;
+    k                          INTEGER;
+    n                          INTEGER;
+
+    client_id_value            UUID;
+    project_id_value           UUID;
+    task_id_value              UUID;
+    image_id_value             UUID;
+    user_id_value              UUID;
+
+    project_task_ids           UUID[];
+
+    project_count              INTEGER;
+    task_count                 INTEGER;
+    image_count                INTEGER;
+    time_entry_count           INTEGER;
+
+    project_start_time         TIMESTAMPTZ;
+    project_due_time           TIMESTAMPTZ;
+    project_completed_at       TIMESTAMPTZ;
+    project_status_value       TEXT;
+    project_priority_value     TEXT;
+
+    task_start_time            TIMESTAMPTZ;
+    task_due_time              TIMESTAMPTZ;
+    task_completed_at          TIMESTAMPTZ;
+    task_status_value          TEXT;
+    task_category_value        TEXT;
+    task_priority_value        TEXT;
+    task_progress_value        NUMERIC;
+
+    image_status_value         TEXT;
+    image_completed_value      BOOLEAN;
+
+    entry_start_time           TIMESTAMPTZ;
+    entry_end_time             TIMESTAMPTZ;
+    entry_minutes              INTEGER;
+
+    ---------------------------------------------------------------------------
+    -- ENUM VALUE LISTS
+    ---------------------------------------------------------------------------
+    project_statuses           TEXT[] := ARRAY[
+        'To-Do',
+        'In Progress',
+        'On Hold',
+        'Completed',
+        'Cancelled',
+        'Archived'
+    ];
+
+    project_priorities         TEXT[] := ARRAY[
+        'Low',
+        'Normal',
+        'High',
+        'Urgent'
+    ];
+
+    task_statuses              TEXT[] := ARRAY[
+        'To-Do',
+        'Assigned',
+        'In Progress',
+        'Paused',
+        'Completed',
+        'Cancelled'
+    ];
+
+    task_categories            TEXT[] := ARRAY[
+        'Import',
+        'Cull',
+        'Edit',
+        'Quality Review',
+        'Export',
+        'Delivery',
+        'Other'
+    ];
+
+    task_priorities            TEXT[] := ARRAY[
+        'Low',
+        'Normal',
+        'High',
+        'Urgent'
+    ];
+
+    image_statuses             TEXT[] := ARRAY[
+        'Pending',
+        'In Progress',
+        'Completed',
+        'Rejected'
+    ];
+
+    client_companies           TEXT[] := ARRAY[
+        'Ackley Creative Group',
+        'Northstar Weddings',
+        'Summit Portrait Studio',
+        'Blue Ridge Events',
+        'Golden Hour Media',
+        'Evergreen Realty',
+        'Coastal Brand House',
+        'Redwood Product Co'
+    ];
+
+    project_types              TEXT[] := ARRAY[
+        'Wedding Gallery',
+        'Product Shoot',
+        'Real Estate Listing',
+        'Corporate Headshots',
+        'Engagement Session',
+        'Event Coverage',
+        'Family Portraits',
+        'Brand Campaign'
+    ];
 BEGIN
-    SELECT * INTO cfg
-    FROM seed_config
-    WHERE config_id = 1;
+    ---------------------------------------------------------------------------
+    -- OPTIONAL CLEANUP OF PREVIOUS GENERATED SEED DATA
+    -- This does not delete the two hardcoded users.
+    ---------------------------------------------------------------------------
+    IF CLEAR_AUTO_SEED_DATA THEN
+        DELETE FROM time_entries
+        WHERE task_id IN (
+            SELECT task_id
+            FROM tasks
+            WHERE description ILIKE '%' || SEED_TAG || '%'
+        )
+        OR employee_id IN (
+            SELECT user_id
+            FROM users
+            WHERE email ILIKE 'seed.%@' || SEED_EMAIL_DOMAIN
+        );
 
-    IF cfg.manager_count < 1 THEN
-        RAISE EXCEPTION 'manager_count must be at least 1';
+        DELETE FROM images
+        WHERE description ILIKE '%' || SEED_TAG || '%'
+           OR name ILIKE 'seed_%';
+
+        DELETE FROM tasks
+        WHERE description ILIKE '%' || SEED_TAG || '%'
+           OR task_name ILIKE 'Seed Task %';
+
+        DELETE FROM projects
+        WHERE notes ILIKE '%' || SEED_TAG || '%'
+           OR project_name ILIKE 'Seed Project %';
+
+        DELETE FROM clients
+        WHERE email ILIKE 'seed.client.%@' || SEED_EMAIL_DOMAIN;
+
+        DELETE FROM users
+        WHERE email ILIKE 'seed.%@' || SEED_EMAIL_DOMAIN;
     END IF;
 
-    IF cfg.employee_count < 1 THEN
-        RAISE EXCEPTION 'employee_count must be at least 1';
+    ---------------------------------------------------------------------------
+    -- KEEP THESE TWO HARDCODED USERS
+    ---------------------------------------------------------------------------
+    INSERT INTO users (
+        first_name,
+        last_name,
+        display_name,
+        email,
+        password_hash,
+        account_role,
+        is_admin,
+        is_active,
+        status,
+        company,
+        department
+    )
+    VALUES (
+        'Test',
+        'Manager',
+        'Test Manager',
+        'muser@gmail.com',
+        DEFAULT_PASSWORD_HASH,
+        'Manager',
+        true,
+        true,
+        'Active',
+        'Photometrics',
+        'Operations'
+    )
+    ON CONFLICT (email)
+        DO UPDATE SET
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            display_name = EXCLUDED.display_name,
+            password_hash = EXCLUDED.password_hash,
+            account_role = EXCLUDED.account_role,
+            is_admin = EXCLUDED.is_admin,
+            is_active = EXCLUDED.is_active,
+            status = EXCLUDED.status,
+            company = EXCLUDED.company,
+            department = EXCLUDED.department,
+            updated_at = now()
+    RETURNING user_id INTO hardcoded_manager_id;
+
+    INSERT INTO users (
+        first_name,
+        last_name,
+        display_name,
+        email,
+        password_hash,
+        account_role,
+        is_admin,
+        is_active,
+        status,
+        company,
+        department
+    )
+    VALUES (
+        'Test',
+        'Employee',
+        'Test Employee',
+        'euser@gmail.com',
+        DEFAULT_PASSWORD_HASH,
+        'Employee',
+        false,
+        true,
+        'Active',
+        'Photometrics',
+        'Editing'
+    )
+    ON CONFLICT (email)
+        DO UPDATE SET
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            display_name = EXCLUDED.display_name,
+            password_hash = EXCLUDED.password_hash,
+            account_role = EXCLUDED.account_role,
+            is_admin = EXCLUDED.is_admin,
+            is_active = EXCLUDED.is_active,
+            status = EXCLUDED.status,
+            company = EXCLUDED.company,
+            department = EXCLUDED.department,
+            updated_at = now()
+    RETURNING user_id INTO hardcoded_employee_id;
+
+    manager_ids := array_append(manager_ids, hardcoded_manager_id);
+    employee_ids := array_append(employee_ids, hardcoded_employee_id);
+
+    ---------------------------------------------------------------------------
+    -- ADDITIONAL MANAGERS
+    ---------------------------------------------------------------------------
+    IF ADDITIONAL_MANAGER_COUNT > 0 THEN
+        FOR i IN 1..ADDITIONAL_MANAGER_COUNT LOOP
+            INSERT INTO users (
+                employee_id,
+                first_name,
+                last_name,
+                display_name,
+                title,
+                company,
+                department,
+                location,
+                status,
+                email,
+                password_hash,
+                account_role,
+                is_admin,
+                is_active,
+                notes
+            )
+            VALUES (
+                format('MGR-%03s', i),
+                format('Manager%s', i),
+                'Seed',
+                format('Manager%s Seed', i),
+                'Editing Manager',
+                'Photometrics',
+                'Operations',
+                'Remote',
+                'Active',
+                format('seed.manager.%03s@%s', i, SEED_EMAIL_DOMAIN),
+                DEFAULT_PASSWORD_HASH,
+                'Manager',
+                false,
+                true,
+                SEED_TAG
+            )
+            ON CONFLICT (email)
+                DO UPDATE SET
+                    first_name = EXCLUDED.first_name,
+                    last_name = EXCLUDED.last_name,
+                    display_name = EXCLUDED.display_name,
+                    title = EXCLUDED.title,
+                    company = EXCLUDED.company,
+                    department = EXCLUDED.department,
+                    location = EXCLUDED.location,
+                    status = EXCLUDED.status,
+                    password_hash = EXCLUDED.password_hash,
+                    account_role = EXCLUDED.account_role,
+                    is_active = EXCLUDED.is_active,
+                    notes = EXCLUDED.notes,
+                    updated_at = now()
+            RETURNING user_id INTO user_id_value;
+
+            manager_ids := array_append(manager_ids, user_id_value);
+        END LOOP;
     END IF;
 
-    IF cfg.client_count < 1 THEN
-        RAISE EXCEPTION 'client_count must be at least 1';
+    ---------------------------------------------------------------------------
+    -- ADDITIONAL EMPLOYEES
+    ---------------------------------------------------------------------------
+    IF ADDITIONAL_EMPLOYEE_COUNT > 0 THEN
+        FOR i IN 1..ADDITIONAL_EMPLOYEE_COUNT LOOP
+            INSERT INTO users (
+                employee_id,
+                manager_id,
+                first_name,
+                last_name,
+                display_name,
+                title,
+                company,
+                department,
+                location,
+                status,
+                email,
+                password_hash,
+                account_role,
+                is_admin,
+                is_active,
+                notes
+            )
+            VALUES (
+                format('EMP-%03s', i),
+                format('MGR-%03s', 1 + ((i - 1) % GREATEST(ADDITIONAL_MANAGER_COUNT, 1))),
+                format('Employee%s', i),
+                'Seed',
+                format('Employee%s Seed', i),
+                'Photo Editor',
+                'Photometrics',
+                'Editing',
+                'Remote',
+                'Active',
+                format('seed.employee.%03s@%s', i, SEED_EMAIL_DOMAIN),
+                DEFAULT_PASSWORD_HASH,
+                'Employee',
+                false,
+                true,
+                SEED_TAG
+            )
+            ON CONFLICT (email)
+                DO UPDATE SET
+                    employee_id = EXCLUDED.employee_id,
+                    manager_id = EXCLUDED.manager_id,
+                    first_name = EXCLUDED.first_name,
+                    last_name = EXCLUDED.last_name,
+                    display_name = EXCLUDED.display_name,
+                    title = EXCLUDED.title,
+                    company = EXCLUDED.company,
+                    department = EXCLUDED.department,
+                    location = EXCLUDED.location,
+                    status = EXCLUDED.status,
+                    password_hash = EXCLUDED.password_hash,
+                    account_role = EXCLUDED.account_role,
+                    is_active = EXCLUDED.is_active,
+                    notes = EXCLUDED.notes,
+                    updated_at = now()
+            RETURNING user_id INTO user_id_value;
+
+            employee_ids := array_append(employee_ids, user_id_value);
+        END LOOP;
     END IF;
 
-    IF cfg.project_count < 1 THEN
-        RAISE EXCEPTION 'project_count must be at least 1';
+    ---------------------------------------------------------------------------
+    -- CLIENTS
+    ---------------------------------------------------------------------------
+    IF CLIENT_COUNT > 0 THEN
+        FOR i IN 1..CLIENT_COUNT LOOP
+            INSERT INTO clients (
+                first_name,
+                middle_name,
+                last_name,
+                title,
+                company_name,
+                email,
+                phone_number,
+                website,
+                notes,
+                address_line1,
+                address_line2,
+                city,
+                state,
+                postal_code,
+                country,
+                billing_address_line1,
+                billing_address_line2,
+                billing_city,
+                billing_state,
+                billing_postal_code,
+                billing_country
+            )
+            VALUES (
+                format('Client%s', i),
+                NULL,
+                'Seed',
+                'Owner',
+                client_companies[1 + floor(random() * array_length(client_companies, 1))::INTEGER],
+                format('seed.client.%03s@%s', i, SEED_EMAIL_DOMAIN),
+                format('555010%04s', i),
+                format('https://client-%s.example.com', i),
+                SEED_TAG || ' Generated client for dashboard testing.',
+                format('%s Main Street', 100 + i),
+                NULL,
+                'Austin',
+                'Texas',
+                format('78%03s', i),
+                'USA',
+                format('%s Billing Avenue', 200 + i),
+                NULL,
+                'Austin',
+                'Texas',
+                format('79%03s', i),
+                'USA'
+            )
+            ON CONFLICT (email)
+                DO UPDATE SET
+                    first_name = EXCLUDED.first_name,
+                    last_name = EXCLUDED.last_name,
+                    title = EXCLUDED.title,
+                    company_name = EXCLUDED.company_name,
+                    phone_number = EXCLUDED.phone_number,
+                    website = EXCLUDED.website,
+                    notes = EXCLUDED.notes,
+                    address_line1 = EXCLUDED.address_line1,
+                    city = EXCLUDED.city,
+                    state = EXCLUDED.state,
+                    postal_code = EXCLUDED.postal_code,
+                    country = EXCLUDED.country,
+                    billing_address_line1 = EXCLUDED.billing_address_line1,
+                    billing_city = EXCLUDED.billing_city,
+                    billing_state = EXCLUDED.billing_state,
+                    billing_postal_code = EXCLUDED.billing_postal_code,
+                    billing_country = EXCLUDED.billing_country,
+                    updated_at = now()
+            RETURNING client_id INTO client_id_value;
+
+            client_ids := array_append(client_ids, client_id_value);
+        END LOOP;
     END IF;
 
-    IF cfg.tasks_per_project < 1 THEN
-        RAISE EXCEPTION 'tasks_per_project must be at least 1';
-    END IF;
+    ---------------------------------------------------------------------------
+    -- PROJECTS, TASKS, IMAGES, AND TIME ENTRIES
+    ---------------------------------------------------------------------------
+    FOREACH client_id_value IN ARRAY client_ids LOOP
+        project_count := PROJECTS_PER_CLIENT_MIN
+            + floor(random() * (PROJECTS_PER_CLIENT_MAX - PROJECTS_PER_CLIENT_MIN + 1))::INTEGER;
 
-    IF cfg.images_per_project < 0 THEN
-        RAISE EXCEPTION 'images_per_project cannot be negative';
-    END IF;
+        FOR i IN 1..project_count LOOP
+            project_status_value := project_statuses[1 + floor(random() * array_length(project_statuses, 1))::INTEGER];
+            project_priority_value := project_priorities[1 + floor(random() * array_length(project_priorities, 1))::INTEGER];
 
-    IF cfg.time_entries_per_task < 0 THEN
-        RAISE EXCEPTION 'time_entries_per_task cannot be negative';
-    END IF;
+            project_start_time := now() - (floor(random() * 45)::INTEGER || ' days')::INTERVAL;
+            project_due_time := project_start_time + ((7 + floor(random() * 30)::INTEGER) || ' days')::INTERVAL;
+
+            IF project_status_value = 'Completed' THEN
+                project_completed_at := project_due_time - (floor(random() * 3)::INTEGER || ' days')::INTERVAL;
+            ELSE
+                project_completed_at := NULL;
+            END IF;
+
+            INSERT INTO projects (
+                client_id,
+                managed_by,
+                project_name,
+                description,
+                status,
+                priority,
+                notes,
+                start_time,
+                shoot_time,
+                due_time,
+                completed_at
+            )
+            VALUES (
+                client_id_value,
+                manager_ids[1 + floor(random() * array_length(manager_ids, 1))::INTEGER],
+                format(
+                    'Seed Project %s %s',
+                    i,
+                    project_types[1 + floor(random() * array_length(project_types, 1))::INTEGER]
+                ),
+                SEED_TAG || ' Generated project for dashboard testing.',
+                project_status_value::project_status,
+                project_priority_value::project_priority,
+                SEED_TAG || ' Configurable seed project.',
+                project_start_time,
+                project_start_time + ((1 + floor(random() * 5)::INTEGER) || ' days')::INTERVAL,
+                project_due_time,
+                project_completed_at
+            )
+            RETURNING project_id INTO project_id_value;
+
+            project_task_ids := ARRAY[]::UUID[];
+
+            task_count := TASKS_PER_PROJECT_MIN
+                + floor(random() * (TASKS_PER_PROJECT_MAX - TASKS_PER_PROJECT_MIN + 1))::INTEGER;
+
+            FOR j IN 1..task_count LOOP
+                task_status_value := task_statuses[1 + floor(random() * array_length(task_statuses, 1))::INTEGER];
+                task_category_value := task_categories[1 + floor(random() * array_length(task_categories, 1))::INTEGER];
+                task_priority_value := task_priorities[1 + floor(random() * array_length(task_priorities, 1))::INTEGER];
+
+                task_start_time := project_start_time + (floor(random() * 5)::INTEGER || ' days')::INTERVAL;
+                task_due_time := LEAST(
+                    project_due_time,
+                    task_start_time + ((2 + floor(random() * 10)::INTEGER) || ' days')::INTERVAL
+                );
+
+                IF task_status_value = 'Completed' THEN
+                    task_completed_at := task_due_time - (floor(random() * 2)::INTEGER || ' days')::INTERVAL;
+                    task_progress_value := 100;
+                ELSIF task_status_value IN ('In Progress', 'Paused') THEN
+                    task_completed_at := NULL;
+                    task_progress_value := 10 + floor(random() * 80)::INTEGER;
+                ELSE
+                    task_completed_at := NULL;
+                    task_progress_value := floor(random() * 10)::INTEGER;
+                END IF;
+
+                INSERT INTO tasks (
+                    project_id,
+                    task_name,
+                    category,
+                    priority,
+                    description,
+                    status,
+                    progress,
+                    start_time,
+                    due_time,
+                    completed_at,
+                    assigned_by,
+                    assigned_to
+                )
+                VALUES (
+                    project_id_value,
+                    format('Seed Task %s %s', j, task_category_value),
+                    task_category_value::task_category,
+                    task_priority_value::task_priority,
+                    SEED_TAG || ' Generated task for dashboard testing.',
+                    task_status_value::task_status,
+                    task_progress_value,
+                    task_start_time,
+                    task_due_time,
+                    task_completed_at,
+                    manager_ids[1 + floor(random() * array_length(manager_ids, 1))::INTEGER],
+                    employee_ids[1 + floor(random() * array_length(employee_ids, 1))::INTEGER]
+                )
+                RETURNING task_id INTO task_id_value;
+
+                project_task_ids := array_append(project_task_ids, task_id_value);
+
+                time_entry_count := TIME_ENTRIES_PER_TASK_MIN
+                    + floor(random() * (TIME_ENTRIES_PER_TASK_MAX - TIME_ENTRIES_PER_TASK_MIN + 1))::INTEGER;
+
+                FOR n IN 1..time_entry_count LOOP
+                    entry_minutes := 20 + floor(random() * 160)::INTEGER;
+                    entry_start_time := task_start_time + ((n * 3 + floor(random() * 8)::INTEGER) || ' hours')::INTERVAL;
+                    entry_end_time := entry_start_time + (entry_minutes || ' minutes')::INTERVAL;
+
+                    INSERT INTO time_entries (
+                        task_id,
+                        employee_id,
+                        start_time,
+                        end_time,
+                        total_time
+                    )
+                    VALUES (
+                        task_id_value,
+                        employee_ids[1 + floor(random() * array_length(employee_ids, 1))::INTEGER],
+                        entry_start_time,
+                        entry_end_time,
+                        round((entry_minutes / 60.0)::NUMERIC, 2)
+                    );
+                END LOOP;
+            END LOOP;
+
+            image_count := IMAGES_PER_PROJECT_MIN
+                + floor(random() * (IMAGES_PER_PROJECT_MAX - IMAGES_PER_PROJECT_MIN + 1))::INTEGER;
+
+            FOR k IN 1..image_count LOOP
+                image_status_value := image_statuses[1 + floor(random() * array_length(image_statuses, 1))::INTEGER];
+                image_completed_value := image_status_value = 'Completed';
+
+                INSERT INTO images (
+                    project_id,
+                    task_id,
+                    name,
+                    description,
+                    url,
+                    status,
+                    completed
+                )
+                VALUES (
+                    project_id_value,
+                    project_task_ids[1 + floor(random() * array_length(project_task_ids, 1))::INTEGER],
+                    format('seed_project_%s_image_%03s.jpg', replace(project_id_value::TEXT, '-', ''), k),
+                    SEED_TAG || ' Generated image for dashboard testing.',
+                    format('https://example.com/photometrics/%s/image-%03s.jpg', project_id_value, k),
+                    image_status_value::image_status,
+                    image_completed_value
+                )
+                RETURNING image_id INTO image_id_value;
+            END LOOP;
+        END LOOP;
+    END LOOP;
+
+    RAISE NOTICE 'Photometrics seed complete. Hardcoded manager: %, hardcoded employee: %, managers: %, employees: %, clients: %',
+        hardcoded_manager_id,
+        hardcoded_employee_id,
+        array_length(manager_ids, 1),
+        array_length(employee_ids, 1),
+        array_length(client_ids, 1);
 END $$;
 
--- Make this seed repeatable.
-TRUNCATE TABLE time_entries, images, tasks, projects, clients, users CASCADE;
-
--- =========================================================
--- Users
--- =========================================================
-
-WITH cfg AS (
-    SELECT *
-    FROM seed_config
-    WHERE config_id = 1
-), user_rows AS (
-    SELECT
-        user_num,
-        CASE
-            WHEN user_num <= cfg.manager_count THEN 'Manager'::user_role
-            ELSE 'Employee'::user_role
-        END AS account_role,
-        cfg.first_names[((user_num - 1) % array_length(cfg.first_names, 1)) + 1] AS first_name,
-        cfg.last_names[(((user_num - 1) / array_length(cfg.first_names, 1)) % array_length(cfg.last_names, 1)) + 1] AS last_name,
-        lower(regexp_replace(cfg.internal_company_name, '[^a-zA-Z0-9]+', '', 'g')) AS company_domain,
-        cfg.default_password_hash AS password_hash
-    FROM cfg
-    CROSS JOIN generate_series(1, cfg.manager_count + cfg.employee_count) AS user_series(user_num)
-)
-INSERT INTO users (
-    first_name,
-    last_name,
-    email,
-    password_hash,
-    account_role
-)
-SELECT
-    first_name,
-    last_name,
-    lower(first_name) || '.' || lower(last_name) || user_num || '@' || company_domain || '.com' AS email,
-    password_hash,
-    account_role
-FROM user_rows;
-
--- =========================================================
--- Clients
--- =========================================================
-
-WITH cfg AS (
-    SELECT *
-    FROM seed_config
-    WHERE config_id = 1
-), client_rows AS (
-    SELECT
-        client_num,
-        cfg.first_names[((client_num - 1) % array_length(cfg.first_names, 1)) + 1] AS first_name,
-        cfg.last_names[(((client_num - 1) / array_length(cfg.first_names, 1)) % array_length(cfg.last_names, 1)) + 1] AS last_name,
-        cfg.company_names[((client_num - 1) % array_length(cfg.company_names, 1)) + 1] AS company_name
-    FROM cfg
-    CROSS JOIN generate_series(1, cfg.client_count) AS client_series(client_num)
-)
-INSERT INTO clients (
-    first_name,
-    last_name,
-    company_name,
-    email
-)
-SELECT
-    first_name,
-    last_name,
-    company_name || ' ' || lpad(client_num::TEXT, 3, '0') AS company_name,
-    lower(first_name) || '.' || lower(last_name) || client_num || '@client' || lpad(client_num::TEXT, 3, '0') || '.example.com' AS email
-FROM client_rows;
-
--- =========================================================
--- Projects
--- =========================================================
-
-WITH cfg AS (
-    SELECT *
-    FROM seed_config
-    WHERE config_id = 1
-), numbered_clients AS (
-    SELECT
-        client_id,
-        row_number() OVER (ORDER BY created_at, client_id) AS client_num
-    FROM clients
-), numbered_managers AS (
-    SELECT
-        user_id,
-        row_number() OVER (ORDER BY created_at, user_id) AS manager_num
-    FROM users
-    WHERE account_role = 'Manager'::user_role
-), project_rows AS (
-    SELECT
-        project_num,
-        c.client_id,
-        m.user_id AS manager_id,
-        cfg.project_prefixes[((project_num - 1) % array_length(cfg.project_prefixes, 1)) + 1] AS project_prefix,
-        cfg.project_subjects[(((project_num - 1) / array_length(cfg.project_prefixes, 1)) % array_length(cfg.project_subjects, 1)) + 1] AS project_subject,
-        cfg.project_statuses[((project_num - 1) % array_length(cfg.project_statuses, 1)) + 1] AS project_status,
-        CURRENT_TIMESTAMP + ((project_num % 14) * INTERVAL '1 day') AS start_time,
-        CURRENT_TIMESTAMP + ((30 + (project_num % 90)) * INTERVAL '1 day') AS due_time
-    FROM cfg
-    CROSS JOIN generate_series(1, cfg.project_count) AS project_series(project_num)
-    JOIN numbered_clients c
-        ON c.client_num = ((project_num - 1) % cfg.client_count) + 1
-    JOIN numbered_managers m
-        ON m.manager_num = ((project_num - 1) % cfg.manager_count) + 1
-)
-INSERT INTO projects (
-    client_id,
-    managed_by,
-    project_name,
-    description,
-    status,
-    start_time,
-    due_time,
-    completed_at
-)
-SELECT
-    client_id,
-    manager_id,
-    project_prefix || ' ' || project_subject || ' ' || lpad(project_num::TEXT, 3, '0') AS project_name,
-    'Seeded project for Photometrics dashboard workflow testing.' AS description,
-    project_status,
-    start_time,
-    due_time,
-    CASE
-        WHEN project_status = 'Completed'::project_status THEN due_time - INTERVAL '1 day'
-        -- ELSE NULL
-    END AS completed_at
-FROM project_rows;
-
--- =========================================================
--- Tasks
--- =========================================================
-
-WITH cfg AS (
-    SELECT *
-    FROM seed_config
-    WHERE config_id = 1
-), numbered_projects AS (
-    SELECT
-        project_id,
-        managed_by,
-        project_name,
-        start_time,
-        row_number() OVER (ORDER BY created_at, project_id) AS project_num
-    FROM projects
-), numbered_employees AS (
-    SELECT
-        user_id,
-        row_number() OVER (ORDER BY created_at, user_id) AS employee_num
-    FROM users
-    WHERE account_role = 'Employee'::user_role
-), task_rows AS (
-    SELECT
-        p.project_id,
-        p.managed_by AS assigned_by,
-        e.user_id AS assigned_to,
-        p.project_num,
-        task_num,
-        cfg.task_categories[((task_num - 1) % array_length(cfg.task_categories, 1)) + 1] AS category,
-        cfg.task_statuses[((task_num - 1) % array_length(cfg.task_statuses, 1)) + 1] AS status,
-        COALESCE(p.start_time, CURRENT_TIMESTAMP) + ((task_num - 1) * INTERVAL '2 days') AS start_time,
-        COALESCE(p.start_time, CURRENT_TIMESTAMP) + ((task_num - 1) * INTERVAL '2 days') + INTERVAL '7 days' AS due_time,
-        'Task ' || lpad(task_num::TEXT, 3, '0') || ' - ' || COALESCE(NULLIF(p.project_name, ''), p.project_id::TEXT) AS task_name
-    FROM cfg
-    CROSS JOIN numbered_projects p
-    CROSS JOIN generate_series(1, cfg.tasks_per_project) AS task_series(task_num)
-    JOIN numbered_employees e
-        ON e.employee_num = (((p.project_num - 1) * cfg.tasks_per_project + task_num - 1) % cfg.employee_count) + 1
-)
-INSERT INTO tasks (
-    project_id,
-    task_name,
-    category,
-    description,
-    status,
-    start_time,
-    due_time,
-    completed_at,
-    assigned_by,
-    assigned_to
-)
-SELECT
-    project_id,
-    task_name,
-    category,
-    category::TEXT || ' task ' || task_num || ' for seeded project workflow testing.' AS description,
-    status,
-    start_time,
-    due_time,
-    CASE
-        WHEN status = 'Completed'::task_status THEN due_time - INTERVAL '12 hours'
-        --ELSE NULL
-    END AS completed_at,
-    assigned_by,
-    assigned_to
-FROM task_rows;
-
--- =========================================================
--- Images
--- =========================================================
-
-WITH cfg AS (
-    SELECT *
-    FROM seed_config
-    WHERE config_id = 1
-), numbered_projects AS (
-    SELECT
-        project_id,
-        row_number() OVER (ORDER BY created_at, project_id) AS project_num
-    FROM projects
-), numbered_tasks AS (
-    SELECT
-        task_id,
-        project_id,
-        row_number() OVER (PARTITION BY project_id ORDER BY created_at, task_id) AS task_num
-    FROM tasks
-), image_rows AS (
-    SELECT
-        p.project_id,
-        t.task_id,
-        image_num,
-        cfg.image_statuses[((image_num - 1) % array_length(cfg.image_statuses, 1)) + 1] AS status
-    FROM cfg
-    CROSS JOIN numbered_projects p
-    CROSS JOIN generate_series(1, cfg.images_per_project) AS image_series(image_num)
-    JOIN numbered_tasks t
-        ON t.project_id = p.project_id
-       AND t.task_num = ((image_num - 1) % cfg.tasks_per_project) + 1
-)
-INSERT INTO images (
-    project_id,
-    task_id,
-    name,
-    url,
-    status,
-    completed
-)
-SELECT
-    project_id,
-    task_id,
-    'image_' || replace(project_id::TEXT, '-', '') || '_' || lpad(image_num::TEXT, 4, '0') || '.jpg' AS name,
-    'https://example.com/images/' || replace(project_id::TEXT, '-', '') || '/' || lpad(image_num::TEXT, 4, '0') || '.jpg' AS url,
-    status,
-    status = 'Completed'::image_status AS completed
-FROM image_rows;
-
--- =========================================================
--- Time entries
--- =========================================================
-
-WITH cfg AS (
-    SELECT *
-    FROM seed_config
-    WHERE config_id = 1
-), task_rows AS (
-    SELECT
-        task_id,
-        assigned_to AS employee_id,
-        COALESCE(start_time, CURRENT_TIMESTAMP) AS task_start_time
-    FROM tasks
-    WHERE assigned_to IS NOT NULL
-), time_entry_rows AS (
-    SELECT
-        t.task_id,
-        t.employee_id,
-        entry_num,
-        t.task_start_time + ((entry_num - 1) * INTERVAL '1 day') + INTERVAL '9 hours' AS entry_start,
-        30 + ((entry_num * 25) % 210) AS minutes_worked
-    FROM cfg
-    CROSS JOIN task_rows t
-    CROSS JOIN generate_series(1, cfg.time_entries_per_task) AS entry_series(entry_num)
-)
-INSERT INTO time_entries (
-    task_id,
-    employee_id,
-    start_time,
-    end_time,
-    total_time
-)
-SELECT
-    task_id,
-    employee_id,
-    entry_start,
-    entry_start + (minutes_worked * INTERVAL '1 minute') AS end_time,
-    round(minutes_worked::NUMERIC / 60.0, 2) AS total_time
-FROM time_entry_rows;
-
 COMMIT;
-
--- =========================================================
--- Seed summary
--- =========================================================
-
-SELECT 'users' AS table_name, count(*) AS row_count FROM users
-UNION ALL
-SELECT 'clients', count(*) FROM clients
-UNION ALL
-SELECT 'projects', count(*) FROM projects
-UNION ALL
-SELECT 'tasks', count(*) FROM tasks
-UNION ALL
-SELECT 'images', count(*) FROM images
-UNION ALL
-SELECT 'time_entries', count(*) FROM time_entries
-ORDER BY table_name;
