@@ -125,16 +125,6 @@ const API_ENDPOINTS = {
         projectProgress: "/dashboard/project-progress",
     },
 
-    //-----------------------------------------------------------------------
-    // Individual KPI endpoints. The frontend calls these without the /api
-    // prefix because buildApiUrl adds the configured API base automatically.
-    //-----------------------------------------------------------------------
-    kpi: {
-        projects: {
-            active: "/kpi/projects/active",
-        },
-    },
-
     //-----------------------------------------------------------------
     // CRUD for client accounts.
     // Backend provides:
@@ -254,10 +244,8 @@ function publishApiError(error) {
         endpoint: error.endpoint || "unknown",
         method: error.method || "GET",
         status: error.status || "NETWORK",
-        statusText: error.statusText || "",
         code: error.code || error.status || "API_ERROR",
         message: error.message || "API request failed",
-        url: error.url || "",
         timestamp: new Date().toISOString(),
     };
 
@@ -265,25 +253,17 @@ function publishApiError(error) {
     window.dispatchEvent(new CustomEvent("photometrics-api-error", { detail: apiError }));
 }
 
-function clearPublishedApiErrors() {
-    if (typeof window === "undefined") return;
-
-    window.__photometricsApiErrors = [];
-    window.dispatchEvent(new CustomEvent("photometrics-api-error", { detail: null }));
-}
-
 async function apiRequest(endpoint, options = {}) {
     const method = options.method || "GET";
     const url = buildApiUrl(endpoint);
-    const { suppressApiError = false, ...fetchOptions } = options;
 
     try {
         const response = await fetch(url, {
             headers: {
                 "Content-Type": "application/json",
-                ...(fetchOptions.headers || {}),
+                ...(options.headers || {}),
             },
-            ...fetchOptions,
+            ...options,
         });
 
         if (!response.ok) {
@@ -300,14 +280,10 @@ async function apiRequest(endpoint, options = {}) {
 
             const error = new Error(`${method} ${endpoint} failed: ${errorMessage}`);
             error.status = response.status;
-            error.statusText = response.statusText;
             error.code = errorCode;
             error.endpoint = endpoint;
             error.method = method;
-            error.url = url;
-            if (!suppressApiError) {
-                publishApiError(error);
-            }
+            publishApiError(error);
             throw error;
         }
 
@@ -325,12 +301,9 @@ async function apiRequest(endpoint, options = {}) {
         if (!requestError.endpoint) {
             requestError.endpoint = endpoint;
             requestError.method = method;
-            requestError.url = url;
             requestError.code = requestError.code || "NETWORK_ERROR";
             requestError.message = `${method} ${endpoint} failed: ${requestError.message}`;
-            if (!suppressApiError) {
-                publishApiError(requestError);
-            }
+            publishApiError(requestError);
         }
 
         throw requestError;
@@ -734,8 +707,7 @@ const apiPlaceholders = {
                 body: JSON.stringify(credentials),
             });
             const payload = unwrapApiPayload(response);
-            const user = normalizeBackendUser(payload?.user || payload);
-            return { ...payload, user: user ? { ...user, authMode: payload?.authMode } : user };
+            return { ...payload, user: normalizeBackendUser(payload?.user || payload) };
         } catch (authError) {
             if (authError.status === 404 || authError.status === 405) {
                 console.warn("Auth endpoint is not available. Using /users?all=true as a temporary database-backed login bridge.", authError);
@@ -745,23 +717,9 @@ const apiPlaceholders = {
             throw authError;
         }
     },
-    logout: (userOrId) => {
-        const isLocalOnlyAuth = typeof userOrId === "object"
-            && ["api-fallback-seed", "api-preview-seed", "local-session"].includes(userOrId?.authMode);
-        const userId = typeof userOrId === "string"
-            ? userOrId
-            : isLocalOnlyAuth
-                ? null
-                : userOrId?.userId || userOrId?.user_id || userOrId?.id || userOrId?.employeeId;
-        const endpoint = userId
-            ? `${API_ENDPOINTS.auth.logout}/${encodeURIComponent(userId)}`
-            : API_ENDPOINTS.auth.logout;
-
-        return apiRequest(endpoint, {
-            method: "POST",
-            suppressApiError: true,
-        });
-    },
+    logout: () => apiRequest(API_ENDPOINTS.auth.logout, {
+        method: "POST",
+    }),
     createProject: (project) => apiRequest(API_ENDPOINTS.projects, {
         method: "POST",
         body: JSON.stringify(project),
@@ -849,7 +807,6 @@ export {
     API_ENDPOINTS,
     buildApiUrl,
     apiRequest,
-    clearPublishedApiErrors,
     unwrapApiPayload,
     normalizeDashboardKpis,
     normalizeBackendUser,
