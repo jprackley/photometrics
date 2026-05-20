@@ -11,9 +11,14 @@ const asyncHandler = require('../../../utils/helpers/asyncHandler');
 const {handleValidation} = require("../../validators/queryHandler");
 const {query} = require("../../db");
 
-router.get('/active',
-    [kpi],
+router.get(
+    '/active',
+    [
+        query('v').optional().isBoolean().withMessage('Must be true or false')
+    ],
     asyncHandler(async (req, res) => {
+        handleValidation(req, 'GET Active Projects - ');
+        const { v } = req.query;
         let activeProjects = {
             active: 0,
             projects: {}
@@ -26,8 +31,11 @@ router.get('/active',
               AND status::TEXT = $1;
         `
         const { rows } = await query(isAcitveSQL, params);
+
         activeProjects.active = rows.length;
-        activeProjects.projects = rows;
+        if ( v === 'true' ) {
+            activeProjects.projects = rows;
+        }
 
         res.json(activeProjects);
     }))

@@ -11,11 +11,6 @@ const paginate = [
     query('order').optional().isIn([C_NODE.ASCENDING, C_NODE.DESCENDING]).withMessage('order asc|desc'),
 ];
 
-const kpi = [
-    query('q').optional().isIn(Object.values(C_KPI.PROJECTS)).withMessage('Invalid KPI query. Must be one of:\n' + Object.values(C_KPI.PROJECTS).join(',')),
-    query('v').optional().isBoolean().withMessage('Must be true or false'),
-];
-
 function buildPagination({ page = 1, limit = 20 }) {
     const offset = (page - 1) * limit;
     return { limit, offset };
