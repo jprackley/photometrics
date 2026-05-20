@@ -54,7 +54,7 @@ router.get(
         `
         const { rows } = await query(isCompletedSQL, params);
 
-        completedProjects.active = rows.length;
+        completedProjects.completed = rows.length;
         if ( v === 'true' ) {
             completedProjects.projects = rows;
         }
@@ -81,7 +81,7 @@ router.get(
         `
         const { rows } = await query(isRemainingSQL, params);
 
-        remainingProjects.active = rows.length;
+        remainingProjects.remaining = rows.length;
         if ( v === 'true' ) {
             remainingProjects.projects = rows;
         }
@@ -105,7 +105,7 @@ router.get(
         `
         const { rows } = await query(isTotalSQL);
 
-        totalProjects.active = rows.length;
+        totalProjects.total = rows.length;
         if ( v === 'true' ) {
             totalProjects.projects = rows;
         }
