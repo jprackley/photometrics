@@ -117,18 +117,18 @@ router.post(
 
         const hashedPassword = await bcrypt.hash(req.body.password_hash, C_AUTH.SALT_ROUNDS);
 
+        //Skips the password_hash column so it can be encrypted before insertion.
         const createdColumns = [
             ...Object.values(C_USER.REQUIRED_COLUMNS),
             ...Object.values(C_USER.MUTABLE_COLUMNS),
-            C_USER.SECURE_COLUMNS.PASSWORD
         ];
 
         const columns = [];
         const values = [];
         const params = [];
-
+        
         for (const column of createdColumns) {
-            if (req.body[column] !== undefined) {
+            if ( req.body[column] !== undefined) {
                 columns.push(column);
                 params.push(req.body[column]);
                 values.push(`$${params.length}`);

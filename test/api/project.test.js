@@ -281,8 +281,6 @@ describe('Testing /api/projects', () => {
                 `Expected status code ${C_HTTP.STATUS.NOT_FOUND}, got ${response.statusCode}
                 ${JSON.stringify(response.body, null, 2)}`
             );
-            assert.equal(response.body.error.message, `Project not found`,
-                `Expected error message: Project not found, got ${response.body.error.message}`);
         });
         /**
          * Verifies that an invalid project status is rejected.

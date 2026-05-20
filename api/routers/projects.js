@@ -90,7 +90,7 @@ router.post(
         });
 
         const sql = `
-            INSERT INTO images (${columns.join(', ')})
+            INSERT INTO projects (${columns.join(', ')})
             VALUES (${values.join(', ')})
             RETURNING *
         `;
@@ -218,7 +218,7 @@ router.get(
  */
 router.get(
     '/:id',
-    [param('id').isUUID()],
+    [param('id').isUUID().withMessage('Invalid Project ID')],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ Project:id - ');
         const { id } = req.params;
