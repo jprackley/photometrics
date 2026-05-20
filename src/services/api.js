@@ -125,6 +125,16 @@ const API_ENDPOINTS = {
         projectProgress: "/dashboard/project-progress",
     },
 
+    //-----------------------------------------------------------------------
+    // Individual KPI endpoints. The frontend calls these without the /api
+    // prefix because buildApiUrl adds the configured API base automatically.
+    //-----------------------------------------------------------------------
+    kpi: {
+        projects: {
+            active: "/kpi/projects/active",
+        },
+    },
+
     //-----------------------------------------------------------------
     // CRUD for client accounts.
     // Backend provides:
