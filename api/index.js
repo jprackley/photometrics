@@ -27,6 +27,15 @@ const projectKpiRouter = require('./routers/dashboard/projectKPI');
 app.use('/api/kpi/projects', projectKpiRouter);
 app.use('/kpi/projects', projectKpiRouter);
 
+const taskKpiRouter = require('./routers/dashboard/taskKPI');
+app.use('/api/kpi/tasks', taskKpiRouter);
+
+const imageKpiRouter = require('./routers/dashboard/imageKPI');
+app.use('/api/kpi/images', imageKpiRouter);
+
+const employeeKpiRouter = require('./routers/dashboard/employeeKPI');
+app.use('/api/kpi/employee', employeeKpiRouter);
+
 // Error handler MUST BE LAST
 app.use((err, req, res, next) => {
     const status = err.status || C_HTTP.STATUS.INTERNAL_SERVER_ERROR;
