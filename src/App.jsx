@@ -9,6 +9,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Sidebar, Topbar } from "./components/Layout";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { getUseApiDataSetting, apiPlaceholders } from "./services/api";
 import { getPublicUser, mockUsers, placeholderPages } from "./data/mockData";
 import { canAccessPage, canManageContent } from "./utils/accessControl";
@@ -24,6 +25,47 @@ import {
     SettingsPage,
     TaskManagementPageSecure,
 } from "./features/Pages";
+
+
+function ApiErrorBanner() {
+    const [errors, setErrors] = useState(() => {
+        if (typeof window === "undefined") return [];
+        return window.__photometricsApiErrors || [];
+    });
+
+    useEffect(() => {
+        const handleApiError = () => setErrors([...(window.__photometricsApiErrors || [])]);
+        window.addEventListener("photometrics-api-error", handleApiError);
+        return () => window.removeEventListener("photometrics-api-error", handleApiError);
+    }, []);
+
+    if (!errors.length) return null;
+
+    const latestError = errors[0];
+
+    return (
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <div className="font-black">Backend/API issue detected</div>
+                    <div className="mt-1">
+                        <span className="font-bold">{latestError.method}</span> {latestError.endpoint} returned code <span className="font-bold">{latestError.code}</span>: {latestError.message}
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    className="self-start rounded-lg border border-amber-300 bg-white px-3 py-1 font-bold text-amber-900"
+                    onClick={() => {
+                        window.__photometricsApiErrors = [];
+                        setErrors([]);
+                    }}
+                >
+                    Dismiss
+                </button>
+            </div>
+        </div>
+    );
+}
 
 /**
  * Coordinates authenticated app state, page routing, sidebar behavior, and logout/session handling.
@@ -125,17 +167,20 @@ export default function App() {
                     />
 
                     <main className="min-w-0 flex-1 overflow-x-hidden">
-                        {page === "dashboard" && <Dashboard onPageChange={setAuthorizedPage} currentUser={currentUser} />}
-                        {page === "projects" && <ProjectsAndAssignmentsSecure currentUser={currentUser} globalSearch={globalSearch} />}
-                        {page === "employees" && canManageContent(currentUser) && <EmployeesPage globalSearch={globalSearch} />}
-                        {page === "tasks" && <TaskManagementPageSecure currentUser={currentUser} globalSearch={globalSearch} />}
-                        {page === "reports" && canManageContent(currentUser) && <ReportsPage globalSearch={globalSearch} />}
-                        {page === "analytics" && canManageContent(currentUser) && <AnalyticsPage globalSearch={globalSearch} />}
-                        {page === "settings" && (canManageContent(currentUser)
-                            ? <SettingsPage />
-                            : <EmployeeSettingsPage currentUser={currentUser} onUserUpdate={updateCurrentUser} />
-                        )}
-                        {placeholderPages[page] && <PlaceholderPage title={placeholderPages[page]} />}
+                        <ApiErrorBanner />
+                        <ErrorBoundary key={page}>
+                            {page === "dashboard" && <Dashboard onPageChange={setAuthorizedPage} currentUser={currentUser} />}
+                            {page === "projects" && <ProjectsAndAssignmentsSecure currentUser={currentUser} globalSearch={globalSearch} />}
+                            {page === "employees" && canManageContent(currentUser) && <EmployeesPage globalSearch={globalSearch} />}
+                            {page === "tasks" && <TaskManagementPageSecure currentUser={currentUser} globalSearch={globalSearch} />}
+                            {page === "reports" && canManageContent(currentUser) && <ReportsPage globalSearch={globalSearch} />}
+                            {page === "analytics" && canManageContent(currentUser) && <AnalyticsPage globalSearch={globalSearch} />}
+                            {page === "settings" && (canManageContent(currentUser)
+                                ? <SettingsPage />
+                                : <EmployeeSettingsPage currentUser={currentUser} onUserUpdate={updateCurrentUser} />
+                            )}
+                            {placeholderPages[page] && <PlaceholderPage title={placeholderPages[page]} />}
+                        </ErrorBoundary>
                     </main>
                 </div>
             </div>
