@@ -23,7 +23,9 @@ app.use('/api/time-entries', require('./routers/time.entries'));
 app.use('/api/users', require('./routers/users'));
 app.use('/api/employees', require('./routers/read-only/employees'));
 
-app.use('/kpi/projects', require('./routers/dashboard/projectKPI'))
+const projectKpiRouter = require('./routers/dashboard/projectKPI');
+app.use('/api/kpi/projects', projectKpiRouter);
+app.use('/kpi/projects', projectKpiRouter);
 
 // Error handler MUST BE LAST
 app.use((err, req, res, next) => {
