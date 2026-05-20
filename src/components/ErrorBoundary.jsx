@@ -39,7 +39,7 @@ export class ErrorBoundary extends React.Component {
                     </div>
                     <h1 className="text-2xl font-black text-slate-950">This page could not load.</h1>
                     <p className="mt-2 text-sm text-slate-700">
-                        Instead of a white screen, PhotoMetrics caught the crash and displayed the error below.
+                        PhotoMetrics caught the crash and displayed the error below.
                     </p>
 
                     <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
