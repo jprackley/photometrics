@@ -32,15 +32,13 @@ export default function App() {
     const [page, setPage] = useState("dashboard");
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [globalSearch, setGlobalSearch] = useState("");
-    const [currentUser, setCurrentUser] = useState(() => {
-        try {
-            const savedUser = window.localStorage.getItem("photometrics-session");
-            return savedUser ? JSON.parse(savedUser) : null;
-        } catch (error) {
-            console.warn("Saved login session could not be loaded.", error);
-            return null;
-        }
-    });
+    // Always require authentication on application startup.
+    // Persisted sessions are cleared so the app always opens on the login screen.
+    const [currentUser, setCurrentUser] = useState(null);
+
+    useEffect(() => {
+        window.localStorage.removeItem("photometrics-session");
+    }, []);
 
     /**
      * Persists the selected user session when requested and resets the workspace to the dashboard.

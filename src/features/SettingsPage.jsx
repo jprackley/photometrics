@@ -46,11 +46,9 @@ import {
 import { Logo } from "../components/Layout";
 import {
     API_ENDPOINTS,
-    DEFAULT_USE_API_DATA,
     apiPlaceholders,
     getUseApiDataSetting,
     normalizeBackendUser,
-    saveUseApiDataSetting,
     unwrapApiPayload,
     useApiPlaceholder,
 } from "../services/api";
@@ -208,10 +206,6 @@ function SettingsPage() {
     const { data: loadedSettings } = useApiPlaceholder(API_ENDPOINTS.settings, settingsData);
     const [settings, setSettings] = useState(() => ({
         ...settingsData,
-        dataSource: {
-            ...settingsData.dataSource,
-            useDatabaseData: getUseApiDataSetting(),
-        },
     }));
     const [savedMessage, setSavedMessage] = useState("");
 
@@ -226,7 +220,6 @@ function SettingsPage() {
                 security: { ...current.security, ...(loadedSettings.security || {}) },
                 exportBackup: { ...current.exportBackup, ...(loadedSettings.exportBackup || {}) },
                 appearance: { ...current.appearance, ...(loadedSettings.appearance || {}) },
-                dataSource: { ...current.dataSource, ...(loadedSettings.dataSource || {}) },
             }));
         }
     }, [loadedSettings]);
@@ -234,9 +227,6 @@ function SettingsPage() {
     const updateSection = (section, field, value) => {
         setSavedMessage("");
 
-        if (section === "dataSource" && field === "useDatabaseData") {
-            saveUseApiDataSetting(value);
-        }
 
         setSettings((current) => ({
             ...current,
@@ -248,8 +238,6 @@ function SettingsPage() {
     };
 
     const saveSettings = async () => {
-        saveUseApiDataSetting(settings.dataSource.useDatabaseData);
-
         if (getUseApiDataSetting()) {
             try {
                 await apiPlaceholders.updateSettings(settings);
@@ -258,19 +246,14 @@ function SettingsPage() {
             }
         }
 
-        setSavedMessage(settings.dataSource.useDatabaseData ? "Settings saved. The app will use database/API data only. Mock data will not be used if an API call fails." : "Settings saved. Mock data is enabled for front-end review.");
+        setSavedMessage("Settings saved. The mock data mode can be changed from the login screen before signing in.");
     };
 
     const resetSettings = () => {
-        saveUseApiDataSetting(DEFAULT_USE_API_DATA);
         setSettings({
             ...settingsData,
-            dataSource: {
-                ...settingsData.dataSource,
-                useDatabaseData: DEFAULT_USE_API_DATA,
-            },
         });
-        setSavedMessage("Settings reset to default values.");
+        setSavedMessage("Settings reset to default values. Mock data mode remains controlled from the login screen.");
     };
 
     const activeNotificationCount = Object.entries(settings.notifications)
@@ -341,22 +324,6 @@ function SettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-                <SettingsPanel
-                    title="Data Source"
-                    description="Choose whether the app should use front-end mock data or try the backend database APIs."
-                    icon={Settings}
-                >
-                    <SettingToggle
-                        label="Use Database Data"
-                        description="Turn this on to use only backend API/database data. If an endpoint fails, mock data will not be used unless this setting is turned off."
-                        checked={settings.dataSource.useDatabaseData}
-                        onChange={(value) => updateSection("dataSource", "useDatabaseData", value)}
-                    />
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                        Current mode: <span className="font-bold text-slate-800">{settings.dataSource.useDatabaseData ? "Database/API only" : "Mock data"}</span>
-                    </div>
-                </SettingsPanel>
-
                 <SettingsPanel
                     title="Company Profile"
                     description="Controls the company details shown in reports and exported files."
