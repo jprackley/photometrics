@@ -50,6 +50,7 @@ import {
     apiPlaceholders,
     getUseApiDataSetting,
     normalizeBackendUser,
+    normalizeDashboardKpis,
     saveUseApiDataSetting,
     unwrapApiPayload,
     useApiPlaceholder,
@@ -171,53 +172,65 @@ function ColoredLineSegment({ data, segment, index }) {
  * Main dashboard view. Managers see team metrics; employees see only their own work queue and progress.
  */
 function Dashboard({ onPageChange, currentUser }) {
-    const { data: dashboardKpis } = useApiPlaceholder(API_ENDPOINTS.dashboard.kpis, kpis);
+    const { data: dashboardKpiPayload } = useApiPlaceholder(API_ENDPOINTS.dashboard.kpis, kpis, { unwrap: false });
     const { data: productivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.productivity, productivity);
     const { data: workflowData } = useApiPlaceholder(API_ENDPOINTS.dashboard.workflow, workflow);
     const { data: employeeActivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.employeeActivity, employeeActivity);
     const { data: projectProgressData } = useApiPlaceholder(API_ENDPOINTS.dashboard.projectProgress, projectProgress);
     const hasManagerAccess = canManageContent(currentUser);
     const employeeName = currentUser?.employeeName || currentUser?.name;
+    const employeeActivityRows = Array.isArray(employeeActivityData) ? employeeActivityData : [];
+    const projectProgressRows = Array.isArray(projectProgressData) ? projectProgressData : [];
+    const workflowRows = Array.isArray(workflowData) ? workflowData : [];
+    const productivityRows = Array.isArray(productivityData) ? productivityData : [];
     const visibleEmployeeActivityData = hasManagerAccess
-        ? employeeActivityData
-        : employeeActivityData.filter((row) => row[0] === employeeName);
+        ? employeeActivityRows
+        : employeeActivityRows.filter((row) => row[0] === employeeName);
     const assignedProjectNames = getAssignedProjectNames(currentUser, assignments, taskItems);
     const visibleProjectProgressData = hasManagerAccess
-        ? projectProgressData
-        : projectProgressData.filter((row) => assignedProjectNames.includes(row[0]));
+        ? projectProgressRows
+        : projectProgressRows.filter((row) => assignedProjectNames.includes(row[0]));
     const assignedTasks = taskItems.filter((task) => isAssignedToUser(task, currentUser));
     const assignedAssignments = assignments.filter((assignment) => isAssignedToUser(assignment, currentUser));
-    const visibleKpis = hasManagerAccess ? dashboardKpis : [
-        ["My Assigned Tasks", String(assignedTasks.length)],
-        ["My Open Tasks", String(assignedTasks.filter((task) => task.status !== "Completed").length)],
-        ["My Completed Tasks", String(assignedTasks.filter((task) => task.status === "Completed").length)],
-        ["My Review Tasks", String(assignedTasks.filter((task) => task.status === "Review").length)],
-        ["My Tracked Time", formatDuration(assignedTasks.reduce((total, task) => total + normalizeNumber(task.trackedSeconds), 0))],
-        ["Access Level", "Employee"],
-    ];
+    const managerKpiCards = normalizeDashboardKpis(dashboardKpiPayload, kpis);
+    const employeeKpiCards = normalizeDashboardKpis([
+        { key: "myAssignedTasks", label: "My Assigned Tasks", value: assignedTasks.length, objects: assignedTasks },
+        { key: "myOpenTasks", label: "My Open Tasks", value: assignedTasks.filter((task) => task.status !== "Completed").length, objects: assignedTasks.filter((task) => task.status !== "Completed") },
+        { key: "myCompletedTasks", label: "My Completed Tasks", value: assignedTasks.filter((task) => task.status === "Completed").length, objects: assignedTasks.filter((task) => task.status === "Completed") },
+        { key: "myReviewTasks", label: "My Review Tasks", value: assignedTasks.filter((task) => task.status === "Review").length, objects: assignedTasks.filter((task) => task.status === "Review") },
+        { key: "myTrackedTime", label: "My Tracked Time", value: assignedTasks.reduce((total, task) => total + normalizeNumber(task.trackedSeconds), 0), displayValue: formatDuration(assignedTasks.reduce((total, task) => total + normalizeNumber(task.trackedSeconds), 0)), objects: assignedTasks },
+        { key: "accessLevel", label: "Access Level", value: "Employee" },
+    ]);
+    const visibleKpis = hasManagerAccess ? managerKpiCards : employeeKpiCards;
 
     return (
         <section className="space-y-5 bg-slate-50 p-3 sm:p-4 lg:p-6">
 
             {/* KPI cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-                {visibleKpis.map(([label, value]) => (
+                {visibleKpis.map((card) => (
                     <div
-                        key={label}
+                        key={card.id || card.label}
                         className="rounded-xl border border-slate-300 bg-white px-4 py-5 text-center shadow-sm sm:px-5 sm:py-7"
                     >
-                        <div className="text-sm font-bold">{label}</div>
+                        <div className="text-sm font-bold">{card.label}</div>
 
                         {/* Highlight efficiency in green */}
                         <div
                             className={`mt-6 text-4xl ${
-                                label === "Efficiency"
+                                card.label === "Efficiency"
                                     ? "text-green-700"
                                     : "text-black"
                             }`}
                         >
-                            {value}
+                            {card.value}
                         </div>
+
+                        {card.objects?.length > 0 && (
+                            <div className="mt-3 text-xs font-semibold text-slate-500">
+                                {card.objects.length} detail {card.objects.length === 1 ? "record" : "records"}
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
@@ -235,7 +248,7 @@ function Dashboard({ onPageChange, currentUser }) {
 
                     <ResponsiveContainer width="100%" height={230}>
                         <LineChart
-                            data={productivityData}
+                            data={productivityRows}
                             margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
                         >
                             <CartesianGrid
@@ -273,7 +286,7 @@ function Dashboard({ onPageChange, currentUser }) {
                                     fontSize: 14
                                 }}
                                 dot={(props) => {
-                                    const item = productivityData[props.index];
+                                    const item = productivityRows[props.index];
 
                                     return (
                                         <circle
@@ -303,7 +316,7 @@ function Dashboard({ onPageChange, currentUser }) {
                         <ResponsiveContainer width="40%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={workflowData}
+                                    data={workflowRows}
                                     dataKey="value"
                                     nameKey="name"
                                     cx="50%"
@@ -314,7 +327,7 @@ function Dashboard({ onPageChange, currentUser }) {
                                     stroke="white"
                                     strokeWidth={4}
                                 >
-                                    {workflowData.map((item) => (
+                                    {workflowRows.map((item) => (
                                         <Cell
                                             key={item.name}
                                             fill={item.color}
@@ -326,7 +339,7 @@ function Dashboard({ onPageChange, currentUser }) {
 
                         {/* Legend */}
                         <div className="w-64 space-y-5">
-                            {workflowData.map((item) => (
+                            {workflowRows.map((item) => (
                                 <div
                                     key={item.name}
                                     className="grid grid-cols-[1fr_auto] items-center gap-8"

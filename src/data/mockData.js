@@ -10,13 +10,14 @@
 import { DEFAULT_USE_API_DATA } from "../services/api";
 
 // Mock dashboard KPI values used when live API data is disabled.
+// This mirrors the backend KPI frame contract: an integer value plus optional detail objects.
 const kpis = [
-    ["Total Projects", "12"],
-    ["Tasks Completed Today", "45"],
-    ["Images Completed", "3,256"],
-    ["Average Editing Time", "18m 42s"],
-    ["Total Employee Hours", "128.5"],
-    ["Efficiency", "87%"],
+    { key: "totalProjects", label: "Total Projects", value: 12, objects: [] },
+    { key: "tasksCompletedToday", label: "Tasks Completed Today", value: 45, objects: [] },
+    { key: "imagesCompleted", label: "Images Completed", value: 3256, objects: [] },
+    { key: "averageEditingTime", label: "Average Editing Time", value: 1122, displayValue: "18m 42s", objects: [] },
+    { key: "totalEmployeeHours", label: "Total Employee Hours", value: 128.5, objects: [] },
+    { key: "efficiency", label: "Efficiency", value: 87, suffix: "%", objects: [] },
 ];
 
 // Productivity chart data

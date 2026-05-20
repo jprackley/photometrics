@@ -244,8 +244,10 @@ function publishApiError(error) {
         endpoint: error.endpoint || "unknown",
         method: error.method || "GET",
         status: error.status || "NETWORK",
+        statusText: error.statusText || "",
         code: error.code || error.status || "API_ERROR",
         message: error.message || "API request failed",
+        url: error.url || "",
         timestamp: new Date().toISOString(),
     };
 
@@ -253,17 +255,25 @@ function publishApiError(error) {
     window.dispatchEvent(new CustomEvent("photometrics-api-error", { detail: apiError }));
 }
 
+function clearPublishedApiErrors() {
+    if (typeof window === "undefined") return;
+
+    window.__photometricsApiErrors = [];
+    window.dispatchEvent(new CustomEvent("photometrics-api-error", { detail: null }));
+}
+
 async function apiRequest(endpoint, options = {}) {
     const method = options.method || "GET";
     const url = buildApiUrl(endpoint);
+    const { suppressApiError = false, ...fetchOptions } = options;
 
     try {
         const response = await fetch(url, {
             headers: {
                 "Content-Type": "application/json",
-                ...(options.headers || {}),
+                ...(fetchOptions.headers || {}),
             },
-            ...options,
+            ...fetchOptions,
         });
 
         if (!response.ok) {
@@ -280,10 +290,14 @@ async function apiRequest(endpoint, options = {}) {
 
             const error = new Error(`${method} ${endpoint} failed: ${errorMessage}`);
             error.status = response.status;
+            error.statusText = response.statusText;
             error.code = errorCode;
             error.endpoint = endpoint;
             error.method = method;
-            publishApiError(error);
+            error.url = url;
+            if (!suppressApiError) {
+                publishApiError(error);
+            }
             throw error;
         }
 
@@ -301,9 +315,12 @@ async function apiRequest(endpoint, options = {}) {
         if (!requestError.endpoint) {
             requestError.endpoint = endpoint;
             requestError.method = method;
+            requestError.url = url;
             requestError.code = requestError.code || "NETWORK_ERROR";
             requestError.message = `${method} ${endpoint} failed: ${requestError.message}`;
-            publishApiError(requestError);
+            if (!suppressApiError) {
+                publishApiError(requestError);
+            }
         }
 
         throw requestError;
@@ -318,6 +335,214 @@ function unwrapApiPayload(payload) {
     if (payload?.data !== undefined) return payload.data;
     if (payload?.items !== undefined) return payload.items;
     return payload ?? [];
+}
+
+const KPI_VALUE_KEYS = ["displayValue", "value", "count", "total", "result", "metricValue", "kpi", "data"];
+const KPI_OBJECT_KEYS = ["objects", "records", "rows", "details", "items"];
+const KPI_LABEL_KEYS = ["label", "name", "title", "metric", "key"];
+const KPI_ARRAY_KEYS = ["kpis", "metrics", "cards", "items", "data"];
+const KPI_OBJECT_CONTAINER_KEYS = ["kpis", "metrics", "cards", "summary", "stats"];
+const KPI_IGNORED_OBJECT_KEYS = new Set([
+    "meta",
+    "metadata",
+    "pagination",
+    "success",
+    "message",
+    "status",
+]);
+
+function isPlainObject(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isPrimitiveValue(value) {
+    return value === null || ["string", "number", "boolean"].includes(typeof value);
+}
+
+function titleCaseKpiLabel(value) {
+    const label = String(value || "KPI")
+        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+        .replace(/[_.-]+/g, " ")
+        .trim();
+
+    if (!label) return "KPI";
+
+    return label
+        .split(/\s+/)
+        .map((word) => {
+            const lower = word.toLowerCase();
+            if (["kpi", "id", "api"].includes(lower)) return lower.toUpperCase();
+            if (lower === "avg") return "Avg";
+            return `${word.charAt(0).toUpperCase()}${word.slice(1)}`;
+        })
+        .join(" ");
+}
+
+function getFirstDefinedValue(source, keys) {
+    if (!isPlainObject(source)) return undefined;
+
+    for (const key of keys) {
+        if (source[key] !== undefined) return source[key];
+    }
+
+    return undefined;
+}
+
+function getKpiDetailObjects(source) {
+    if (!isPlainObject(source)) return [];
+
+    for (const key of KPI_OBJECT_KEYS) {
+        if (Array.isArray(source[key])) return source[key];
+    }
+
+    return [];
+}
+
+function getKpiRawValue(source) {
+    if (isPrimitiveValue(source)) return source;
+    if (!isPlainObject(source)) return undefined;
+
+    for (const key of KPI_VALUE_KEYS) {
+        const value = source[key];
+
+        if (key === "data" && (Array.isArray(value) || isPlainObject(value))) continue;
+        if (value !== undefined && isPrimitiveValue(value)) return value;
+    }
+
+    const primitiveEntry = Object.entries(source).find(([key, value]) => (
+        !KPI_LABEL_KEYS.includes(key)
+        && !KPI_OBJECT_KEYS.includes(key)
+        && !["id", "prefix", "suffix", "unit"].includes(key)
+        && isPrimitiveValue(value)
+    ));
+
+    return primitiveEntry?.[1];
+}
+
+function getKpiLabel(source, fallbackLabel, index) {
+    if (Array.isArray(source)) return source[0] || fallbackLabel || `KPI ${index + 1}`;
+    if (!isPlainObject(source)) return fallbackLabel || `KPI ${index + 1}`;
+
+    const label = getFirstDefinedValue(source, KPI_LABEL_KEYS);
+    return titleCaseKpiLabel(label || fallbackLabel || `KPI ${index + 1}`);
+}
+
+function formatKpiValue(rawValue, source) {
+    if (isPlainObject(source) && source.displayValue !== undefined) {
+        return String(source.displayValue);
+    }
+
+    const prefix = isPlainObject(source) && source.prefix ? String(source.prefix) : "";
+    const suffix = isPlainObject(source) && (source.suffix || source.unit) ? String(source.suffix || source.unit) : "";
+
+    if (rawValue === null || rawValue === undefined || rawValue === "") return `${prefix}0${suffix}`;
+
+    const formattedValue = typeof rawValue === "number"
+        ? rawValue.toLocaleString()
+        : String(rawValue);
+
+    return `${prefix}${formattedValue}${suffix}`;
+}
+
+function normalizeKpiCard(source, index = 0, fallbackLabel) {
+    if (Array.isArray(source)) {
+        const label = titleCaseKpiLabel(source[0] || fallbackLabel || `KPI ${index + 1}`);
+        const rawValue = source[1];
+        const objects = Array.isArray(source[2]) ? source[2] : [];
+
+        return {
+            id: label,
+            label,
+            rawValue,
+            value: formatKpiValue(rawValue),
+            objects,
+            source,
+        };
+    }
+
+    const label = getKpiLabel(source, fallbackLabel, index);
+    const rawValue = getKpiRawValue(source);
+    const objects = getKpiDetailObjects(source);
+
+    return {
+        id: isPlainObject(source) ? source.id || source.key || label : label,
+        label,
+        rawValue,
+        value: formatKpiValue(rawValue, source),
+        objects,
+        source,
+    };
+}
+
+function getFallbackKpiLabel(fallbackKpis, index) {
+    const fallback = Array.isArray(fallbackKpis) ? fallbackKpis[index] : null;
+
+    if (Array.isArray(fallback)) return fallback[0];
+    if (isPlainObject(fallback)) return getFirstDefinedValue(fallback, KPI_LABEL_KEYS);
+
+    return undefined;
+}
+
+/**
+ * Converts the dashboard KPI API contract into render-ready cards.
+ * Supported backend shapes include:
+ * - a plain integer such as 12
+ * - { label: "Total Projects", value: 12, objects: [...] }
+ * - { totalProjects: { value: 12, objects: [...] }, openTasks: 4 }
+ * - { kpis: [...] }, { metrics: [...] }, { cards: [...] }, or { data: [...] }
+ */
+function normalizeDashboardKpis(payload, fallbackKpis = []) {
+    if (payload === undefined || payload === null) return [];
+
+    let source = payload;
+
+    if (isPlainObject(source)) {
+        const arrayKey = KPI_ARRAY_KEYS.find((key) => Array.isArray(source[key]));
+
+        if (arrayKey) {
+            source = source[arrayKey];
+        } else {
+            const objectContainerKey = KPI_OBJECT_CONTAINER_KEYS.find((key) => isPlainObject(source[key]));
+
+            if (objectContainerKey) {
+                source = source[objectContainerKey];
+            } else if (isPlainObject(source.data)) {
+                source = source.data;
+            }
+        }
+    }
+
+    if (Array.isArray(source)) {
+        return source.map((item, index) => normalizeKpiCard(item, index, getFallbackKpiLabel(fallbackKpis, index)));
+    }
+
+    if (isPrimitiveValue(source)) {
+        return [normalizeKpiCard({ label: getFallbackKpiLabel(fallbackKpis, 0) || "KPI", value: source }, 0)];
+    }
+
+    if (isPlainObject(source)) {
+        const hasDirectValue = KPI_VALUE_KEYS.some((key) => (
+            source[key] !== undefined && (key !== "data" || isPrimitiveValue(source[key]))
+        ));
+
+        if (hasDirectValue) {
+            return [normalizeKpiCard(source, 0, getFallbackKpiLabel(fallbackKpis, 0))];
+        }
+
+        return Object.entries(source)
+            .filter(([key]) => !KPI_IGNORED_OBJECT_KEYS.has(key))
+            .map(([key, value], index) => {
+                const label = titleCaseKpiLabel(key);
+
+                if (isPlainObject(value)) {
+                    return normalizeKpiCard({ key, label, ...value }, index, label);
+                }
+
+                return normalizeKpiCard({ key, label, value }, index, label);
+            });
+    }
+
+    return [];
 }
 
 /**
@@ -421,7 +646,7 @@ function getEmptyDataForFallback(fallbackData) {
  * Reusable data-loading hook. When database/API mode is enabled, it only uses live API data.
  * Mock data is used only when the Data Source setting is unchecked.
  */
-function useApiPlaceholder(endpoint, fallbackData) {
+function useApiPlaceholder(endpoint, fallbackData, options = {}) {
     const [useApiData, setUseApiData] = useState(getUseApiDataSetting);
     const [data, setData] = useState(() => (getUseApiDataSetting() ? getEmptyDataForFallback(fallbackData) : fallbackData));
     const [isLoading, setIsLoading] = useState(false);
@@ -456,7 +681,11 @@ function useApiPlaceholder(endpoint, fallbackData) {
 
             try {
                 const payload = await apiRequest(endpoint);
-                const nextData = unwrapApiPayload(payload);
+                const nextData = typeof options.transformPayload === "function"
+                    ? options.transformPayload(payload)
+                    : options.unwrap === false
+                        ? payload
+                        : unwrapApiPayload(payload);
 
                 if (isMounted && nextData !== undefined) {
                     setData(nextData);
@@ -480,7 +709,7 @@ function useApiPlaceholder(endpoint, fallbackData) {
         return () => {
             isMounted = false;
         };
-    }, [endpoint, fallbackData, useApiData]);
+    }, [endpoint, fallbackData, options.transformPayload, options.unwrap, useApiData]);
 
     return { data, isLoading, error };
 }
@@ -495,7 +724,8 @@ const apiPlaceholders = {
                 body: JSON.stringify(credentials),
             });
             const payload = unwrapApiPayload(response);
-            return { ...payload, user: normalizeBackendUser(payload?.user || payload) };
+            const user = normalizeBackendUser(payload?.user || payload);
+            return { ...payload, user: user ? { ...user, authMode: payload?.authMode } : user };
         } catch (authError) {
             if (authError.status === 404 || authError.status === 405) {
                 console.warn("Auth endpoint is not available. Using /users?all=true as a temporary database-backed login bridge.", authError);
@@ -505,9 +735,23 @@ const apiPlaceholders = {
             throw authError;
         }
     },
-    logout: () => apiRequest(API_ENDPOINTS.auth.logout, {
-        method: "POST",
-    }),
+    logout: (userOrId) => {
+        const isLocalOnlyAuth = typeof userOrId === "object"
+            && ["api-fallback-seed", "api-preview-seed", "local-session"].includes(userOrId?.authMode);
+        const userId = typeof userOrId === "string"
+            ? userOrId
+            : isLocalOnlyAuth
+                ? null
+                : userOrId?.userId || userOrId?.user_id || userOrId?.id || userOrId?.employeeId;
+        const endpoint = userId
+            ? `${API_ENDPOINTS.auth.logout}/${encodeURIComponent(userId)}`
+            : API_ENDPOINTS.auth.logout;
+
+        return apiRequest(endpoint, {
+            method: "POST",
+            suppressApiError: true,
+        });
+    },
     createProject: (project) => apiRequest(API_ENDPOINTS.projects, {
         method: "POST",
         body: JSON.stringify(project),
@@ -595,7 +839,9 @@ export {
     API_ENDPOINTS,
     buildApiUrl,
     apiRequest,
+    clearPublishedApiErrors,
     unwrapApiPayload,
+    normalizeDashboardKpis,
     normalizeBackendUser,
     loginWithUsersEndpoint,
     getEmptyDataForFallback,
