@@ -40,6 +40,15 @@ function getApiErrorHelp(error) {
         };
     }
 
+    if (status === 404 && endpoint.startsWith("/kpi/")) {
+        return {
+            title: "KPI API route is missing",
+            meaning: "The app requested a live KPI endpoint, but the backend did not recognize that KPI route.",
+            impact: "The affected KPI card may be empty until the matching backend router is deployed.",
+            nextStep: "Make sure the Express router is mounted under /api/kpi and that this endpoint exists in the deployed backend.",
+        };
+    }
+
     if (status === 404) {
         return {
             title: "API route was not found",
