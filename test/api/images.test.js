@@ -135,13 +135,13 @@ describe('[API] /api/images', () => {
                     WHERE task_id = $1
                     RETURNING task_id;
                 `;
-                const { rows: taskRows } = await query(taskSQL, [task[0]]);
+                const { rows: taskRows } = await query(taskSQL, [task.task_id]);
                 if (taskRows.length === 0) {
                     throw new Error('Failed to delete test task');
                 }
                 tasks.splice(tasks.indexOf(tasks[0]), 1);
             }
-        } else { console.log('No Tasks Deleted.') };
+        } else { console.log('No Tasks Deleted.') }
         // Deletes Projects
         console.log('[POST] Deleting Test Projects...');
         if (projects.length > 0) {
@@ -152,7 +152,7 @@ describe('[API] /api/images', () => {
                     WHERE project_id = $1
                     RETURNING project_id;
                 `;
-                const { rows: projectRows } = await query(projectSQL, [project[0]]);
+                const { rows: projectRows } = await query(projectSQL, [project.project_id]);
                 if (projectRows.length === 0) {
                     throw new Error('Failed to delete test project');
                 }
@@ -169,7 +169,7 @@ describe('[API] /api/images', () => {
                     WHERE client_id = $1
                     RETURNING client_id;
                 `;
-                const { rows: clientRows } = await query(clientSQL, [client[0]]);
+                const { rows: clientRows } = await query(clientSQL, [client.client_id]);
                 if (clientRows.length === 0) {
                     throw new Error('Failed to delete test client');
                 }
@@ -186,7 +186,7 @@ describe('[API] /api/images', () => {
                     WHERE user_id = $1
                     RETURNING user_id;
                 `;
-                const { rows: userRows } = await query(userSQL, [user[0]]);
+                const { rows: userRows } = await query(userSQL, [user.user_id]);
                 if (userRows.length === 0) {
                     throw new Error('Failed to delete test user');
                 }
