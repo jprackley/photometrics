@@ -1,5 +1,5 @@
 
-const CREATED_COLUMNS = {
+const REQUIRED_COLUMNS = {
     FIRST_NAME: 'first_name',
     MIDDLE_NAME: 'middle_name',
     LAST_NAME: 'last_name',
@@ -22,12 +22,14 @@ const CREATED_COLUMNS = {
     BILLING_POSTAL_CODE: 'billing_postal_code',
     BILLING_COUNTRY: 'billing_country',
 };
-const UPDATED_COLUMNS = {
-    CLIENT_ID: "client_id",
-    CREATED_AT: "created_at",
+const MUTABLE_COLUMNS = {
     UPDATED_AT: "updated_at"
 }
-const MIN_LENGTH = {
+const IMMUTABLE_COLUMNS = {
+    CLIENT_ID: "client_id",
+    CREATED_AT: "created_at",
+}
+const MIN = {
     FIRST_NAME: 1,
     MIDDLE_NAME: 0,
     LAST_NAME: 1,
@@ -43,7 +45,7 @@ const MIN_LENGTH = {
     ZIP: 0,
     COUNTRY: 0,
 }
-const MAX_LENGTH = {
+const MAX = {
     FIRST_NAME: 100,
     MIDDLE_NAME: 100,
     LAST_NAME: 100,
@@ -60,4 +62,4 @@ const MAX_LENGTH = {
     COUNTRY: 100,
 }
 
-module.exports = { CREATED_COLUMNS, UPDATED_COLUMNS, MIN_LENGTH, MAX_LENGTH };
+module.exports = { REQUIRED_COLUMNS, MUTABLE_COLUMNS, IMMUTABLE_COLUMNS, MIN, MAX };

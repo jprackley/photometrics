@@ -1,5 +1,7 @@
-const CREATED_COLUMNS = {
+const REQUIRED_COLUMNS = {
     NAME: 'project_name',
+};
+const MUTABLE_COLUMNS = {
     DESCRIPTION: 'description',
     STATUS: 'status',
     PRIORITY: 'title',
@@ -8,19 +10,19 @@ const CREATED_COLUMNS = {
     SHOOT: 'shoot_time',
     DUE: 'due_time',
     COMPLETED: 'completed_at',
-};
-const UPDATED_COLUMNS = {
     CLIENT_ID: "client_id",
     MANAGER_ID: "manager_by",
-    CREATED_AT: "created_at",
     UPDATED_AT: "updated_at"
 }
-const MIN_LENGTH = {
+const IMMUTABLE_COLUMNS = {
+    CREATED_AT: "created_at",
+}
+const MIN = {
     NAME: 1,
     DESCRIPTION: 0,
     NOTES: 0,
 }
-const MAX_LENGTH = {
+const MAX = {
     NAME: 255,
     DESCRIPTION: 1000,
     NOTES: 5000,
@@ -40,4 +42,4 @@ const PRIORITY = {
     URGENT: 'Urgent',
 }
 
-module.exports = { CREATED_COLUMNS, UPDATED_COLUMNS, MIN_LENGTH, MAX_LENGTH, STATUS, PRIORITY };
+module.exports = { REQUIRED_COLUMNS, IMMUTABLE_COLUMNS, MUTABLE_COLUMNS, MIN, MAX, STATUS, PRIORITY };

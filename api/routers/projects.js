@@ -16,9 +16,9 @@ const C_NODE = require("../../utils/constants/cNodeServer");
 const C_PROJECT = require("../../utils/constants/cProjects");
 
 
-//------------------------------//
-//        CREATE Project         //
-//------------------------------//
+//----------------------------------------------------------------------------------
+// CREATE Projects
+//----------------------------------------------------------------------------------
 /**
  * Creates a new project record.
  *
@@ -49,22 +49,22 @@ router.post(
         body('managed_by').optional().isUUID().withMessage('Invalid user ID format'),
 
         body('project_name').isString().isLength({
-            min: C_PROJECT.MIN_LENGTH.NAME,
-            max: C_PROJECT.MAX_LENGTH.NAME
-        }).withMessage(`Project name must be less than ${C_PROJECT.MAX_LENGTH.NAME} characters long`),
+            min: C_PROJECT.MIN.NAME,
+            max: C_PROJECT.MAX.NAME
+        }).withMessage(`Project name must be less than ${C_PROJECT.MAX.NAME} characters long`),
 
         body('description').isString().isLength({
-            min: C_PROJECT.MIN_LENGTH.DESCRIPTION,
-            max: C_PROJECT.MAX_LENGTH.DESCRIPTION
-        }).withMessage(`Project description must be less than ${C_PROJECT.MAX_LENGTH.DESCRIPTION} characters long`),
+            min: C_PROJECT.MIN.DESCRIPTION,
+            max: C_PROJECT.MAX.DESCRIPTION
+        }).withMessage(`Project description must be less than ${C_PROJECT.MAX.DESCRIPTION} characters long`),
 
         body('status').optional().isIn(Object.values(C_PROJECT.STATUS)).withMessage('Invalid project status'),
         body('priority').optional().isIn(Object.values(C_PROJECT.PRIORITY)).withMessage('Invalid project priority'),
 
         body('notes').optional().isString().isLength({
-            min: C_PROJECT.MIN_LENGTH.NOTES,
-            max: C_PROJECT.MAX_LENGTH.NOTES
-        }).withMessage(`Notes must be less than ${C_PROJECT.MAX_LENGTH.NOTES} characters long`),
+            min: C_PROJECT.MIN.NOTES,
+            max: C_PROJECT.MAX.NOTES
+        }).withMessage(`Notes must be less than ${C_PROJECT.MAX.NOTES} characters long`),
 
         body('start_time').optional().isISO8601().withMessage('Invalid start time format'),
         body('shoot_time').optional().isISO8601().withMessage('Invalid shoot time format'),
@@ -73,20 +73,42 @@ router.post(
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE Project - ');
-        const { client_id, managed_by, project_name, description, status, start_time, due_time, completed_at } = req.body;
+        const fields = [
+            ...Object.values(C_PROJECT.REQUIRED_COLUMNS),
+            ...Object.values(C_PROJECT.MUTABLE_COLUMNS)
+        ];
+        const columns = [];
+        const values = [];
+        const params = [];
+
+        fields.forEach((field) => {
+            if (req.body[field] !== undefined) {
+                params.push(req.body[field]);
+                columns.push(field);
+                values.push(`$${params.length}`);
+            }
+        });
+
         const sql = `
-            INSERT INTO projects (client_id, managed_by, project_name, description, status, start_time, due_time, completed_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO images (${columns.join(', ')})
+            VALUES (${values.join(', ')})
             RETURNING *
         `;
-        const { rows } = await query(sql, [client_id, managed_by, project_name, description, status, start_time, due_time, completed_at]);
+
+        const {rows} = await query(sql, params);
         res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
     })
 )
-
-//------------------------------//
-//         READ Project         //
-//------------------------------//
+//----------------------------------------------------------------------------------
+// READ Projects
+//  - all: true will return all clients
+//  - all: false will return paginated results
+//  - page: page number
+//  - limit: number of results per page
+//  - sort: column to sort by
+//  - order: ascending or descending
+//  - q: search query
+//----------------------------------------------------------------------------------
 /**
  * Retrieves a paginated list of projects from the database.
  *
@@ -130,8 +152,13 @@ router.get(
 
         // Basic whitelist for sort fields to avoid SQL injection
         const { offset } = buildPagination({ page: Number(page), limit: Number(limit) });
-        const sortable = Object.values(C_PROJECT.CREATED_COLUMNS).concat(Object.values(C_PROJECT.UPDATED_COLUMNS));
-        const sortField = sortable.includes(String(sort)) ? sort : C_PROJECT.CREATED_COLUMNS.DUE;
+
+        const sortable = [
+            ...Object.values(C_PROJECT.REQUIRED_COLUMNS),
+            ...Object.values(C_PROJECT.MUTABLE_COLUMNS),
+            C_PROJECT.IMMUTABLE_COLUMNS.CREATED_AT
+        ];
+        const sortField = sortable.includes(String(sort)) ? sort : C_PROJECT.REQUIRED_COLUMNS.DUE;
         const sortDir = order === C_NODE.ASCENDING ? C_NODE.ASCENDING : C_NODE.DESCENDING;
 
         const params = [];
@@ -162,6 +189,9 @@ router.get(
         res.json({ data: rows, page: Number(page), limit: Number(limit), total: countRows[0].total });
     })
 );
+//----------------------------------------------------------------------------------
+// READ Project:id
+//----------------------------------------------------------------------------------
 /**
  * Retrieves a single project by its project_id.
  *
@@ -193,14 +223,16 @@ router.get(
         handleValidation(req, 'READ Project:id - ');
         const { id } = req.params;
         const { rows } = await query('SELECT * FROM projects WHERE project_id = $1', [id]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Project ID not found' } });
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
+            error: {
+                code: C_HTTP.CODE.NOT_FOUND,
+                message: C_HTTP.MESSAGE.NOT_FOUND } });
         res.json(rows[0]);
     })
 );
-
-//------------------------------//
-//       Update Project         //
-//------------------------------//
+//----------------------------------------------------------------------------------
+// Patch Project:id
+//----------------------------------------------------------------------------------
 /**
  * @description Updates an existing project by project ID.
  *
@@ -251,22 +283,22 @@ router.patch(
         body('managed_by').optional().isUUID().withMessage('Invalid user ID format'),
 
         body('project_name').optional().isString().isLength({
-            min: C_PROJECT.MIN_LENGTH.NAME,
-            max: C_PROJECT.MAX_LENGTH.NAME
-        }).withMessage(`Project name must be less than ${C_PROJECT.MAX_LENGTH.NAME} characters long`),
+            min: C_PROJECT.MIN.NAME,
+            max: C_PROJECT.MAX.NAME
+        }).withMessage(`Project name must be less than ${C_PROJECT.MAX.NAME} characters long`),
 
         body('description').optional().isString().isLength({
-            min: C_PROJECT.MIN_LENGTH.DESCRIPTION,
-            max: C_PROJECT.MAX_LENGTH.DESCRIPTION
-        }).withMessage(`Project description must be less than ${C_PROJECT.MAX_LENGTH.DESCRIPTION} characters long`),
+            min: C_PROJECT.MIN.DESCRIPTION,
+            max: C_PROJECT.MAX.DESCRIPTION
+        }).withMessage(`Project description must be less than ${C_PROJECT.MAX.DESCRIPTION} characters long`),
 
         body('status').optional().isIn(Object.values(C_PROJECT.STATUS)).withMessage('Invalid project status'),
         body('priority').optional().isIn(Object.values(C_PROJECT.PRIORITY)).withMessage('Invalid project priority'),
 
         body('notes').optional().isString().isLength({
-            min: C_PROJECT.MIN_LENGTH.NOTES,
-            max: C_PROJECT.MAX_LENGTH.NOTES
-        }).withMessage(`Notes must be less than ${C_PROJECT.MAX_LENGTH.NOTES} characters long`),
+            min: C_PROJECT.MIN.NOTES,
+            max: C_PROJECT.MAX.NOTES
+        }).withMessage(`Notes must be less than ${C_PROJECT.MAX.NOTES} characters long`),
 
         body('start_time').optional().isISO8601().withMessage('Invalid start time format'),
         body('shoot_time').optional().isISO8601().withMessage('Invalid shoot time format'),
@@ -276,7 +308,10 @@ router.patch(
     asyncHandler(async (req, res) => {
         handleValidation(req, 'UPDATE Project:id - ');
         const { id } = req.params;
-        const fields = Object.values(C_PROJECT.CREATED_COLUMNS);
+        const fields = [
+            ...Object.values(C_PROJECT.REQUIRED_COLUMNS),
+            ...Object.values(C_PROJECT.MUTABLE_COLUMNS)
+        ];
         const set = [];
         const params = [];
         fields.forEach((f) => {
@@ -286,7 +321,10 @@ router.patch(
             }
         });
 
-        if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({ error: { code: C_HTTP.MESSAGE.BAD_REQUEST, message: 'No updatable fields provided' } });
+        if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({
+            error: {
+                code: C_HTTP.CODE.BAD_REQUEST,
+                message: C_HTTP.MESSAGE.BAD_REQUEST } });
         params.push(id);
 
         const sql = `
@@ -295,15 +333,16 @@ router.patch(
             RETURNING *
         `;
         const { rows } = await query(sql, params);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Project not found' } });
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
+            error: {
+                code: C_HTTP.CODE.NOT_FOUND,
+                message: C_HTTP.MESSAGE.NOT_FOUND } });
         res.json(rows[0]);
     })
 )
-
-
-//------------------------------//
-//       Delete Project         //
-//------------------------------//
+//----------------------------------------------------------------------------------
+// DELETE Project:id
+//----------------------------------------------------------------------------------
 /**
  * @description Deletes an existing project by project ID.
  *
@@ -331,7 +370,10 @@ router.delete(
         handleValidation(req, 'DELETE Project:id - ');
         const { id } = req.params;
         const { rows } = await query('DELETE FROM projects WHERE project_id = $1 RETURNING *', [id]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Project not found' } });
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
+            error: {
+                code: C_HTTP.CODE.NOT_FOUND,
+                message: C_HTTP.MESSAGE.NOT_FOUND } });
         res.status(C_HTTP.STATUS.NO_CONTENT).send();
     })
 )

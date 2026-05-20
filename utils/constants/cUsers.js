@@ -1,4 +1,4 @@
-const MIN_LENGTH = {
+const MIN = {
     EMPLOYEE_ID: 0,
     MANAGER_ID: 0,
     FIRST_NAME: 1,
@@ -21,7 +21,7 @@ const MIN_LENGTH = {
     COUNTRY: 0,
     PASSWORD: 8,
 }
-const MAX_LENGTH = {
+const MAX = {
     EMPLOYEE_ID: 100,
     MANAGER_ID: 100,
     FIRST_NAME: 100,
@@ -48,19 +48,22 @@ const ROLES = {
     MANAGER: 'Manager',
     EMPLOYEE: 'Employee',
 }
-const CREATED_COLUMNS = {
+const REQUIRED_COLUMNS = {
+    FIRST_NAME: 'first_name',
+    LAST_NAME: 'last_name',
+    EMAIL: 'email',
+    ROLE: 'account_role'
+}
+const MUTABLE_COLUMNS = {
     EMPLOYEE_ID: 'employee_id',
     MANAGER_ID: 'manager_id',
-    FIRST_NAME: 'first_name',
     MIDDLE_NAME: 'middle_name',
-    LAST_NAME: 'last_name',
     DISPLAY_NAME: 'display_name',
     TITLE: 'title',
     COMPANY: 'company',
     DEPARTMENT: 'department',
     LOCATION: 'location',
     STATUS: 'status',
-    EMAIL: 'email',
     PHONE_NUMBER: 'phone_number',
     WEBSITE: 'website',
     NOTES: 'notes',
@@ -70,19 +73,18 @@ const CREATED_COLUMNS = {
     STATE: 'state',
     POSTAL_CODE: 'postal_code',
     COUNTRY: 'country',
-    ROLE: 'account_role'
-}
-const UPDATABLE_COLUMNS = {
     LAST_LOGIN: 'last_login',
     UPDATED: 'updated_at',
     IS_ADMIN: 'is_admin',
     IS_ACTIVE: 'is_active',
 }
-const SECURE_COLUMNS = {
-    PASSWORD: 'password_hash',
+const IMMUTABLE_COLUMNS = {
     PASSWORD_UPDATED: 'password_updated_at',
     PASSWORD_EXPIRES: 'password_expires_at',
     CREATED: 'created_at',
+}
+const SECURE_COLUMNS = {
+    PASSWORD: 'password_hash',
 }
 const SAFE_RETURN = `
     user_id,
@@ -114,4 +116,4 @@ const SAFE_RETURN = `
     is_admin,
     is_active`;
 
-module.exports = {SAFE_RETURN, UPDATABLE_COLUMNS, SECURE_COLUMNS, CREATED_COLUMNS, MIN_LENGTH, MAX_LENGTH, ROLES};
+module.exports = {SAFE_RETURN, MUTABLE_COLUMNS, SECURE_COLUMNS, REQUIRED_COLUMNS, IMMUTABLE_COLUMNS ,MIN, MAX, ROLES};

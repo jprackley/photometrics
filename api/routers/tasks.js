@@ -5,7 +5,6 @@ const router = express.Router();
 const C_TASK = require('../../utils/constants/cTasks');
 const C_HTTP = require("../../utils/constants/cHTTP");
 const C_NODE = require('../../utils/constants/cNodeServer');
-C_SCHEMA = require('../../utils/constants/cSchema');
 
 const asyncHandler = require('../../utils/helpers/asyncHandler');
 const {handleValidation, buildPagination} = require('../../utils/helpers/validation');
@@ -28,8 +27,8 @@ router.post(
         body('priority').optional().isString().isIn(Object.values(C_TASK.PRIORITY)).withMessage('Invalid task priority'),
         body('description').optional().isString().isLength(
             {
-                min: C_SCHEMA.MIN.TASK_DESC_LENGTH,
-                max: C_SCHEMA.MAX.TASK_DESC_LENGTH
+                min: C_TASK.MIN.DESCRIPTION,
+                max: C_TASK.MAX.DESCRIPTION,
             }).withMessage(`Task description must be between ${C_TASK.MIN.DESCRIPTION} and ${C_TASK.MAX.DESCRIPTION} characters`),
 
         body('status').optional().isString().isIn(Object.values(C_TASK.STATUS)).withMessage('Invalid task status'),

@@ -34,27 +34,27 @@ const clients_undefined = {
 }
 const clients_overrun = {
     firstName: {
-        first_name: "C".repeat(C_CLIENT.MAX_LENGTH.FIRST_NAME + 1),
+        first_name: "C".repeat(C_CLIENT.MAX.FIRST_NAME + 1),
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`
     },
     middleName: {
         first_name: "Client",
-        middle_name: "T".repeat(C_CLIENT.MAX_LENGTH.MIDDLE_NAME + 1),
+        middle_name: "T".repeat(C_CLIENT.MAX.MIDDLE_NAME + 1),
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`
     },
     lastName: {
         first_name: "Client",
-        last_name: "T".repeat(C_CLIENT.MAX_LENGTH.LAST_NAME + 1),
+        last_name: "T".repeat(C_CLIENT.MAX.LAST_NAME + 1),
         company_name: "Last Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`
     },
     title: {
         first_name: "Client",
-        title: "T".repeat(C_CLIENT.MAX_LENGTH.TITLE + 1),
+        title: "T".repeat(C_CLIENT.MAX.TITLE + 1),
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`
@@ -62,119 +62,119 @@ const clients_overrun = {
     companyName: {
         first_name: "Max Company Name Length",
         last_name: "Client",
-        company_name: "S".repeat(C_CLIENT.MAX_LENGTH.COMPANY_NAME + 1),
+        company_name: "S".repeat(C_CLIENT.MAX.COMPANY_NAME + 1),
         email: `s.lowe${Date.now()}@testees.com`
     },
     email: {
         first_name: "Corey",
         last_name: "Client",
         company_name: "Max Email Length",
-        email: "c".repeat(C_CLIENT.MAX_LENGTH.EMAIL) + "@testees.com"
+        email: "c".repeat(C_CLIENT.MAX.EMAIL) + "@testees.com"
     },
     phoneNumber: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        phone_number: "9".repeat(C_CLIENT.MAX_LENGTH.PHONE + 1)
+        phone_number: "9".repeat(C_CLIENT.MAX.PHONE + 1)
     },
     website: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        website: "https://".repeat(C_CLIENT.MAX_LENGTH.WEBSITE + 1) + ".com"
+        website: "https://".repeat(C_CLIENT.MAX.WEBSITE + 1) + ".com"
     },
     notes: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        notes: "N".repeat(C_CLIENT.MAX_LENGTH.NOTES + 1)
+        notes: "N".repeat(C_CLIENT.MAX.NOTES + 1)
     },
     addressLine1: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        address_line1: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)
+        address_line1: "A".repeat(C_CLIENT.MAX.ADDRESS_LINE)
     },
     addressLine2: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        address_line2: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)
+        address_line2: "A".repeat(C_CLIENT.MAX.ADDRESS_LINE)
     },
     city: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        city: "C".repeat(C_CLIENT.MAX_LENGTH.CITY)
+        city: "C".repeat(C_CLIENT.MAX.CITY)
     },
     state: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        state: "C".repeat(C_CLIENT.MAX_LENGTH.STATE)
+        state: "C".repeat(C_CLIENT.MAX.STATE)
     },
     postalCode: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        postal_code: "9".repeat(C_CLIENT.MAX_LENGTH.ZIP)
+        postal_code: "9".repeat(C_CLIENT.MAX.ZIP)
     },
     country: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        country: "C".repeat(C_CLIENT.MAX_LENGTH.COUNTRY)
+        country: "C".repeat(C_CLIENT.MAX.COUNTRY)
     },
     billingAddressLine1: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        billing_address_line1: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)
+        billing_address_line1: "A".repeat(C_CLIENT.MAX.ADDRESS_LINE)
     },
     billingAddressLine2: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        billing_address_line2: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)
+        billing_address_line2: "A".repeat(C_CLIENT.MAX.ADDRESS_LINE)
     },
     billingCity: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        billing_city: "C".repeat(C_CLIENT.MAX_LENGTH.CITY)
+        billing_city: "C".repeat(C_CLIENT.MAX.CITY)
     },
     billingState: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        billing_state: "C".repeat(C_CLIENT.MAX_LENGTH.STATE)
+        billing_state: "C".repeat(C_CLIENT.MAX.STATE)
     },
     billingPostalCode: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        billing_postal_code: "9".repeat(C_CLIENT.MAX_LENGTH.ZIP)
+        billing_postal_code: "9".repeat(C_CLIENT.MAX.ZIP)
     },
     billingCountry: {
         first_name: "Client",
         last_name: "Client",
         company_name: "First Name Too Long",
         email: `s.lowe${Date.now()}@testees.com`,
-        billing_country: "C".repeat(C_CLIENT.MAX_LENGTH.COUNTRY)
+        billing_country: "C".repeat(C_CLIENT.MAX.COUNTRY)
     },
 
 }
@@ -617,27 +617,27 @@ describe('Testing /api/clients', () => {
         test(`[TEST]: invalid data length [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             let testcases;
             testcases = [
-                { first_name: "C".repeat(C_CLIENT.MAX_LENGTH.FIRST_NAME + 1) },
-                { middle_name: "T".repeat(C_CLIENT.MAX_LENGTH.MIDDLE_NAME + 1)},
-                { last_name: "T".repeat(C_CLIENT.MAX_LENGTH.LAST_NAME + 1) },
-                { title: "T".repeat(C_CLIENT.MAX_LENGTH.TITLE + 1) },
-                { company_name: "S".repeat(C_CLIENT.MAX_LENGTH.COMPANY_NAME + 1) },
-                { email: "c".repeat(C_CLIENT.MAX_LENGTH.EMAIL) + "@testees.com" },
-                { phone_number: "8".repeat(C_CLIENT.MAX_LENGTH.PHONE_NUMBER) },
-                { websites: "https://".repeat(C_CLIENT.MAX_LENGTH.WEBSITE + 1) },
-                { notes: "Notes".repeat(C_CLIENT.MAX_LENGTH.NOTES + 1) },
-                { address_line1: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)},
-                { address_line2: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)},
-                { city: "C".repeat(C_CLIENT.MAX_LENGTH.CITY) },
-                { state: "S".repeat(C_CLIENT.MAX_LENGTH.STATE) },
-                { postal_code: "P".repeat(C_CLIENT.MAX_LENGTH.POSTAL_CODE) },
-                { country: "C".repeat(C_CLIENT.MAX_LENGTH.COUNTRY) },
-                { billing_address_line1: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)},
-                { billing_address_line2: "A".repeat(C_CLIENT.MAX_LENGTH.ADDRESS_LINE)},
-                { billing_city: "C".repeat(C_CLIENT.MAX_LENGTH.CITY) },
-                { billing_state: "S".repeat(C_CLIENT.MAX_LENGTH.STATE) },
-                { billing_postal_code: "P".repeat(C_CLIENT.MAX_LENGTH.POSTAL_CODE) },
-                { billing_country: "C".repeat(C_CLIENT.MAX_LENGTH.COUNTRY) }
+                { first_name: "C".repeat(C_CLIENT.MAX.FIRST_NAME + 1) },
+                { middle_name: "T".repeat(C_CLIENT.MAX.MIDDLE_NAME + 1)},
+                { last_name: "T".repeat(C_CLIENT.MAX.LAST_NAME + 1) },
+                { title: "T".repeat(C_CLIENT.MAX.TITLE + 1) },
+                { company_name: "S".repeat(C_CLIENT.MAX.COMPANY_NAME + 1) },
+                { email: "c".repeat(C_CLIENT.MAX.EMAIL) + "@testees.com" },
+                { phone_number: "8".repeat(C_CLIENT.MAX.PHONE_NUMBER) },
+                { websites: "https://".repeat(C_CLIENT.MAX.WEBSITE + 1) },
+                { notes: "Notes".repeat(C_CLIENT.MAX.NOTES + 1) },
+                { address_line1: "A".repeat(C_CLIENT.MAX.ADDRESS_LINE)},
+                { address_line2: "A".repeat(C_CLIENT.MAX.ADDRESS_LINE)},
+                { city: "C".repeat(C_CLIENT.MAX.CITY) },
+                { state: "S".repeat(C_CLIENT.MAX.STATE) },
+                { postal_code: "P".repeat(C_CLIENT.MAX.POSTAL_CODE) },
+                { country: "C".repeat(C_CLIENT.MAX.COUNTRY) },
+                { billing_address_line1: "A".repeat(C_CLIENT.MAX.ADDRESS_LINE)},
+                { billing_address_line2: "A".repeat(C_CLIENT.MAX.ADDRESS_LINE)},
+                { billing_city: "C".repeat(C_CLIENT.MAX.CITY) },
+                { billing_state: "S".repeat(C_CLIENT.MAX.STATE) },
+                { billing_postal_code: "P".repeat(C_CLIENT.MAX.POSTAL_CODE) },
+                { billing_country: "C".repeat(C_CLIENT.MAX.COUNTRY) }
             ];
             for (const testcase of testcases) {
                 const response = await request(app).patch(`/api/clients/${clients[0]}`).send(testcase.body);

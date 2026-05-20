@@ -211,7 +211,7 @@ CREATE TABLE images
     image_id    UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
     project_id  UUID         NOT NULL,
     task_id     UUID                  DEFAULT NULL,
-    name        VARCHAR(255)          DEFAULT CURRENT_DATE::text || '_' || gen_random_uuid()::text,
+    name        VARCHAR(255) NOT NULL DEFAULT 'Uploaded_' || CURRENT_DATE::text || '_' || gen_random_uuid()::text,
     description TEXT                  DEFAULT NULL,
     url         TEXT                  DEFAULT NULL,
     status      image_status NOT NULL DEFAULT 'Pending',

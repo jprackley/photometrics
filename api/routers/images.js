@@ -1,37 +1,51 @@
 const express = require('express');
-const {paginate, handleValidation, buildPagination} = require('../../utils/helpers/validation');
 const {param, body, query: queryValidator} = require('express-validator');
-const asyncHandler = require('../../utils/helpers/asyncHandler');
-const {query} = require('../db');
-const C_HTTP = require('../../utils/constants/cHTTP');
-const C_SCHEMA = require('../../utils/constants/cSchema');
-const C_NODE = require('../../utils/constants/cNodeServer');
-
 const router = express.Router();
 
-function safeSort(sort) {
-    return C_NODE.SORTABLE.IMAGE.includes(sort) ? sort : 'created_at';
-}
+const {paginate, handleValidation, buildPagination} = require('../../utils/helpers/validation');
+const asyncHandler = require('../../utils/helpers/asyncHandler');
+const {query} = require('../db');
 
-function safeOrder(order) {
-    return String(order).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
-}
+const C_HTTP = require('../../utils/constants/cHTTP');
+const C_IMAGE = require('../../utils/constants/cImages');
+const C_NODE = require('../../utils/constants/cNodeServer');
 
+//----------------------------------------------------------------------------------
+// Create Image
+//----------------------------------------------------------------------------------
 router.post(
     '/',
     [
         body('project_id').isUUID().withMessage('Invalid project_id UUID'),
-        body('task_id').optional({nullable: true}).isUUID().withMessage('Invalid task_id UUID'),
-        body('name').optional().isString().isLength({min: 1, max: 255}).withMessage('Invalid image name'),
-        body('description').optional({nullable: true}).isString().withMessage('Invalid image description'),
-        body('url').optional({nullable: true}).isString().withMessage('Invalid image url'),
-        body('status').optional().isIn(C_SCHEMA.STATUS.IMAGE).withMessage('Invalid image status'),
+        body('task_id').optional().isUUID().withMessage('Invalid task_id UUID'),
+        body('name').optional().isString().isLength(
+            {
+                min: C_IMAGE.MIN.NAME,
+                max: C_IMAGE.MAX.NAME
+            }).withMessage(`Image name must be between ${C_IMAGE.MIN.NAME} and ${C_IMAGE.MAX.NAME} characters.`),
+
+        body('description').optional().isString().isLength(
+            {
+                min: C_IMAGE.MIN.DESCRIPTION,
+                max: C_IMAGE.MAX.DESCRIPTION
+            }).withMessage(`Image description must be between ${C_IMAGE.MIN.DESCRIPTION} and ${C_IMAGE.MAX.DESCRIPTION} characters.`),
+
+        body('url').optional().isString().isLength(
+            {
+                min: C_IMAGE.MIN.URL,
+                max: C_IMAGE.MAX.URL
+            }).withMessage(`Image url must be between ${C_IMAGE.MIN.URL} and ${C_IMAGE.MAX.URL} characters long.`)
+            .isURL().withMessage('Invalid image url format.'),
+        body('status').optional().isIn(Object.values(C_IMAGE.STATUS)).withMessage('Invalid image status'),
         body('completed').optional().isBoolean().withMessage('Invalid completed value').toBoolean(),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE Image - ');
 
-        const fields = ['project_id', 'task_id', 'name', 'description', 'url', 'status', 'completed'];
+        const fields = [
+            ...Object.values(C_IMAGE.REQUIRED_COLUMNS),
+            ...Object.values(C_IMAGE.MUTABLE_COLUMNS)
+        ];
         const columns = [];
         const values = [];
         const params = [];
@@ -54,7 +68,9 @@ router.post(
         res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
     })
 );
-
+//----------------------------------------------------------------------------------
+// READ Image:id
+//----------------------------------------------------------------------------------
 router.get(
     '/:id',
     [
@@ -77,140 +93,143 @@ router.get(
         res.json(rows[0]);
     })
 );
-
+//----------------------------------------------------------------------------------
+// READ Image with pagination
+//  - all: true will return all clients
+//  - all: false will return paginated results
+//  - page: page number
+//  - limit: number of results per page
+//  - sort: column to sort by
+//  - order: ascending or descending
+//  - q: search query
+//----------------------------------------------------------------------------------
 router.get(
     '/',
-    [
-        paginate,
-        queryValidator('project_id').optional().isUUID().withMessage('Invalid project_id UUID'),
-        queryValidator('task_id').optional().isUUID().withMessage('Invalid task_id UUID'),
-        queryValidator('status').optional().isIn(C_SCHEMA.STATUS.IMAGE).withMessage('Invalid image status'),
-        queryValidator('completed').optional().isBoolean().withMessage('Invalid completed value').toBoolean(),
-    ],
+    [paginate],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'READ Images - ');
-
         const {
+            all = C_NODE.PAGINATE.ALL,
             page = C_NODE.PAGINATE.PAGE,
             limit = C_NODE.PAGINATE.LIMIT,
             sort = C_NODE.PAGINATE.SORT,
             order = C_NODE.PAGINATE.ORDER,
-            q,
-            project_id,
-            task_id,
-            status,
-            completed,
+            q
         } = req.query;
 
-        const {offset} = buildPagination({page: Number(page), limit: Number(limit)});
-        const params = [];
-        const where = [];
-        
-        if (project_id) {
-            params.push(project_id);
-            where.push(`project_id = $${params.length}`);
+        if (all === 'true') {
+            const {rows} = await query(`SELECT *
+                                        FROM tasks`);
+            return res.json(rows);
         }
-        if (task_id) {
-            params.push(task_id);
-            where.push(`task_id = $${params.length}`);
-        }
-        if (status) {
-            params.push(status);
-            where.push(`status = $${params.length}`);
-        }
-        if (completed !== undefined) {
-            params.push(completed);
-            where.push(`completed = $${params.length}`);
-        }
+        const {offset} = buildPagination({page: Number(page), limit: Number(C_NODE.PAGINATE.LIMIT)});
 
+        const sortable = [
+            ...Object.values(C_IMAGE.REQUIRED_COLUMNS),
+            ...Object.values(C_IMAGE.MUTABLE_COLUMNS),
+            C_IMAGE.IMMUTABLE_COLUMNS.CREATED
+        ];
+        const sortField = sortable.includes(String(sort)) ? sort : C_IMAGE.IMMUTABLE_COLUMNS.CREATED;
+        const sortDir = order === C_NODE.ASCENDING ? C_NODE.ASCENDING : C_NODE.DESCENDING;
+
+        const params = [];
+        let where = '';
         if (q) {
             params.push(`%${q}%`);
-            where.push(`(
-                image_id::text ILIKE $${params.length}
-                OR project_id::text ILIKE $${params.length}
-                OR task_id::text ILIKE $${params.length}
-                OR name ILIKE $${params.length}
-                OR description ILIKE $${params.length}
-                OR url ILIKE $${params.length}
-                OR status::text ILIKE $${params.length}
-            )`);
+            where = `
+            WHERE name ILIKE $${params.length}
+            OR description ILIKE $${params.length}
+            OR url ILIKE $${params.length}
+            OR status::TEXT ILIKE $${params.length}
+            `;
         }
-
-        const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
-        const sortBy = safeSort(sort);
-        const sortOrder = safeOrder(order);
-
         const sql = `
             SELECT *
-            FROM images
-            ${whereClause}
-            ORDER BY ${sortBy} ${sortOrder}
-            LIMIT $${params.length + 1}
-            OFFSET $${params.length + 2}
-        `;
-        params.push(Number(limit), offset);
+            FROM images ${where}
+            ORDER BY ${sortField} ${sortDir}
+            LIMIT $${params.length + 1} 
+            OFFSET $${params.length + 2}`;
+
+        params.push(limit, offset);
+
         const {rows} = await query(sql, params);
-        res.json({data: rows, page: Number(page), limit: Number(limit)});
+
+        // total count for pagination UI
+        const countSql = `SELECT count(*)::int AS total
+                          FROM images ${where}`;
+        const {rows: countRows} = await query(countSql, q ? [params[0]] : []);
+
+        res.json({data: rows, page: Number(page), limit: Number(limit), total: countRows[0].total});
     })
 );
-
+//----------------------------------------------------------------------------------
+// PATCH Image:id
+//----------------------------------------------------------------------------------
 router.patch(
     '/:id',
     [
         param('id').isUUID().withMessage('Invalid image_id UUID'),
         body('project_id').optional().isUUID().withMessage('Invalid project_id UUID'),
-        body('task_id').optional({nullable: true}).isUUID().withMessage('Invalid task_id UUID'),
-        body('name').optional().isString().isLength({min: 1, max: 255}).withMessage('Invalid image name'),
-        body('description').optional({nullable: true}).isString().withMessage('Invalid image description'),
-        body('url').optional({nullable: true}).isString().withMessage('Invalid image url'),
-        body('status').optional().isIn(C_SCHEMA.STATUS.IMAGE).withMessage('Invalid image status'),
+        body('task_id').optional().isUUID().withMessage('Invalid task_id UUID'),
+        body('name').optional().isString().isLength(
+            {
+                min: C_IMAGE.MIN.NAME,
+                max: C_IMAGE.MAX.NAME
+            }).withMessage(`Image name must be between ${C_IMAGE.MIN.NAME} and ${C_IMAGE.MAX.NAME} characters long.`),
+
+        body('description').optional().isString().isLength(
+            {
+                min: C_IMAGE.MIN.DESCRIPTION,
+                max: C_IMAGE.MAX.DESCRIPTION
+            }).withMessage(`Image description must be between ${C_IMAGE.MIN.DESCRIPTION} and ${C_IMAGE.MAX.DESCRIPTION} characters long.`),
+
+        body('url').optional().isString().isLength(
+            {
+                min: C_IMAGE.MIN.URL,
+                max: C_IMAGE.MAX.URL
+            }).withMessage(`Image url must be between ${C_IMAGE.MIN.URL} and ${C_IMAGE.MAX.URL} characters long.`)
+            .isURL().withMessage('Invalid image url format.'),
+        body('status').optional().isIn(Object.values(C_IMAGE.STATUS)).withMessage('Invalid image status'),
         body('completed').optional().isBoolean().withMessage('Invalid completed value').toBoolean(),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'UPDATE Image - ');
-        const {id} = req.params;
-        const fields = ['project_id', 'task_id', 'name', 'description', 'url', 'status', 'completed'];
+        const { id } = req.params;
+        const fields = [
+            ...Object.values(C_IMAGE.REQUIRED_COLUMNS),
+            ...Object.values(C_IMAGE.MUTABLE_COLUMNS),
+        ];
         const set = [];
         const params = [];
-
-        fields.forEach((field) => {
-            if (req.body[field] !== undefined) {
-                params.push(req.body[field]);
-                set.push(`${field} = $${params.length}`);
+        fields.forEach((f) => {
+            if (req.body[f] != null) {
+                params.push(req.body[f]);
+                set.push(`${f} = $${params.length}`);
             }
         });
-        if (set.length === 0) {
-            return res.status(C_HTTP.STATUS.BAD_REQUEST).json({
-                error: {
-                    code: C_HTTP.CODE.BAD_REQUEST,
-                    message: C_HTTP.MESSAGE.BAD_REQUEST,
-                },
-            });
-        }
 
-        set.push('updated_at = now()');
+        if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({ error: { code: C_HTTP.MESSAGE.BAD_REQUEST, message: 'No updatable fields provided' } });
         params.push(id);
 
         const sql = `
-            UPDATE images
-            SET ${set.join(', ')}
+            UPDATE images SET ${set.join(', ')}, updated_at = now()
             WHERE image_id = $${params.length}
             RETURNING *
         `;
         const {rows} = await query(sql, params);
-
-        if (rows.length === 0) {
-            return res.status(C_HTTP.STATUS.NOT_FOUND).json({
-                error: {
-                    code: C_HTTP.CODE.NOT_FOUND,
-                    message: C_HTTP.MESSAGE.NOT_FOUND,
-                },
-            });
-        }
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
+            error:
+                {
+                    code: C_HTTP.MESSAGE.NOT_FOUND,
+                    message: 'Project not found'
+                }
+        });
         res.json(rows[0]);
     })
 );
-
+//----------------------------------------------------------------------------------
+// DELETE Image:id
+//----------------------------------------------------------------------------------
 router.delete(
     '/:id',
     [
