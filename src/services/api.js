@@ -24,7 +24,10 @@ const DEFAULT_USE_API_DATA = String(import.meta.env.VITE_USE_API_DATA || "").toL
 const LEGACY_API_DATA_SETTING_KEY = "photometrics-use-api-data";
 const API_DATA_SETTING_KEY = "photometrics-use-api-data-v2";
 const API_DATA_SETTING_EVENT = "photometrics-api-data-setting-changed";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL !== "/"
+    ? import.meta.env.VITE_API_BASE_URL
+    : "/api";
 const DEFAULT_PAGE_LIMIT = 50;
 
 /**
@@ -234,40 +237,77 @@ function buildApiUrl(endpoint) {
 /**
  * Sends a JSON API request and converts failed responses into useful JavaScript errors.
  */
+function publishApiError(error) {
+    if (typeof window === "undefined" || !error) return;
+
+    const apiError = {
+        endpoint: error.endpoint || "unknown",
+        method: error.method || "GET",
+        status: error.status || "NETWORK",
+        code: error.code || error.status || "API_ERROR",
+        message: error.message || "API request failed",
+        timestamp: new Date().toISOString(),
+    };
+
+    window.__photometricsApiErrors = [apiError, ...(window.__photometricsApiErrors || [])].slice(0, 10);
+    window.dispatchEvent(new CustomEvent("photometrics-api-error", { detail: apiError }));
+}
+
 async function apiRequest(endpoint, options = {}) {
-    const response = await fetch(buildApiUrl(endpoint), {
-        headers: {
-            "Content-Type": "application/json",
-            ...(options.headers || {}),
-        },
-        ...options,
-    });
+    const method = options.method || "GET";
+    const url = buildApiUrl(endpoint);
 
-    if (!response.ok) {
-        let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+    try {
+        const response = await fetch(url, {
+            headers: {
+                "Content-Type": "application/json",
+                ...(options.headers || {}),
+            },
+            ...options,
+        });
 
-        try {
-            const errorPayload = await response.json();
-            errorMessage = errorPayload?.error?.message || errorPayload?.message || errorMessage;
-        } catch {
-            // Some failed responses do not include a JSON body. Keep the status-based message.
+        if (!response.ok) {
+            let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+            let errorCode = response.status;
+
+            try {
+                const errorPayload = await response.json();
+                errorMessage = errorPayload?.error?.message || errorPayload?.message || errorMessage;
+                errorCode = errorPayload?.error?.code || errorPayload?.code || errorCode;
+            } catch {
+                // Some failed responses do not include a JSON body. Keep the status-based message.
+            }
+
+            const error = new Error(`${method} ${endpoint} failed: ${errorMessage}`);
+            error.status = response.status;
+            error.code = errorCode;
+            error.endpoint = endpoint;
+            error.method = method;
+            publishApiError(error);
+            throw error;
         }
 
-        const error = new Error(errorMessage);
-        error.status = response.status;
-        throw error;
-    }
+        if (response.status === 204) {
+            return null;
+        }
 
-    if (response.status === 204) {
-        return null;
-    }
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+            return null;
+        }
 
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
-        return null;
-    }
+        return response.json();
+    } catch (requestError) {
+        if (!requestError.endpoint) {
+            requestError.endpoint = endpoint;
+            requestError.method = method;
+            requestError.code = requestError.code || "NETWORK_ERROR";
+            requestError.message = `${method} ${endpoint} failed: ${requestError.message}`;
+            publishApiError(requestError);
+        }
 
-    return response.json();
+        throw requestError;
+    }
 }
 
 /**
@@ -277,7 +317,7 @@ function unwrapApiPayload(payload) {
     if (Array.isArray(payload)) return payload;
     if (payload?.data !== undefined) return payload.data;
     if (payload?.items !== undefined) return payload.items;
-    return payload;
+    return payload ?? [];
 }
 
 /**
