@@ -6,8 +6,7 @@ const {
     paginate,
     handleValidation,
     buildPagination,
-    projectQueryParams
-} = require("../../utils/helpers/validation");
+} = require("../validators/queryHandler");
 const asyncHandler = require("../../utils/helpers/asyncHandler");
 const {query} = require("../db");
 

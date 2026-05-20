@@ -1,6 +1,7 @@
 const { query } = require('express-validator');
-const C_PROJECTS = require("../constants/cUsers");
-C_NODE = require('../constants/cNodeServer');
+const C_PROJECTS = require("../../utils/constants/cUsers");
+C_NODE = require('../../utils/constants/cNodeServer');
+C_KPI = require("../../utils/constants/cKPIs");
 
 const paginate = [
     query('page').optional().toInt().isInt({ min: C_NODE.PAGINATE.MIN_PAGE }).withMessage(`page must be >= ${C_NODE.PAGINATE.MIN_PAGE}`),
@@ -10,6 +11,11 @@ const paginate = [
     query('order').optional().isIn([C_NODE.ASCENDING, C_NODE.DESCENDING]).withMessage('order asc|desc'),
 ];
 
+const kpi = [
+    query('q').optional().isIn(Object.values(C_KPI.PROJECTS)).withMessage('Invalid KPI query. Must be one of:\n' + Object.values(C_KPI.PROJECTS).join(',')),
+    query('v').optional().isBoolean().withMessage('Must be true or false'),
+];
+
 function buildPagination({ page = 1, limit = 20 }) {
     const offset = (page - 1) * limit;
     return { limit, offset };
@@ -17,7 +23,7 @@ function buildPagination({ page = 1, limit = 20 }) {
 
 //Handles validation for Node.js Express requests
 function handleValidation(req, desc) {
-    const C_HTTP = require('../constants/cHTTP');
+    const C_HTTP = require('../../utils/constants/cHTTP');
     const { validationResult } = require('express-validator');
 
     const result = validationResult(req);
@@ -40,4 +46,4 @@ function handleValidation(req, desc) {
     }
 }
 
-module.exports = { paginate, buildPagination, handleValidation,  };
+module.exports = { paginate, buildPagination, handleValidation,  kpi };

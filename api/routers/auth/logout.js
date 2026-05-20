@@ -2,7 +2,7 @@ const express=require("express");
 const router = express.Router();
 
 const asyncHandler = require("../../../utils/helpers/asyncHandler");
-const {handleValidation} = require("../../../utils/helpers/validation");
+const {handleValidation} = require("../../validators/queryHandler");
 const {param} = require("express-validator");
 const {query} = require("../../db");
 

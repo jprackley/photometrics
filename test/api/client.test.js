@@ -4,8 +4,34 @@ const request = require('supertest');
 const app = require('../../api/index');
 const C_HTTP = require('../../utils/constants/cHTTP');
 const C_CLIENT = require('../../utils/constants/cClients');
+const {query} = require("../../api/db");
 
 const clients = []
+const test_client = {
+    first_name: "TestClient",
+    middle_name: "Tester",
+    last_name: "Client",
+    title: "Mr.",
+
+    company_name: "Valid Client",
+    email: `before.tester${Date.now()}@testees.com`,
+    phone_number: "555-555-5555",
+    website: "https://testees.com",
+    notes: "This is a test client.",
+
+    address_line1: "123 Main St.",
+    address_line2: "Suite 100",
+    city: "Anytown",
+    state: "CA",
+    postal_code: "12345",
+    country: "USA",
+
+    billing_address_line1: "456 Elm St.",
+    billing_address_line2: "Apt 100",
+    billing_city: "Anytown",
+    billing_state: "CA",
+    billing_postal_code: "12345",
+}
 const clients_undefined = {
     firstName: {
         first_name: "",
@@ -192,36 +218,22 @@ const clients_overrun = {
  */
 describe('Testing /api/clients', () => {
     before(async () => {
-        const response = await request(app).post('/api/clients').send(
-            {
-                first_name: "TestClient",
-                middle_name: "Tester",
-                last_name: "Client",
-                title: "Mr.",
+        const values = [];
+        const params = [];
 
-                company_name: "Valid Client",
-                email: `before.tester${Date.now()}@testees.com`,
-                phone_number: "555-555-5555",
-                website: "https://testees.com",
-                notes: "This is a test client.",
+        for (const field in test_client) {
+            params.push(test_client[field]);
+            values.push(`$${params.length}`);
+        }
+        const sql =    `
+        INSERT INTO clients (${Object.keys(test_client).join(', ')})
+        VALUES (${values.join(', ')})
+        RETURNING *;
+        `;
 
-                address_line1: "123 Main St.",
-                address_line2: "Suite 100",
-                city: "Anytown",
-                state: "CA",
-                postal_code: "12345",
-                country: "USA",
-
-                billing_address_line1: "456 Elm St.",
-                billing_address_line2: "Apt 100",
-                billing_city: "Anytown",
-                billing_state: "CA",
-                billing_postal_code: "12345",
-            },
-        );
-        assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
-            `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode} \n ${JSON.stringify(response.body)}`);
-        if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
+        const { rows } = await query(sql, params);
+        if (rows.length === 0) throw new Error('Failed to create test client');
+        clients.push(rows[0]);
     })
     /**
      * Deletes all clients created during the test run.
@@ -230,11 +242,24 @@ describe('Testing /api/clients', () => {
      * the suite finishes.
      */
     after(async () => {
-        for (const client of clients) {
-            const response = await request(app).delete(`/api/clients/${client.client_id}`);
-            assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,
-                `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode}`);
-            clients.splice(clients.indexOf(client), 1);
+        const sql = `
+            DELETE 
+            FROM clients 
+            WHERE client_id = $1
+            RETURNING client_id;`;
+
+        if (clients.length > 0) {
+            for (const client of clients) {
+                const { rows } = await query(sql, [client.client_id]);
+                if (rows.length === 0) {
+                    throw new Error('Failed to delete test client');
+                } else {
+                    console.log('Test Client deleted.');
+                    clients.splice(clients.indexOf(client), 1);
+                }
+            }
+        } else {
+            console.log('No test clients to delete.');
         }
     });
     //------------------------------------//
@@ -660,6 +685,8 @@ describe('Testing /api/clients', () => {
          */
         test(`[TEST]: DELETE by ID [EXPECTED]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
             for (const client of clients) {
+                console.log(client);
+                console.log(client.client_id);
                 const response = await request(app).delete(`/api/clients/${client.client_id}`);
                 assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,
                     `Expected status code ${C_HTTP.STATUS.NO_CONTENT}, got ${response.statusCode}`);

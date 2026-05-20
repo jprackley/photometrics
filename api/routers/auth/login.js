@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 
 const query = require("../../db").query;
 const asyncHandler = require("../../../utils/helpers/asyncHandler");
-const {handleValidation} = require("../../../utils/helpers/validation")
+const {handleValidation} = require("../../validators/queryHandler")
 const {compare} = require("bcrypt");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");

@@ -12,7 +12,7 @@ const {
     paginate,
     buildPagination,
     handleValidation
-} = require('../../utils/helpers/validation');
+} = require('../validators/queryHandler');
 
 //----------------------------------------------------------------------------------
 // CREATE Client

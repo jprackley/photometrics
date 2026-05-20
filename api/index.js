@@ -23,6 +23,8 @@ app.use('/api/time-entries', require('./routers/time.entries'));
 app.use('/api/users', require('./routers/users'));
 app.use('/api/employees', require('./routers/read-only/employees'));
 
+app.use('/kpi/projects', require('./routers/dashboard/projectKPI'))
+
 // Error handler MUST BE LAST
 app.use((err, req, res, next) => {
     const status = err.status || C_HTTP.STATUS.INTERNAL_SERVER_ERROR;
