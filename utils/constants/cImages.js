@@ -21,7 +21,7 @@ const REQUIRED_COLUMNS = {
     PROJECT_ID: 'project_id',
     NAME: 'name',
     STATUS: 'status',
-    COMPLETED: 'completed_at',
+    COMPLETED: 'completed',
 };
 
 const MUTABLE_COLUMNS = {

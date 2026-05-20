@@ -190,7 +190,7 @@ router.patch(
             }).withMessage(`Image url must be between ${C_IMAGE.MIN.URL} and ${C_IMAGE.MAX.URL} characters long.`)
             .isURL().withMessage('Invalid image url format.'),
         body('status').optional().isIn(Object.values(C_IMAGE.STATUS)).withMessage('Invalid image status'),
-        body('completed').optional().isBoolean().withMessage('Invalid completed value').toBoolean(),
+        body('completed').optional().isBoolean().withMessage('Invalid completed value'),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'UPDATE Image - ');
@@ -208,7 +208,10 @@ router.patch(
             }
         });
 
-        if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({ error: { code: C_HTTP.MESSAGE.BAD_REQUEST, message: 'No updatable fields provided' } });
+        if (set.length === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({
+            error: {
+                code: C_HTTP.CODE.BAD_REQUEST,
+                message: C_HTTP.MESSAGE.BAD_REQUEST } });
         params.push(id);
 
         const sql = `
@@ -220,8 +223,8 @@ router.patch(
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
             error:
                 {
-                    code: C_HTTP.MESSAGE.NOT_FOUND,
-                    message: 'Project not found'
+                    code: C_HTTP.CODE.NOT_FOUND,
+                    message: C_HTTP.MESSAGE.NOT_FOUND
                 }
         });
         res.json(rows[0]);
