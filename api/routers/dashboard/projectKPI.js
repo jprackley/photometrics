@@ -1,21 +1,17 @@
 const express = require('express');
-const {param, body} = require("express-validator");
 const router = express.Router();
-
-const { kpi } = require('../../validators/queryHandler');
 
 const C_PROJECT = require('../../../utils/constants/cProjects');
 const C_KPI = require('../../../utils/constants/cKPIs');
 
 const asyncHandler = require('../../../utils/helpers/asyncHandler');
+const { verbose } = require('../../validators/queryHandler');
 const {handleValidation} = require("../../validators/queryHandler");
-const {query} = require("../../db");
+const { query } = require("../../db");
 
 router.get(
     '/active',
-    [
-        query('v').optional().isBoolean().withMessage('Must be true or false')
-    ],
+    [verbose],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'GET Active Projects - ');
         const { v } = req.query;

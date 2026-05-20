@@ -10,6 +10,7 @@ const paginate = [
     query('sort').optional().isString(),
     query('order').optional().isIn([C_NODE.ASCENDING, C_NODE.DESCENDING]).withMessage('order asc|desc'),
 ];
+const verbose = [query('v').optional().isBoolean().withMessage('Verbose query must be true or false')]
 
 function buildPagination({ page = 1, limit = 20 }) {
     const offset = (page - 1) * limit;
@@ -41,4 +42,4 @@ function handleValidation(req, desc) {
     }
 }
 
-module.exports = { paginate, buildPagination, handleValidation,  kpi };
+module.exports = { paginate, buildPagination, handleValidation,  verbose };
