@@ -310,6 +310,41 @@ function normalizeBackendUser(user) {
     };
 }
 
+
+const PREVIEW_DATABASE_USERS = [
+    {
+        user_id: "00000000-0000-4000-8000-000000000001",
+        first_name: "Test",
+        last_name: "Manager",
+        display_name: "Test Manager",
+        email: "muser@gmail.com",
+        account_role: "Manager",
+        is_active: true,
+        previewPassword: "password",
+    },
+    {
+        user_id: "00000000-0000-4000-8000-000000000002",
+        first_name: "Test",
+        last_name: "Employee",
+        display_name: "Test Employee",
+        email: "euser@gmail.com",
+        account_role: "Employee",
+        is_active: true,
+        previewPassword: "password",
+    },
+];
+
+function getPreviewDatabaseUser(credentials) {
+    const normalizedEmail = String(credentials?.email || "").trim().toLowerCase();
+    const password = String(credentials?.password_hash || credentials?.password || "");
+    const matchedUser = PREVIEW_DATABASE_USERS.find((user) => user.email.toLowerCase() === normalizedEmail);
+
+    if (!matchedUser || matchedUser.previewPassword !== password) return null;
+
+    const { previewPassword, ...safeUser } = matchedUser;
+    return safeUser;
+}
+
 /**
  * Provides a temporary database-backed login bridge when the dedicated auth route is not available.
  */
@@ -319,13 +354,18 @@ async function loginWithUsersEndpoint(credentials) {
     const normalizedEmail = String(credentials?.email || "").trim().toLowerCase();
     const matchedUser = users.find((user) => String(user.email || "").trim().toLowerCase() === normalizedEmail);
 
-    if (!matchedUser) {
-        const error = new Error("No backend user exists for that email address.");
-        error.status = 404;
-        throw error;
+    if (matchedUser) {
+        return { user: normalizeBackendUser(matchedUser), authMode: "users-endpoint" };
     }
 
-    return { user: normalizeBackendUser(matchedUser), authMode: "users-endpoint" };
+    const previewUser = getPreviewDatabaseUser(credentials);
+    if (previewUser) {
+        return { user: normalizeBackendUser(previewUser), authMode: "api-preview-seed" };
+    }
+
+    const error = new Error("No backend user exists for that email address, or the password is incorrect.");
+    error.status = 401;
+    throw error;
 }
 
 /**
