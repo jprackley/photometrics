@@ -7,6 +7,8 @@ const C_CLIENT = require('../../utils/constants/cClients');
 const {query} = require("../../api/db");
 
 const clients = []
+const testText = "ClientTestSuite"
+const testEmailSuffix = "@test.suite.com"
 const test_client = {
     first_name: "TestClient",
     middle_name: "Tester",
@@ -246,7 +248,7 @@ describe('Testing /api/clients', () => {
             DELETE 
             FROM clients 
             WHERE client_id = $1
-            RETURNING client_id;`;
+            RETURNING *;`;
 
         if (clients.length > 0) {
             for (const client of clients) {
@@ -255,9 +257,8 @@ describe('Testing /api/clients', () => {
                     throw new Error('Failed to delete test client');
                 } else {
                     console.log('Test Client deleted.');
-                    clients.splice(clients.indexOf(client), 1);
                 }
-            }
+            } clients.length = 0;
         } else {
             console.log('No test clients to delete.');
         }
@@ -289,12 +290,28 @@ describe('Testing /api/clients', () => {
          *
          * @throws {AssertionError} If the API does not return HTTP 400 Bad Request.
          */
-        test(`[TEST]: CREATE first name missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE first name missing [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`,
+            async () => {
             const response = await request(app).post('/api/clients').send(clients_undefined.firstName);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
             if (response.statusCode === C_HTTP.STATUS.CREATED) clients.push(response.body);
         });
+
+        test(`[TEST]: CREATE Client with missing required fields [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`,
+            async () => {
+                for (const field of Object.values(C_CLIENT.REQUIRED_COLUMNS)) {
+                    if (field !== C_CLIENT.REQUIRED_COLUMNS.EMAIL) {
+                        const newClient = test_client;
+                        newClient.email = `${testText}${Date.now()}${testEmailSuffix}`;
+                        newClient[field] = "";
+                        const response = await request(app).post('/api/clients').send(newClient);
+                        console.log(`Sending the following data:\n${JSON.stringify(newClient)}\n\n`);
+                        console.log(`Returned the following data:\n${JSON.stringify(response.body)}\n\n`);
+                    }
+                }
+            }
+        );
 
         test(`[TEST]: CREATE max first name [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
             const response = await request(app).post('/api/clients').send(clients_overrun.firstName);
