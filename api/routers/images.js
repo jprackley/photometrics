@@ -1,5 +1,5 @@
 const express = require('express');
-const {param, body, query: queryValidator} = require('express-validator');
+const {param, body } = require('express-validator');
 const router = express.Router();
 
 const {paginate, handleValidation, buildPagination} = require('../validators/queryHandler');
@@ -37,7 +37,7 @@ router.post(
             }).withMessage(`Image url must be between ${C_IMAGE.MIN.URL} and ${C_IMAGE.MAX.URL} characters long.`)
             .isURL().withMessage('Invalid image url format.'),
         body('status').optional().isIn(Object.values(C_IMAGE.STATUS)).withMessage('Invalid image status'),
-        body('completed').optional().isBoolean().withMessage('Invalid completed value').toBoolean(),
+        body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE Image - ');
@@ -190,7 +190,7 @@ router.patch(
             }).withMessage(`Image url must be between ${C_IMAGE.MIN.URL} and ${C_IMAGE.MAX.URL} characters long.`)
             .isURL().withMessage('Invalid image url format.'),
         body('status').optional().isIn(Object.values(C_IMAGE.STATUS)).withMessage('Invalid image status'),
-        body('completed').optional().isBoolean().withMessage('Invalid completed value'),
+        body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'UPDATE Image - ');

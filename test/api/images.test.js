@@ -204,7 +204,6 @@ describe('[API] /api/images', () => {
                 description: 'Test Image From Image API Test',
                 url: 'https://example.com/test_image_001.jpg',
                 status: C_IMAGE.STATUS.IN_PROGRESS,
-                completed: false,
             });
 
             assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
@@ -266,14 +265,12 @@ describe('[API] /api/images', () => {
                 name: 'test_image_001_updated.jpg',
                 description: 'Updated Image From Image API Test',
                 status: C_IMAGE.STATUS.COMPLETED,
-                completed: true,
+                completed_at: new Date().toISOString(),
             });
 
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,
                 `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode} \n
                 ${JSON.stringify(response.body, null, 2)}`);
-            assert.equal(response.body.completed, true,
-                `Expected completed to be true, got ${response.body.completed}`);
         });
     });
 

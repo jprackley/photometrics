@@ -208,16 +208,16 @@ CREATE TABLE tasks
 
 CREATE TABLE images
 (
-    image_id    UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
-    project_id  UUID         NOT NULL,
-    task_id     UUID                  DEFAULT NULL,
-    name        VARCHAR(255) NOT NULL DEFAULT 'Uploaded_' || CURRENT_DATE::text || '_' || gen_random_uuid()::text,
-    description TEXT                  DEFAULT NULL,
-    url         TEXT                  DEFAULT NULL,
-    status      image_status NOT NULL DEFAULT 'Pending',
-    completed   BOOLEAN      NOT NULL DEFAULT false,
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    image_id     UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
+    project_id   UUID         NOT NULL,
+    task_id      UUID                  DEFAULT NULL,
+    name         VARCHAR(255) NOT NULL DEFAULT 'Uploaded_' || CURRENT_DATE::text || '_' || gen_random_uuid()::text,
+    description  TEXT                  DEFAULT NULL,
+    url          TEXT                  DEFAULT NULL,
+    status       image_status NOT NULL DEFAULT 'Pending',
+    completed_at TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ  NOT NULL DEFAULT now(),
     CONSTRAINT fk_images_project
         FOREIGN KEY (project_id)
             REFERENCES projects (project_id)
