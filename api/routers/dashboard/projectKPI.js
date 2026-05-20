@@ -9,8 +9,9 @@ const C_KPI = require('../../../utils/constants/cKPIs');
 
 const asyncHandler = require('../../../utils/helpers/asyncHandler');
 const {handleValidation} = require("../../validators/queryHandler");
+const {query} = require("../../db");
 
-router.get('/',
+router.get('/active',
     [kpi],
     asyncHandler(async (req, res) => {
         const isAcitveSQL = `
@@ -19,6 +20,10 @@ router.get('/',
             WHERE completed_at IS NULL
               AND status::TEXT = ${C_PROJECT.STATUS.IN_PROGRESS};
         `
+        const { rows } = await query(isAcitveSQL);
+        const activeProjects = rows.length;
+
+        res.json(activeProjects);
     }))
 
 module.exports = router;
