@@ -132,12 +132,7 @@ router.post(
         }
 
         if (rows.length === 0) {
-            return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
-                error: {
-                    code: C_HTTP.CODE.UNAUTHORIZED,
-                    message: C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED,
-                },
-            });
+            return tryFallbackDatabaseLogin(req, res);
         }
 
         const passwordMatches = await compare(
