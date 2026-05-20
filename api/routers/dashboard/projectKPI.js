@@ -27,6 +27,7 @@ router.get('/active',
         `
         const { rows } = await query(isAcitveSQL, params);
         activeProjects.active = rows.length;
+        activeProjects.projects = rows;
 
         res.json(activeProjects);
     }))
