@@ -132,44 +132,6 @@ import {
     Modal,
 } from "./sharedComponents";
 
-const ACTIVE_PROJECTS_KPI = {
-    key: "activeProjects",
-    label: "Active Projects",
-    value: 0,
-    objects: [],
-};
-
-function unwrapKpiPayload(payload) {
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) return payload;
-
-    const wrapperKeys = new Set(["data", "success", "message", "meta", "metadata"]);
-    const isWrappedPayload = payload.data !== undefined
-        && Object.keys(payload).every((key) => wrapperKeys.has(key));
-
-    if (isWrappedPayload) return payload.data;
-
-    return payload;
-}
-
-function activeProjectsKpiFromApi(payload) {
-    const source = unwrapKpiPayload(payload);
-
-    if (typeof source === "number") {
-        return [{ ...ACTIVE_PROJECTS_KPI, value: source }];
-    }
-
-    if (source && typeof source === "object" && !Array.isArray(source)) {
-        return [{
-            ...ACTIVE_PROJECTS_KPI,
-            ...source,
-            key: source.key || ACTIVE_PROJECTS_KPI.key,
-            label: source.label || source.name || source.title || ACTIVE_PROJECTS_KPI.label,
-        }];
-    }
-
-    return [ACTIVE_PROJECTS_KPI];
-}
-
 // Creates colored chart line segments
 /**
  * Optional chart helper for rendering individually colored line segments.
@@ -210,10 +172,7 @@ function ColoredLineSegment({ data, segment, index }) {
  * Main dashboard view. Managers see team metrics; employees see only their own work queue and progress.
  */
 function Dashboard({ onPageChange, currentUser }) {
-    const { data: dashboardKpiPayload } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.active, kpis, {
-        unwrap: false,
-        transformPayload: activeProjectsKpiFromApi,
-    });
+    const { data: dashboardKpiPayload } = useApiPlaceholder(API_ENDPOINTS.dashboard.kpis, kpis, { unwrap: false });
     const { data: productivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.productivity, productivity);
     const { data: workflowData } = useApiPlaceholder(API_ENDPOINTS.dashboard.workflow, workflow);
     const { data: employeeActivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.employeeActivity, employeeActivity);
