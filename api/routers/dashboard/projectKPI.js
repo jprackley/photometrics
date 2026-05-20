@@ -18,13 +18,14 @@ router.get('/active',
             active: 0,
             projects: {}
         }
+        const params = [C_PROJECT.STATUS.IN_PROGRESS]
         const isAcitveSQL = `
             SELECT *
             FROM projects
             WHERE completed_at IS NULL
-              AND status::TEXT = ${C_PROJECT.STATUS.IN_PROGRESS};
+              AND status::TEXT = $1;
         `
-        const { rows } = await query(isAcitveSQL);
+        const { rows } = await query(isAcitveSQL, params);
         activeProjects.active = rows.length;
 
         res.json(activeProjects);
