@@ -337,7 +337,8 @@ function LoginPage({ onLogin }) {
             onLogin?.(getPublicUser(normalizeBackendUser(user) || user), rememberMe);
         } catch (apiError) {
             console.warn("Login API failed while mock data is turned off. Mock login fallback is disabled.", apiError);
-            setError("The login API/database request failed. Mock login will not be used unless Use Mock Data is turned on.");
+            const apiMessage = apiError?.message || "The login API/database request failed.";
+            setError(`${apiMessage} Mock login will not be used unless Use Mock Data is turned on.`);
         } finally {
             setIsSubmitting(false);
         }
