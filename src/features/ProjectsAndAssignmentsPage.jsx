@@ -50,6 +50,7 @@ import {
     apiPlaceholders,
     getUseApiDataSetting,
     normalizeBackendUser,
+    normalizeProjectRows,
     projectToApi,
     saveUseApiDataSetting,
     unwrapApiPayload,
@@ -316,8 +317,11 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
  * Manager project and assignment management page with sorting, filtering, pagination, export, and modals.
  */
 function ProjectsAndAssignments() {
-    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projects, projects);
-    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, assignments);
+    const localAssignmentFallback = getUseApiDataSetting() ? [] : assignments;
+    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projects, projects, {
+        transformPayload: normalizeProjectRows,
+    });
+    const { data: loadedAssignmentRows } = useApiPlaceholder(null, localAssignmentFallback);
 
     const [projectRows, setProjectRows] = useState(projects);
     const [assignmentRows, setAssignmentRows] = useState(assignments);
@@ -761,8 +765,11 @@ function ProjectsAndAssignments() {
  * Role-aware projects page that limits employee users to their assigned projects and assignments.
  */
 function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
-    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projects, projects);
-    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, assignments);
+    const localAssignmentFallback = getUseApiDataSetting() ? [] : assignments;
+    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projects, projects, {
+        transformPayload: normalizeProjectRows,
+    });
+    const { data: loadedAssignmentRows } = useApiPlaceholder(null, localAssignmentFallback);
 
     const [projectRows, setProjectRows] = useState(projects);
     const [assignmentRows, setAssignmentRows] = useState(assignments);
