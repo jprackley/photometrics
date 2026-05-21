@@ -200,6 +200,7 @@ function downloadSettingsReport(settings) {
 }
 
 const SETTINGS_STORAGE_KEY = "photometrics-manager-settings-v1";
+const SETTINGS_UPDATED_EVENT = "photometrics-settings-updated";
 
 function mergeSettings(baseSettings, savedSettings) {
     if (!savedSettings || typeof savedSettings !== "object" || Array.isArray(savedSettings)) {
@@ -235,6 +236,7 @@ function saveSettingsLocally(settings) {
 
     try {
         window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+        window.dispatchEvent(new CustomEvent(SETTINGS_UPDATED_EVENT, { detail: settings }));
     } catch (storageError) {
         console.warn("Settings could not be saved locally.", storageError);
     }
@@ -664,6 +666,15 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
             preferences: appearance,
         };
         onUserUpdate?.(nextUser);
+
+        const currentSettings = loadSavedSettings();
+        saveSettingsLocally({
+            ...currentSettings,
+            appearance: {
+                ...currentSettings.appearance,
+                ...appearance,
+            },
+        });
         setSavedMessage("Appearance preferences saved locally.");
     };
 
