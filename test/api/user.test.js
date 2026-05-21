@@ -1,8 +1,14 @@
 const app = require('../../api/index')
-const {describe, test, before, after, beforeEach} = require("node:test");
-const C_HTTP = require('../../utils/constants/cHTTP');
 const assert = require("node:assert");
 const request = require('supertest');
+const {describe, test, before, after} = require("node:test");
+
+const C_HTTP = require('../../utils/constants/cHTTP');
+const C_USER = require("../../utils/constants/cUsers");
+
+const { createTestUser } = require("../helpers/beforeTests");
+const { buildTestUser } = require("../helpers/testBuilders");
+const { deleteTestUsers } = require("../helpers/afterTests");
 
 
 /**
@@ -28,105 +34,38 @@ describe('Testing /api/users', () => {
         password_hash: "password",
         account_role: "Manager",
     };
-
-    const missingFirstName = {
-        first_name: "",
-        last_name: "User Test Suite",
-        email: `TestUser.UserTestSuite${Date.now()}@testees.com`,
-        password_hash: "password",
-        account_role: "Manager",
-    }
-    //Request body used to test validation when the last name is missing.
-    const missingLastName = {
-        first_name: "TestUser",
-        last_name: "",
-        email: `TestUser.UserTestSuite${Date.now()}@testees.com`,
-        password_hash: "password",
-        account_role: "Manager",
-    }
-    //Request body used to test validation when the email is missing.
-    const missingEmail = {
-        first_name: "TestUser",
-        last_name: "UserTestSuite",
-        email: ``,
-        password_hash: "password",
-        account_role: "Manager",
-    }
-    //Request body used to test validation when the password is missing.
-    const missingPassword = {
-        first_name: "TestUser",
-        last_name: "UserTestSuite",
-        email: `TestUser.UserTestSuite${Date.now()}@testees.com`,
-        password_hash: "",
-        account_role: "Manager",
-    }
-    //Request body used to test validation when the role is missing.
-    const missingRole = {
-        first_name: "TestUser",
-        last_name: "UserTestSuite",
-        email: `TestUser.UserTestSuite${Date.now()}@testees.com`,
-        password_hash: "password",
-        account_role: "",
-    }
-    const duplicateEmail = {
-        first_name: "TestUser",
-        last_name: "UserTestSuite",
-        email: `TestUser.UserTestSuite@testees.com`,
-        password_hash: "password",
-        account_role: "Manager",
-    }
     /**
      * Creates a valid user before the test suite runs.
-     *
-     * The created user ID is stored in the `users` array, so later tests
-     * can READ, UPDATE, and DELETE the same user.
-     *
-     * @throws {AssertionError} If the API does not return HTTP 201 Created.
      */
-    beforeEach( () => {
-        //Request body used to test validation when the first name is missing.
-        validUser = {
-            first_name: "TestUser",
-            last_name: "UserTestSuite",
-            email: `TestUser.UserTestSuite${Date.now()}@testees.com`,
-            password_hash: "password",
-            account_role: "Manager",
-        }
-    })
     before(async () => {
 
-        const response = await request(app).post('/api/users').send(validUser);
-        assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
-            `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode} \n 
-            ${JSON.stringify(response.body, null, 2)}`);
-        if (response.statusCode === C_HTTP.STATUS.CREATED) {
-            users.push(response.body.user_id);
-        }
-    });
+        console.log('[PRE] Creating Test Data...');
+
+        const employee = await createTestUser(C_USER.ROLES.EMPLOYEE, 'users');
+        users.push( employee.user_id );
+        const manager = await createTestUser(C_USER.ROLES.MANAGER, 'users');
+        users.push( manager.user_id );
+    })
     /**
-     * Creates a valid user before the test suite runs.
-     *
-     * The created user ID is stored in the `users` array, so later tests
-     * can READ, UPDATE, and DELETE the same user.
-     *
-     * @throws {AssertionError} If the API does not return HTTP 201 Created.
+     * Removes users after the test suite runs.
      */
     after(async () => {
-        for (const id of users) {
-            await request(app).delete(`/api/users/${id}`);
-        }
-    });
+
+        console.log('[POST] Destroying Test Data...');
+
+        users.length = await deleteTestUsers(users, 'users');
+    })
 
     /**
      * Tests the CREATE user endpoint.
-     *
-     * Validates that a properly formed request creates a user and that
-     * invalid request bodies return HTTP 400 Bad Request.
      */
     describe('[API]: CREATE User', () => {
 
         test(`[TEST]: CREATE valid User [EXPECTED]: status code ${C_HTTP.STATUS.CREATED}`, async () => {
-            const response = await request(app).post('/api/users').send(validUser);
+
+            const response = await request(app).post('/api/users')
+                .send( buildTestUser(C_USER.ROLES.EMPLOYEE, 'users',) );
+
             assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
                 `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode} \n 
                 ${JSON.stringify(response.body, null, 2)}`);
@@ -136,7 +75,10 @@ describe('Testing /api/users', () => {
         });
 
         test(`[TEST]: CREATE first name missing [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/users').send(missingFirstName);
+
+            const response = await request(app).post('/api/users')
+                .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.FIRST_NAME));
+
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n 
                 ${JSON.stringify(response.body, null, 2)}`);
@@ -146,7 +88,10 @@ describe('Testing /api/users', () => {
         });
 
         test(`[TEST]: CREATE last name missing [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/users').send(missingLastName);
+
+            const response = await request(app).post('/api/users')
+                .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.LAST_NAME,));
+
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n 
                 ${JSON.stringify(response.body, null, 2)}`);
@@ -156,7 +101,10 @@ describe('Testing /api/users', () => {
         });
 
         test(`[TEST]: CREATE email missing [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/users').send(missingEmail);
+
+            const response = await request(app).post('/api/users')
+                .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.EMAIL,));
+
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n 
                 ${JSON.stringify(response.body, null, 2)}`);
@@ -166,7 +114,10 @@ describe('Testing /api/users', () => {
         });
 
         test(`[TEST]: CREATE password missing [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/users').send(missingPassword);
+
+            const response = await request(app).post('/api/users')
+                .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.SECURE_COLUMNS.PASSWORD,));
+
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST, `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n 
             ${JSON.stringify(response.body, null, 2)}`)
             if (response.statusCode === C_HTTP.STATUS.CREATED) {
@@ -175,7 +126,10 @@ describe('Testing /api/users', () => {
         });
 
         test(`[TEST]: CREATE role missing [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
-            const response = await request(app).post('/api/users').send(missingRole);
+
+            const response = await request(app).post('/api/users')
+                .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.ROLE,));
+
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST, `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n 
             ${JSON.stringify(response.body, null, 2)}`)
             if (response.statusCode === C_HTTP.STATUS.CREATED) {
@@ -185,15 +139,12 @@ describe('Testing /api/users', () => {
 
         test(`[TEST]: CREATE duplicate email [EXPECTED]: status code ${C_HTTP.STATUS.INTERNAL_SERVER_ERROR}`, async () => {
 
-            const responseValid = await request(app).post('/api/users').send(duplicateEmail);
-            assert.equal(responseValid.statusCode, C_HTTP.STATUS.CREATED,
-                `Expected status code ${C_HTTP.STATUS.CREATED}, got ${responseValid.statusCode} \n 
-                ${JSON.stringify(responseValid.body, null, 2)}`);
-            if (responseValid.statusCode === C_HTTP.STATUS.CREATED) {
-                users.push(responseValid.body.user_id);
-            }
+            const response = await request(app).post('/api/users')
+                .send( validUser );
 
-            const responseInvalid = await request(app).post('/api/users').send(duplicateEmail);
+            const responseInvalid = await request(app).post('/api/users')
+                .send( validUser );
+
             assert.equal(responseInvalid.statusCode, C_HTTP.STATUS.INTERNAL_SERVER_ERROR,
                 `Expected status code ${C_HTTP.STATUS.INTERNAL_SERVER_ERROR}, got ${responseInvalid.statusCode} \n 
                 ${JSON.stringify(responseInvalid.body, null, 2)}`);
@@ -213,15 +164,21 @@ describe('Testing /api/users', () => {
     describe('[API]: READ User', () => {
 
         test(`[TEST]: READ by default pagination [EXPECTED]: status code ${C_HTTP.STATUS.OK}`, async () => {
+
             const response = await request(app).get('/api/users');
+
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,
-                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode} \n ${JSON.stringify(response.body, null, 2)}`);
+                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode} \n 
+                ${JSON.stringify(response.body, null, 2)}`);
         });
 
         test(`[TEST]: valid id [EXPECTED]: status code ${C_HTTP.STATUS.OK}`, async () => {
+
             const response = await request(app).get(`/api/users/${users[0]}`);
+
             assert.equal(response.statusCode, C_HTTP.STATUS.OK,
-                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode} \n ${JSON.stringify(response.body, null, 2)}`);
+                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode} \n 
+                ${JSON.stringify(response.body, null, 2)}`);
         })
     })
     /**
