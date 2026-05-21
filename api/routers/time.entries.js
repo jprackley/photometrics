@@ -143,9 +143,9 @@ router.patch(
     '/:id',
     [
         param('id').isUUID().withMessage('Invalid time_entry_id UUID'),
-        body('start_time').optional().isISO8601().withMessage('Invalid start time format'),
-        body('end_time').optional().isISO8601().withMessage('Invalid end time format'),
-        body('total_time').optional().isDecimal().withMessage('Invalid duration format')
+        body('start_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid start time format'),
+        body('end_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid end time format'),
+        body('total_time').optional({ values: 'null' }).isDecimal().withMessage('Invalid duration format')
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'UPDATE Time Entry - ');

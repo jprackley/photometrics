@@ -23,26 +23,26 @@ router.post(
                 max: C_TASK.MAX.NAME,
             }).withMessage(`Task name must be between ${C_TASK.MIN.NAME} and ${C_TASK.MAX.NAME} characters.`),
 
-        body('category').optional().isString().isIn(Object.values(C_TASK.CATEGORY)).withMessage('Invalid task category'),
-        body('priority').optional().isString().isIn(Object.values(C_TASK.PRIORITY)).withMessage('Invalid task priority'),
-        body('description').optional().isString().isLength(
+        body('category').optional({ values: 'null' }).isString().isIn(Object.values(C_TASK.CATEGORY)).withMessage('Invalid task category'),
+        body('priority').optional({ values: 'null' }).isString().isIn(Object.values(C_TASK.PRIORITY)).withMessage('Invalid task priority'),
+        body('description').optional({ values: 'null' }).isString().isLength(
             {
                 min: C_TASK.MIN.DESCRIPTION,
                 max: C_TASK.MAX.DESCRIPTION,
             }).withMessage(`Task description must be between ${C_TASK.MIN.DESCRIPTION} and ${C_TASK.MAX.DESCRIPTION} characters`),
 
-        body('status').optional().isString().isIn(Object.values(C_TASK.STATUS)).withMessage('Invalid task status'),
-        body('progress').optional().isDecimal(
+        body('status').optional({ values: 'null' }).isString().isIn(Object.values(C_TASK.STATUS)).withMessage('Invalid task status'),
+        body('progress').optional({ values: 'null' }).isDecimal(
             {
                 min: C_TASK.MIN.PROGRESS,
                 max: C_TASK.MAX.PROGRESS,
             }).withMessage(`Task progress must be between ${C_TASK.MIN.PROGRESS} and ${C_TASK.MAX.PROGRESS} percent`),
 
-        body('start_time').optional().isISO8601().withMessage('Invalid start time format'),
-        body('due_time').optional().isISO8601().withMessage('Invalid due time format'),
-        body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
-        body('assigned_by').optional().isUUID().withMessage('Invalid assigned_by UUID'),
-        body('assigned_to').optional().isUUID().withMessage('Invalid assigned_to UUID')
+        body('start_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid start time format'),
+        body('due_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid due time format'),
+        body('completed_at').optional({ values: 'null' }).isISO8601().withMessage('Invalid completed time format'),
+        body('assigned_by').optional({ values: 'null' }).isUUID().withMessage('Invalid assigned_by UUID'),
+        body('assigned_to').optional({ values: 'null' }).isUUID().withMessage('Invalid assigned_to UUID')
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE Task - ');
@@ -163,29 +163,29 @@ router.patch(
     '/:id',
     [
         param('id').isUUID().withMessage('Invalid Task UUID.'),
-        body('project_id').optional().isUUID().withMessage('Invalid project_id UUID'),
-        body('task_name').optional().isString().isLength(
+        body('project_id').optional({ values: 'null' }).isUUID().withMessage('Invalid project_id UUID'),
+        body('task_name').optional({ values: 'null' }).isString().isLength(
             {
                 min: C_TASK.MIN.NAME,
                 max: C_TASK.MAX.NAME
             })
             .withMessage(`Task name must be between ${C_TASK.MIN.NAME} and ${C_TASK.MAX.NAME} characters`),
 
-        body('category').optional().isString().isIn(Object.values(C_TASK.CATEGORY)).withMessage('Invalid task category'),
-        body('priority').optional().isString().isIn(Object.values(C_TASK.PRIORITY)).withMessage('Invalid task priority'),
-        body('description').optional().isString().isLength(
+        body('category').optional({ values: 'null' }).isString().isIn(Object.values(C_TASK.CATEGORY)).withMessage('Invalid task category'),
+        body('priority').optional({ values: 'null' }).isString().isIn(Object.values(C_TASK.PRIORITY)).withMessage('Invalid task priority'),
+        body('description').optional({ values: 'null' }).isString().isLength(
             {
                 min: C_TASK.MIN.DESCRIPTION,
                 max: C_TASK.MAX.DESCRIPTION
             })
             .withMessage(`Task description must be between ${C_TASK.MIN.DESCRIPTION} and ${C_TASK.MAX.DESCRIPTION} characters`),
 
-        body('status').optional().isString().isIn(Object.values(C_TASK.STATUS)).withMessage('Invalid task status'),
-        body('start_time').optional().isISO8601().withMessage('Invalid start time format'),
-        body('due_time').optional().isISO8601().withMessage('Invalid due time format'),
-        body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
-        body('assigned_by').optional().isUUID().withMessage('Invalid assigned_by UUID'),
-        body('assigned_to').optional().isUUID().withMessage('Invalid assigned_to UUID')
+        body('status').optional({ values: 'null' }).isString().isIn(Object.values(C_TASK.STATUS)).withMessage('Invalid task status'),
+        body('start_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid start time format'),
+        body('due_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid due time format'),
+        body('completed_at').optional({ values: 'null' }).isISO8601().withMessage('Invalid completed time format'),
+        body('assigned_by').optional({ values: 'null' }).isUUID().withMessage('Invalid assigned_by UUID'),
+        body('assigned_to').optional({ values: 'null' }).isUUID().withMessage('Invalid assigned_to UUID')
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, `UPDATE Task:id - `);

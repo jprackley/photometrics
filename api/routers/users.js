@@ -20,12 +20,12 @@ const {MESSAGE} = require("../../utils/constants/cHTTP");
 router.post(
     '/',
     [
-        body('employee_id').optional().isString().isLength({
+        body('employee_id').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.EMPLOYEE_ID,
             max: C_USER.MAX.EMPLOYEE_ID
         }).withMessage(`Employee ID must be less than ${C_USER.MAX.EMPLOYEE_ID} characters long`),
 
-        body('manager_id').optional().isString().isLength({
+        body('manager_id').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.MANAGER_ID,
             max: C_USER.MAX.MANAGER_ID
         }).withMessage(`Manager ID must be less than ${C_USER.MAX.MANAGER_ID} characters long`),
@@ -35,7 +35,7 @@ router.post(
             max: C_USER.MAX.FIRST_NAME })
             .withMessage(`First name must be between ${C_USER.MIN.FIRST_NAME} and ${C_USER.MAX.FIRST_NAME} characters`),
 
-        body('middle_name').optional().isString().isLength({
+        body('middle_name').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.MIDDLE_NAME,
             max: C_USER.MAX.MIDDLE_NAME
         }).withMessage(`Middle name must be less than ${C_USER.MAX.MIDDLE_NAME} characters long`),
@@ -45,12 +45,12 @@ router.post(
             max: C_USER.MAX.LAST_NAME })
             .withMessage(`Last name must be between ${C_USER.MIN.LAST_NAME} and ${C_USER.MAX.LAST_NAME} characters`),
 
-        body('display_name').optional().isString().isLength({
+        body('display_name').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.DISPLAY_NAME,
             max: C_USER.MAX.DISPLAY_NAME
         }).withMessage(`Display name must be less than ${C_USER.MAX.DISPLAY_NAME} characters long`),
 
-        body('status').optional().isString().isLength({
+        body('status').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.STATUS,
             max: C_USER.MAX.STATUS
         }).withMessage(`Status must be less than ${C_USER.MAX.STATUS} characters long`),
@@ -60,47 +60,47 @@ router.post(
             max: C_USER.MAX.EMAIL })
             .withMessage(`Email must be a valid email address and less than ${C_USER.MAX.EMAIL} characters long`),
 
-        body('phone_number').optional().isString().isLength({
+        body('phone_number').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.PHONE,
             max: C_USER.MAX.PHONE
         }).withMessage(`Phone Number must be less than ${C_USER.MAX.PHONE} characters long`),
 
-        body('website').optional().isURL().isLength({
+        body('website').optional({ values: 'null' }).isURL().isLength({
             min: C_USER.MIN.WEBSITE,
             max: C_USER.MAX.WEBSITE
         }).withMessage(`Website must be a valid URL and less than ${C_USER.MAX.WEBSITE} characters long`),
 
-        body('notes').optional().isString().isLength({
+        body('notes').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.NOTES,
             max: C_USER.MAX.NOTES
         }).withMessage(`Notes must be less than ${C_USER.MAX.NOTES} characters long`),
 
-        body('address_line1').optional().isString().isLength({
+        body('address_line1').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.ADDRESS_LINE,
             max: C_USER.MAX.ADDRESS_LINE
         }).withMessage(`Address line 1 must be less than ${C_USER.MAX.ADDRESS_LINE} characters long`),
 
-        body('address_line2').optional().isString().isLength({
+        body('address_line2').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.ADDRESS_LINE,
             max: C_USER.MAX.ADDRESS_LINE
         }).withMessage(`Address line 2 must bes less than ${C_USER.MAX.ADDRESS_LINE} characters long`),
 
-        body('city').optional().isString().isLength({
+        body('city').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.CITY,
             max: C_USER.MAX.CITY
         }).withMessage(`City must be less than ${C_USER.MAX.CITY} characters long`),
 
-        body('state').optional().isString().isLength({
+        body('state').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.STATE,
             max: C_USER.MAX.STATE
         }).withMessage(`State must be less than ${C_USER.MAX.STATE}`),
 
-        body('postal_code').optional().isString().isLength({
+        body('postal_code').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.POSTAL_CODE,
             max: C_USER.MAX.POSTAL_CODE
         }).withMessage(`Postal Code must be less than ${C_USER.MAX.ZIP} characters long`),
 
-        body('country').optional().isString().isLength({
+        body('country').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.COUNTRY,
             max: C_USER.MAX.COUNTRY
         }).withMessage(`Country must be less than ${C_USER.MAX.COUNTRY} characters long`),

@@ -17,27 +17,27 @@ router.post(
     '/',
     [
         body('project_id').isUUID().withMessage('Invalid project_id UUID'),
-        body('task_id').optional().isUUID().withMessage('Invalid task_id UUID'),
-        body('name').optional().isString().isLength(
+        body('task_id').optional({ values: 'null' }).isUUID().withMessage('Invalid task_id UUID'),
+        body('name').optional({ values: 'null' }).isString().isLength(
             {
                 min: C_IMAGE.MIN.NAME,
                 max: C_IMAGE.MAX.NAME
             }).withMessage(`Image name must be between ${C_IMAGE.MIN.NAME} and ${C_IMAGE.MAX.NAME} characters.`),
 
-        body('description').optional().isString().isLength(
+        body('description').optional({ values: 'null' }).isString().isLength(
             {
                 min: C_IMAGE.MIN.DESCRIPTION,
                 max: C_IMAGE.MAX.DESCRIPTION
             }).withMessage(`Image description must be between ${C_IMAGE.MIN.DESCRIPTION} and ${C_IMAGE.MAX.DESCRIPTION} characters.`),
 
-        body('url').optional().isString().isLength(
+        body('url').optional({ values: 'null' }).isString().isLength(
             {
                 min: C_IMAGE.MIN.URL,
                 max: C_IMAGE.MAX.URL
             }).withMessage(`Image url must be between ${C_IMAGE.MIN.URL} and ${C_IMAGE.MAX.URL} characters long.`)
             .isURL().withMessage('Invalid image url format.'),
-        body('status').optional().isIn(Object.values(C_IMAGE.STATUS)).withMessage('Invalid image status'),
-        body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
+        body('status').optional({ values: 'null' }).isIn(Object.values(C_IMAGE.STATUS)).withMessage('Invalid image status'),
+        body('completed_at').optional({ values: 'null' }).isISO8601().withMessage('Invalid completed time format'),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE Image - ');
@@ -169,28 +169,28 @@ router.patch(
     '/:id',
     [
         param('id').isUUID().withMessage('Invalid image_id UUID'),
-        body('project_id').optional().isUUID().withMessage('Invalid project_id UUID'),
-        body('task_id').optional().isUUID().withMessage('Invalid task_id UUID'),
-        body('name').optional().isString().isLength(
+        body('project_id').optional({ values: 'null' }).isUUID().withMessage('Invalid project_id UUID'),
+        body('task_id').optional({ values: 'null' }).isUUID().withMessage('Invalid task_id UUID'),
+        body('name').optional({ values: 'null' }).isString().isLength(
             {
                 min: C_IMAGE.MIN.NAME,
                 max: C_IMAGE.MAX.NAME
             }).withMessage(`Image name must be between ${C_IMAGE.MIN.NAME} and ${C_IMAGE.MAX.NAME} characters long.`),
 
-        body('description').optional().isString().isLength(
+        body('description').optional({ values: 'null' }).isString().isLength(
             {
                 min: C_IMAGE.MIN.DESCRIPTION,
                 max: C_IMAGE.MAX.DESCRIPTION
             }).withMessage(`Image description must be between ${C_IMAGE.MIN.DESCRIPTION} and ${C_IMAGE.MAX.DESCRIPTION} characters long.`),
 
-        body('url').optional().isString().isLength(
+        body('url').optional({ values: 'null' }).isString().isLength(
             {
                 min: C_IMAGE.MIN.URL,
                 max: C_IMAGE.MAX.URL
             }).withMessage(`Image url must be between ${C_IMAGE.MIN.URL} and ${C_IMAGE.MAX.URL} characters long.`)
             .isURL().withMessage('Invalid image url format.'),
-        body('status').optional().isIn(Object.values(C_IMAGE.STATUS)).withMessage('Invalid image status'),
-        body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
+        body('status').optional({ values: 'null' }).isIn(Object.values(C_IMAGE.STATUS)).withMessage('Invalid image status'),
+        body('completed_at').optional({ values: 'null' }).isISO8601().withMessage('Invalid completed time format'),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'UPDATE Image - ');
