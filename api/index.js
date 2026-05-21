@@ -31,6 +31,7 @@ app.use('/api/kpi/projects', projectKpiRouter);
 app.use('/kpi/projects', projectKpiRouter);
 
 app.use('/api/dashboard/productivity', require('./routers/dashboard/productivityKPI'));
+app.use('api/dashboard/workflow', require('./routers/dashboard/workflowKPI'));
 
 // Error handler MUST BE LAST
 app.use((err, req, res, next) => {

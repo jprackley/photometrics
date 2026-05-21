@@ -6,6 +6,8 @@ const {handleValidation} = require("../../validators/queryHandler");
 const { query } = require("../../db");
 const {param} = require("express-validator");
 
+const C_HTTP = require("../../../utils/constants/cHTTP");
+
 router.get(
     '/',
     asyncHandler(async (req, res) => {
@@ -81,7 +83,8 @@ router.get(
                 u.last_name;
         `;
         const {rows} = await query(sql);
-        if (rows.length === 0) return res.status(404).json({error: {code: 404, message: 'Productivity KPI not found'}});
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.PRODUCTIVITY}});
         res.json(rows);
     })
 );
@@ -163,7 +166,8 @@ router.get(
                 u.last_name;
         `;
         const {rows} = await query(sql, [param]);
-        if (rows.length === 0) return res.status(404).json({error: {code: 404, message: 'Productivity KPI not found'}});
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.PRODUCTIVITY}});
         res.json(rows[0]);
     })
 );

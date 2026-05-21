@@ -43,6 +43,38 @@ const MESSAGE = {
     LOGOUT: {
         OK: 'Logged out successfully',
         NOT_FOUND: 'Could not logout, no user found',
+    },
+    PRODUCTIVITY: {
+        OK: 'Productivity updated successfully',
+        NOT_FOUND: 'Could not update productivity, no user found',
+    },
+    WORKFLOW: {
+        OK: 'Workflow updated successfully',
+        NOT_FOUND: 'Could not update workflow, no user found',
+    },
+    PROJECTS: {
+        OK: 'Projects fetched successfully',
+        NOT_FOUND: 'Could not fetch projects, no user found',
+    },
+    TASKS: {
+        OK: 'Tasks fetched successfully',
+        NOT_FOUND: 'Could not fetch tasks, no user found',
+    },
+    ASSIGNMENTS: {
+        OK: 'Assignments fetched successfully',
+        NOT_FOUND: 'Could not fetch assignments, no user found',
+    },
+    USERS: {
+        OK: 'Users fetched successfully',
+        NOT_FOUND: 'Could not fetch users, no user found',
+    },
+    CLIENT: {
+        OK: 'Client fetched successfully',
+        NOT_FOUND: 'Could not fetch client, no client found',
+    },
+    IMAGES: {
+        OK: 'Images fetched successfully',
+        NOT_FOUND: 'Could not fetch images, no images found',
     }
 }
 module.exports = {  STATUS, CODE, MESSAGE };
