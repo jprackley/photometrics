@@ -439,7 +439,7 @@ function ProjectsAndAssignments() {
         if (getUseApiDataSetting()) {
             try {
                 if (projectModal.mode === "create") {
-                    await apiPlaceholders.createProject(cleanProject);
+                    await apiPlaceholders.createProject(projectToApi(cleanProject));
                 } else {
                     await apiPlaceholders.updateProject(cleanProject.id, cleanProject);
                 }
@@ -921,7 +921,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
         if (getUseApiDataSetting()) {
             try {
                 if (projectModal.mode === "create") {
-                    await apiPlaceholders.createProject(cleanProject);
+                    await apiPlaceholders.createProject(projectToApi(cleanProject));
                 } else {
                     await apiPlaceholders.updateProject(cleanProject.id, cleanProject);
                 }
