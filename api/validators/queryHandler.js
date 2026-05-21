@@ -1,5 +1,5 @@
 const { query } = require('express-validator');
-const C_PROJECTS = require("../../utils/constants/cUsers");
+require("../../utils/constants/cUsers");
 C_NODE = require('../../utils/constants/cNodeServer');
 C_KPI = require("../../utils/constants/cKPIs");
 

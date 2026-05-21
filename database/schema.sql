@@ -124,9 +124,9 @@ CREATE TABLE IF NOT EXISTS clients
     client_id             UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
     first_name            VARCHAR(100) NOT NULL,
     middle_name           VARCHAR(100)          DEFAULT NULL,
-    last_name             VARCHAR(100) NOT NULL,
+    last_name             VARCHAR(100)          DEFAULT NULL,
     title                 VARCHAR(100)          DEFAULT NULL,
-    company_name          VARCHAR(255) NOT NULL,
+    company_name          VARCHAR(255)          DEFAULT NULL,
 
     email                 VARCHAR(255) NOT NULL UNIQUE,
     phone_number          VARCHAR(20)           DEFAULT NULL,

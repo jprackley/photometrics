@@ -25,22 +25,22 @@ router.post(
             max: C_CLIENT.MAX.FIRST_NAME
         }).withMessage(`First name must be less than ${C_CLIENT.MAX.FIRST_NAME} characters long`),
 
-        body('middle_name').optional({ values: 'null' }).isLength({
+        body('middle_name').optional({ values: 'falsy' }).isLength({
             min: C_CLIENT.MIN.MIDDLE_NAME,
             max: C_CLIENT.MAX.MIDDLE_NAME
         }).withMessage(`Middle name must be less than ${C_CLIENT.MAX.MIDDLE_NAME} characters long`),
 
-        body('last_name').isString().isLength({
+        body('last_name').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.LAST_NAME,
             max: C_CLIENT.MAX.LAST_NAME
         }).withMessage(`Last name must be less than ${C_CLIENT.MAX.LAST_NAME} characters long`),
 
-        body('title').optional({ values: 'null' }).isString().isLength({
+        body('title').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.TITLE,
             max: C_CLIENT.MAX.TITLE
         }).withMessage(`Title must be less than ${C_CLIENT.MAX.TITLE} characters long`),
 
-        body('company_name').isString().isLength({
+        body('company_name').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.COMPANY_NAME,
             max: C_CLIENT.MAX.COMPANY_NAME
         }).withMessage(`Company name must be less than ${C_CLIENT.MAX.COMPANY_NAME} characters long`),
@@ -50,80 +50,82 @@ router.post(
             max: C_CLIENT.MAX.EMAIL
         }).withMessage(`Email must be an email and less than ${C_CLIENT.MAX.EMAIL} characters long`),
 
-        body('phone_number').optional({ values: 'null' }).isString().isLength({
-            min: C_CLIENT.MIN.PHONE,
+        body('phone_number').optional({ values: 'falsy' }).isString().isLength({
+            min: C_CLIENT.MIN.PHONE_NUMBER,
             max: C_CLIENT.MAX.PHONE
         }).withMessage(`Phone number must be less than ${C_CLIENT.MAX.PHONE} characters long`),
 
-        body('website').optional({ values: 'null' }).isURL().isLength({
+        body('website').optional({ values: 'falsy' }).isURL().isLength({
             min: C_CLIENT.MIN.WEBSITE,
             max: C_CLIENT.MAX.WEBSITE
         }).withMessage(`Website must be a URL and less than ${C_CLIENT.MAX.WEBSITE} characters long`),
 
-        body('notes').optional({ values: 'null' }).isString().isLength({
+        body('notes').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.NOTES,
             max: C_CLIENT.MAX.NOTES
         }).withMessage(`Notes must be less than ${C_CLIENT.MAX.NOTES} characters long`),
 
-        body('address_line1').optional({ values: 'null' }).isString().isLength({
+        body('address_line1').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ADDRESS_LINE,
             max: C_CLIENT.MAX.ADDRESS_LINE
         }).withMessage(`Address line 1 must be less than ${C_CLIENT.MAX.ADDRESS_LINE} characters long`),
 
-        body('address_line2').optional({ values: 'null' }).isString().isLength({
+        body('address_line2').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ADDRESS_LINE,
             max: C_CLIENT.MAX.ADDRESS_LINE
         }).withMessage(`Address line 2 must be less than ${C_CLIENT.MAX.ADDRESS_LINE} characters long`),
 
-        body('city').optional({ values: 'null' }).isString().isLength({
+        body('city').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.CITY,
             max: C_CLIENT.MAX.CITY
         }).withMessage(`City must be less than ${C_CLIENT.MAX.CITY} characters long`),
 
-        body('state').optional({ values: 'null' }).isString().isLength({
+        body('state').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.STATE,
             max: C_CLIENT.MAX.STATE
         }).withMessage(`State must be less than ${C_CLIENT.MAX.STATE} characters long`),
 
-        body('postal_code').optional({ values: 'null' }).isString().isLength({
+        body('postal_code').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ZIP,
             max: C_CLIENT.MAX.ZIP
         }).withMessage(`Postal Code must be less than ${C_CLIENT.MAX.ZIP} characters long`),
 
-        body('country').optional({ values: 'null' }).isString().isLength({
+        body('country').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.COUNTRY,
             max: C_CLIENT.MAX.COUNTRY
         }).withMessage(`Country must be less than ${C_CLIENT.MAX.COUNTRY} characters long`),
 
-        body('billing_address_line1').optional({ values: 'null' }).isString().isLength({
+        body('billing_address_line1').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ADDRESS_LINE,
             max: C_CLIENT.MAX.ADDRESS_LINE
         }).withMessage(`Address line 1 must be less than ${C_CLIENT.MAX.ADDRESS_LINE} characters long`),
 
-        body('billing_address_line2').optional({ values: 'null' }).isString().isLength({
+        body('billing_address_line2').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ADDRESS_LINE,
             max: C_CLIENT.MAX.ADDRESS_LINE
         }).withMessage(`Address line 2 must be less than ${C_CLIENT.MAX.ADDRESS_LINE} characters long`),
 
-        body('billing_city').optional({ values: 'null' }).isString().isLength({
+        body('billing_city').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.CITY,
             max: C_CLIENT.MAX.CITY
         }).withMessage(`City must be less than ${C_CLIENT.MAX.CITY} characters long`),
 
-        body('billing_state').optional({ values: 'null' }).isString().isLength({
+        body('billing_state').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.STATE,
             max: C_CLIENT.MAX.STATE
         }).withMessage(`State must be less than ${C_CLIENT.MAX.STATE} characters long`),
 
-        body('billing_postal_code').optional({ values: 'null' }).isString().isLength({
+        body('billing_postal_code').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ZIP,
             max: C_CLIENT.MAX.ZIP
         }).withMessage(`Postal Code must be less than ${C_CLIENT.MAX.ZIP} characters long`),
 
-        body('billing_country').optional({ values: 'null' }).isString().isLength({
+        body('billing_country').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.COUNTRY,
             max: C_CLIENT.MAX.COUNTRY
         }).withMessage(`Country must be less than ${C_CLIENT.MAX.COUNTRY} characters long`),
+        body('updated_at').optional().isISO8601().withMessage('Updated at must be a valid ISO 8601 date string.\n ' +
+            'Not intended to be manually updated.'),
 
     ],
     asyncHandler(async (req, res) => {
@@ -194,7 +196,7 @@ router.get(
         ];
 
         //Will sort descending by last_name if no sort is provided
-        const sortField = sortable.includes(String(sort)) ? sort : C_CLIENT.REQUIRED_COLUMNS.last_name;
+        const sortField = sortable.includes(String(sort)) ? sort : C_CLIENT.MUTABLE_COLUMNS.last_name;
         const sortDir = order === C_NODE.ASCENDING ? C_NODE.ASCENDING : C_NODE.DESCENDING;
 
         const params = [];
@@ -267,110 +269,110 @@ router.patch(
     '/:id',
     [
         param('id').isUUID(),
-        body('first_name').optional({ values: 'null' }).isString().isLength({
+        body('first_name').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.FIRST_NAME,
             max: C_CLIENT.MAX.FIRST_NAME
-        }).withMessage(`First name must be less than ${C_CLIENT.MAX.FIRST_NAME} characters long`),
+        }).withMessage(`First name must be between ${C_CLIENT.MIN.FIRST_NAME} and ${C_CLIENT.MAX.FIRST_NAME} characters.`),
 
-        body('middle_name').optional({ values: 'null' }).isLength({
+        body('middle_name').optional({ values: 'falsy' }).isLength({
             min: C_CLIENT.MIN.MIDDLE_NAME,
             max: C_CLIENT.MAX.MIDDLE_NAME
-        }).withMessage(`Middle name must be less than ${C_CLIENT.MAX.MIDDLE_NAME} characters long`),
+        }).withMessage(`Middle name must be between ${C_CLIENT.MIN.MIDDLE_NAME} and ${C_CLIENT.MAX.MIDDLE_NAME} characters.`),
 
-        body('last_name').optional({ values: 'null' }).isString().isLength({
+        body('last_name').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.LAST_NAME,
             max: C_CLIENT.MAX.LAST_NAME
-        }).withMessage(`Last name must be less than ${C_CLIENT.MAX.LAST_NAME} characters long`),
+        }).withMessage(`Last name must be between ${C_CLIENT.MIN.LAST_NAME} and ${C_CLIENT.MAX.LAST_NAME} characters.`),
 
-        body('title').optional({ values: 'null' }).isString().isLength({
+        body('title').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.TITLE,
             max: C_CLIENT.MAX.TITLE
-        }).withMessage(`Title must be less than ${C_CLIENT.MAX.TITLE} characters long`),
+        }).withMessage(`Title must be between ${C_CLIENT.MIN.TITLE} and ${C_CLIENT.MAX.TITLE} characters.`),
 
-        body('company_name').optional({ values: 'null' }).isString().isLength({
+        body('company_name').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.COMPANY_NAME,
             max: C_CLIENT.MAX.COMPANY_NAME
-        }).withMessage(`Company name must be less than ${C_CLIENT.MAX.COMPANY_NAME} characters long`),
+        }).withMessage(`Company name must be between ${C_CLIENT.MIN.COMPANY_NAME} and ${C_CLIENT.MAX.COMPANY_NAME} characters.`),
 
-        body('email').optional({ values: 'null' }).isEmail().isLength({
+        body('email').optional({ values: 'falsy' }).isEmail().isLength({
             min: C_CLIENT.MIN.EMAIL,
             max: C_CLIENT.MAX.EMAIL
-        }).withMessage(`Email must be an email and less than ${C_CLIENT.MAX.EMAIL} characters long`),
+        }).withMessage(`Email must be an email and between ${C_CLIENT.MIN.EMAIL} and ${C_CLIENT.MAX.EMAIL} characters.`),
 
-        body('phone_number').optional({ values: 'null' }).isString().isLength({
-            min: C_CLIENT.MIN.PHONE,
+        body('phone_number').optional({ values: 'falsy' }).isString().isLength({
+            min: C_CLIENT.MIN.PHONE_NUMBER,
             max: C_CLIENT.MAX.PHONE
-        }).withMessage(`Phone number must be less than ${C_CLIENT.MAX.PHONE} characters long`),
+        }).withMessage(`Phone number must be between ${C_CLIENT.MIN.PHONE_NUMBER} and ${C_CLIENT.MAX.PHONE} characters.`),
 
-        body('website').optional({ values: 'null' }).isURL().isLength({
+        body('website').optional({ values: 'falsy' }).isURL().isLength({
             min: C_CLIENT.MIN.WEBSITE,
             max: C_CLIENT.MAX.WEBSITE
-        }).withMessage(`Website must be a URL and less than ${C_CLIENT.MAX.WEBSITE} characters long`),
+        }).withMessage(`Website must be a URL and between ${C_CLIENT.MIN.WEBSITE} and ${C_CLIENT.MAX.WEBSITE} characters.`),
 
-        body('notes').optional({ values: 'null' }).isString().isLength({
+        body('notes').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.NOTES,
             max: C_CLIENT.MAX.NOTES
-        }).withMessage(`Notes must be less than ${C_CLIENT.MAX.NOTES} characters long`),
+        }).withMessage(`Notes must be between ${C_CLIENT.MIN.NOTES} and ${C_CLIENT.MAX.NOTES} characters.`),
 
-        body('address_line1').optional({ values: 'null' }).isString().isLength({
+        body('address_line1').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ADDRESS_LINE,
             max: C_CLIENT.MAX.ADDRESS_LINE
-        }).withMessage(`Address line 1 must be less than ${C_CLIENT.MAX.ADDRESS_LINE} characters long`),
+        }).withMessage(`Address line 1 must be between ${C_CLIENT.MIN.ADDRESS_LINE} and ${C_CLIENT.MAX.ADDRESS_LINE} characters.`),
 
-        body('address_line2').optional({ values: 'null' }).isString().isLength({
+        body('address_line2').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ADDRESS_LINE,
             max: C_CLIENT.MAX.ADDRESS_LINE
-        }).withMessage(`Address line 2 must be less than ${C_CLIENT.MAX.ADDRESS_LINE} characters long`),
+        }).withMessage(`Address line 2 must be lbetween ${C_CLIENT.MIN.ADDRESS_LINE} and {C_CLIENT.MAX.ADDRESS_LINE} characters.`),
 
-        body('city').optional({ values: 'null' }).isString().isLength({
+        body('city').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.CITY,
             max: C_CLIENT.MAX.CITY
-        }).withMessage(`City must be less than ${C_CLIENT.MAX.CITY} characters long`),
+        }).withMessage(`City must be between ${C_CLIENT.MIN.CITY} and ${C_CLIENT.MAX.CITY} characters.`),
 
-        body('state').optional({ values: 'null' }).isString().isLength({
+        body('state').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.STATE,
             max: C_CLIENT.MAX.STATE
-        }).withMessage(`State must be less than ${C_CLIENT.MAX.STATE} characters long`),
+        }).withMessage(`State must be between ${C_CLIENT.MIN.STATE} and ${C_CLIENT.MAX.STATE} characters.`),
 
-        body('postal_code').optional({ values: 'null' }).isString().isLength({
+        body('postal_code').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ZIP,
             max: C_CLIENT.MAX.ZIP
-        }).withMessage(`Postal Code must be less than ${C_CLIENT.MAX.ZIP} characters long`),
+        }).withMessage(`Postal Code must be between ${C_CLIENT.MIN.ZIP} and ${C_CLIENT.MAX.ZIP} characters.`),
 
-        body('country').optional({ values: 'null' }).isString().isLength({
+        body('country').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.COUNTRY,
             max: C_CLIENT.MAX.COUNTRY
-        }).withMessage(`Country must be less than ${C_CLIENT.MAX.COUNTRY} characters long`),
+        }).withMessage(`Country must be between ${C_CLIENT.MIN.COUNTRY} and {C_CLIENT.MAX.COUNTRY} characters.`),
 
-        body('billing_address_line1').optional({ values: 'null' }).isString().isLength({
+        body('billing_address_line1').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ADDRESS_LINE,
             max: C_CLIENT.MAX.ADDRESS_LINE
-        }).withMessage(`Address line 1 must be less than ${C_CLIENT.MAX.ADDRESS_LINE} characters long`),
+        }).withMessage(`Address line 1 must be between ${C_CLIENT.MIN.ADDRESS_LINE} and ${C_CLIENT.MAX.ADDRESS_LINE} characters.`),
 
-        body('billing_address_line2').optional({ values: 'null' }).isString().isLength({
+        body('billing_address_line2').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ADDRESS_LINE,
             max: C_CLIENT.MAX.ADDRESS_LINE
-        }).withMessage(`Address line 2 must be less than ${C_CLIENT.MAX.ADDRESS_LINE} characters long`),
+        }).withMessage(`Address line 2 must be between ${C_CLIENT.MIN.ADDRESS_LINE} and ${C_CLIENT.MAX.ADDRESS_LINE} characters.`),
 
-        body('billing_city').optional({ values: 'null' }).isString().isLength({
+        body('billing_city').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.CITY,
             max: C_CLIENT.MAX.CITY
-        }).withMessage(`City must be less than ${C_CLIENT.MAX.CITY} characters long`),
+        }).withMessage(`City must be between ${C_CLIENT.MIN.CITY} and ${C_CLIENT.MAX.CITY} characters.`),
 
-        body('billing_state').optional({ values: 'null' }).isString().isLength({
+        body('billing_state').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.STATE,
             max: C_CLIENT.MAX.STATE
-        }).withMessage(`State must be less than ${C_CLIENT.MAX.STATE} characters long`),
+        }).withMessage(`State must be between ${C_CLIENT.MIN.STATE} and ${C_CLIENT.MAX.STATE} characters.`),
 
-        body('billing_postal_code').optional({ values: 'null' }).isString().isLength({
+        body('billing_postal_code').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ZIP,
             max: C_CLIENT.MAX.ZIP
-        }).withMessage(`Postal Code must be less than ${C_CLIENT.MAX.ZIP} characters long`),
+        }).withMessage(`Postal Code must be between ${C_CLIENT.MIN.STATE} and ${C_CLIENT.MAX.ZIP} characters.`),
 
-        body('billing_country').optional({ values: 'null' }).isString().isLength({
+        body('billing_country').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.COUNTRY,
             max: C_CLIENT.MAX.COUNTRY
-        }).withMessage(`Country must be less than ${C_CLIENT.MAX.COUNTRY} characters long`),
+        }).withMessage(`Country must be between ${C_CLIENT.MIN.COUNTRY} and ${C_CLIENT.MAX.COUNTRY} characters.`),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'UPDATE Client:id - ');

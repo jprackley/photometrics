@@ -1,7 +1,7 @@
 const assert = require("node:assert");
-const {response} = require("express");
 
-const C_HTTP = require("../../utils/constants/cHTTP");
+
+require("../../utils/constants/cHTTP");
 
 function assertEqualReturn(res, expected ) {
 

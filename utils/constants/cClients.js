@@ -1,11 +1,14 @@
 
 const REQUIRED_COLUMNS = {
     FIRST_NAME: 'first_name',
+    EMAIL: 'email',
+
+};
+const MUTABLE_COLUMNS = {
     MIDDLE_NAME: 'middle_name',
     LAST_NAME: 'last_name',
     TITLE: 'title',
     COMPANY_NAME: 'company_name',
-    EMAIL: 'email',
     PHONE_NUMBER: 'phone_number',
     WEBSITE: 'website',
     NOTES: 'notes',
@@ -21,8 +24,6 @@ const REQUIRED_COLUMNS = {
     BILLING_STATE: 'billing_state',
     BILLING_POSTAL_CODE: 'billing_postal_code',
     BILLING_COUNTRY: 'billing_country',
-};
-const MUTABLE_COLUMNS = {
     UPDATED_AT: "updated_at"
 }
 const IMMUTABLE_COLUMNS = {
@@ -36,7 +37,7 @@ const MIN = {
     TITLE: 0,
     COMPANY_NAME: 1,
     EMAIL: 1,
-    PHONE: 0,
+    PHONE_NUMBER: 0,
     WEBSITE: 0,
     NOTES: 0,
     ADDRESS_LINE: 0,
@@ -61,5 +62,29 @@ const MAX = {
     ZIP: 20,
     COUNTRY: 100,
 }
+// Mapping of column names to key names in the MIN and MAX objects
+const MIN_MAX_MAPPING = {
+    first_name: 'FIRST_NAME',
+    middle_name: 'MIDDLE_NAME',
+    last_name: 'LAST_NAME' ,
+    title: 'TITLE',
+    company_name: 'COMPANY_NAME',
+    email: 'EMAIL',
+    phone_number: 'PHONE',
+    website: 'WEBSITE',
+    notes: 'NOTES',
+    address_line1: 'ADDRESS_LINE',
+    address_line2: 'ADDRESS_LINE',
+    billing_address_line1: 'ADDRESS_LINE',
+    billing_address_line2: 'ADDRESS_LINE',
+    city: 'CITY',
+    billing_city: 'CITY',
+    state: 'STATE',
+    billing_state: 'STATE',
+    postal_code: 'ZIP',
+    billing_postal_code: 'ZIP',
+    country: 'COUNTRY',
+    billing_country: 'COUNTRY',
+}
 
-module.exports = { REQUIRED_COLUMNS, MUTABLE_COLUMNS, IMMUTABLE_COLUMNS, MIN, MAX };
+module.exports = { REQUIRED_COLUMNS, MUTABLE_COLUMNS, IMMUTABLE_COLUMNS, MIN, MAX, MIN_MAX_MAPPING };

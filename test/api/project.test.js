@@ -34,17 +34,7 @@ describe('Testing /api/projects', () => {
         valid_project_name: '?project_name=Test Project',
     }
 
-    const invalid_queries = {
-        invalid_limit: '?limit=not-a-number',
-        invalid_page: '?page=not-a-number',
-        invalid_order: '?order=not-a-valid-order',
-        invalid_status: '?status=not-a-valid-status',
-        invalid_client_id: '?client_id=not-a-valid-uuid',
-        invalid_start_time: '?start_time=not-a-valid-date',
-        invalid_due_time: '?due_time=not-a-valid-date',
-        invalid_completed_at: '?completed_at=not-a-valid-date',
-        invalid_project_name: '?project_name=not-a-valid-string',
-    };
+
     /**
      * Creates temporary clients before the project test suite runs.
      *

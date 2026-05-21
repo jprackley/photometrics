@@ -6,7 +6,7 @@ const app = require('../../api/index')
 const C_HTTP = require('../../utils/constants/cHTTP');
 const C_USER = require("../../utils/constants/cUsers");
 const {query} = require("../../api/db");
-const {response} = require("express");
+
 
 const users = [];
 

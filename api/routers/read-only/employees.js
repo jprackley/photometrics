@@ -3,7 +3,7 @@ const router = express.Router();
 
 const query = require("../../db").query;
 const asyncHandler = require("../../../utils/helpers/asyncHandler");
-const {handleValidation, paginate, buildPagination} = require("../../validators/queryHandler")
+const {handleValidation} = require("../../validators/queryHandler")
 const C_USER = require("../../../utils/constants/cUsers");
 
 router.get('/',
