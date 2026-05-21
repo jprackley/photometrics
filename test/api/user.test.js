@@ -10,7 +10,6 @@ const { buildTestUser } = require("../helpers/testBuilders");
 const { assertEqual, assertEqualReturn } = require("../helpers/assertTests");
 const { deleteTestUsers } = require("../helpers/afterTests");
 
-
 /**
  * Test suite for the `/api/users` endpoint.
  *
@@ -63,10 +62,17 @@ describe('Testing /api/users', () => {
 
         test(`[TEST]: CREATE valid User [EXPECTED]: Status Code ${C_HTTP.STATUS.CREATED}`, async () => {
 
-            const response = await request(app).post('/api/users')
-                .send( buildTestUser(C_USER.ROLES.EMPLOYEE, 'users',) );
-
+            const response = await request(app).post('/api/users').send( validUser );
             const body = assertEqualReturn(response, C_HTTP.STATUS.CREATED);
+            if (body.user_id !== undefined) {
+                users.push(body.user_id);
+            }
+        });
+
+        test(`[TEST]: CREATE duplicate email [EXPECTED]: Status Code ${C_HTTP.STATUS.INTERNAL_SERVER_ERROR}`, async () => {
+
+            const response = await request(app).post('/api/users').send( validUser );
+            const body = assertEqualReturn(response, C_HTTP.STATUS.INTERNAL_SERVER_ERROR);
             if ( body.user_id !== undefined ) {users.push(body.user_id);}
         });
 
@@ -114,18 +120,6 @@ describe('Testing /api/users', () => {
             const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
             if ( body.user_id !== undefined ) {users.push(body.user_id);}
         });
-
-        test(`[TEST]: CREATE duplicate email [EXPECTED]: Status Code ${C_HTTP.STATUS.INTERNAL_SERVER_ERROR}`, async () => {
-
-            const response1 = await request(app).post('/api/users').send( validUser );
-            const body1 = assertEqualReturn(response1, C_HTTP.STATUS.INTERNAL_SERVER_ERROR);
-            if ( body1.user_id !== undefined ) {users.push(body1.user_id);}
-
-            const response2 = await request(app).post('/api/users').send( validUser );
-            const body2 = assertEqualReturn(response2, C_HTTP.STATUS.INTERNAL_SERVER_ERROR);
-            if ( body2.user_id !== undefined ) {users.push(body2.user_id);}
-        });
-        
         
     })
     /**
