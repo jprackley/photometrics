@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 // These constants control whether the application reads from live backend API
 // routes or from the local mock data sets in this file. The frontend supports
 // standard API response shapes such as a plain array/object or an object with a
-// top-level data/items property.
+// top-level data/items property. 
 // Keep mock data ON by default so the deployed app stays usable while API work is tested.
 // Set VITE_USE_API_DATA=true only when you intentionally want API mode as the initial default.
 const DEFAULT_USE_API_DATA = String(import.meta.env.VITE_USE_API_DATA || "").toLowerCase() === "true";
@@ -25,9 +25,7 @@ const LEGACY_API_DATA_SETTING_KEY = "photometrics-use-api-data";
 const API_DATA_SETTING_KEY = "photometrics-use-api-data-v2";
 const API_DATA_SETTING_EVENT = "photometrics-api-data-setting-changed";
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL !== "/"
-    ? import.meta.env.VITE_API_BASE_URL
-    : "/api";
+  import.meta.env.VITE_API_BASE_URL || "/api";
 const DEFAULT_PAGE_LIMIT = 50;
 
 /**
