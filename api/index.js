@@ -34,7 +34,7 @@ const imageKpiRouter = require('./routers/dashboard/imageKPI');
 app.use('/api/kpi/images', imageKpiRouter);
 
 const employeeKpiRouter = require('./routers/dashboard/employeeKPI');
-app.use('/api/kpi/employee', employeeKpiRouter);
+app.use('/api/kpi/employees', employeeKpiRouter);
 
 // Error handler MUST BE LAST
 app.use((err, req, res, next) => {
