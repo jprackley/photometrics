@@ -162,7 +162,7 @@ router.get(
             ORDER BY
                 u.last_name;
         `;
-        const {rows} = await query(sql, param);
+        const {rows} = await query(sql, [param]);
         if (rows.length === 0) return res.status(404).json({error: {code: 404, message: 'Productivity KPI not found'}});
     })
 );
