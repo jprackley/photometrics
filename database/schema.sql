@@ -248,3 +248,86 @@ CREATE TABLE time_entries
     CONSTRAINT chk_time_entry_end_after_start
         CHECK (end_time IS NULL OR end_time >= start_time)
 );
+
+---------------------------------------------------------------------------
+-- HARDCODED LOGIN USERS
+---------------------------------------------------------------------------
+INSERT INTO users (
+    first_name,
+    last_name,
+    display_name,
+    email,
+    password_hash,
+    account_role,
+    is_admin,
+    is_active,
+    status,
+    company,
+    department
+)
+VALUES (
+           'Test',
+           'Manager',
+           'Test Manager',
+           'muser@gmail.com',
+           '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
+           'Manager',
+           true,
+           true,
+           'Active',
+           'Photometrics',
+           'Operations'
+       )
+ON CONFLICT (email)
+    DO UPDATE SET
+                  first_name = EXCLUDED.first_name,
+                  last_name = EXCLUDED.last_name,
+                  display_name = EXCLUDED.display_name,
+                  password_hash = EXCLUDED.password_hash,
+                  account_role = EXCLUDED.account_role,
+                  is_admin = EXCLUDED.is_admin,
+                  is_active = EXCLUDED.is_active,
+                  status = EXCLUDED.status,
+                  company = EXCLUDED.company,
+                  department = EXCLUDED.department,
+                  updated_at = now();
+
+INSERT INTO users (
+    first_name,
+    last_name,
+    display_name,
+    email,
+    password_hash,
+    account_role,
+    is_admin,
+    is_active,
+    status,
+    company,
+    department
+)
+VALUES (
+           'Test',
+           'Employee',
+           'Test Employee',
+           'euser@gmail.com',
+           '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
+           'Employee',
+           false,
+           true,
+           'Active',
+           'Photometrics',
+           'Editing'
+       )
+ON CONFLICT (email)
+    DO UPDATE SET
+                  first_name = EXCLUDED.first_name,
+                  last_name = EXCLUDED.last_name,
+                  display_name = EXCLUDED.display_name,
+                  password_hash = EXCLUDED.password_hash,
+                  account_role = EXCLUDED.account_role,
+                  is_admin = EXCLUDED.is_admin,
+                  is_active = EXCLUDED.is_active,
+                  status = EXCLUDED.status,
+                  company = EXCLUDED.company,
+                  department = EXCLUDED.department,
+                  updated_at = now();

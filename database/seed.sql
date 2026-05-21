@@ -19,7 +19,7 @@ DECLARE
 
     SEED_TAG                  CONSTANT TEXT := '[seed:photometrics]';
     SEED_EMAIL_DOMAIN         CONSTANT TEXT := 'photometrics.local';
-    DEFAULT_PASSWORD_HASH     CONSTANT TEXT := '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy';
+
 
     ---------------------------------------------------------------------------
     -- IDS
