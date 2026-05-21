@@ -44,7 +44,7 @@ const C_PROJECT = require("../../utils/constants/cProjects");
 router.post(
     '/',
     [
-        body('client_id').isUUID().withMessage('Invalid client ID format'),
+        body('client_id').optional().isUUID().withMessage('Invalid client ID format'),
         body('managed_by').optional().isUUID().withMessage('Invalid user ID format'),
 
         body('project_name').isString().isLength({

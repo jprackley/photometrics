@@ -28,4 +28,6 @@ async function createTestUser(role,testSuiteName) {
     }
 }
 
+async function createTestClient(testSuiteName) {}
+
 module.exports = {createTestUser};
