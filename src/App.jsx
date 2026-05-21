@@ -10,7 +10,11 @@
 import React, { useEffect, useState } from "react";
 import { Sidebar, Topbar } from "./components/Layout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { getUseApiDataSetting, apiPlaceholders, clearPublishedApiErrors } from "./services/api.js";
+import {
+  getUseApiDataSetting,
+  apiPlaceholders,
+  clearPublishedApiErrors,
+} from "./services/api.js";
 import { getPublicUser, mockUsers, placeholderPages } from "./data/mockData";
 import { canAccessPage, canManageContent } from "./utils/accessControl";
 import {
