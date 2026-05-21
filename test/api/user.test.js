@@ -1,5 +1,4 @@
 const app = require('../../api/index')
-const assert = require("node:assert");
 const request = require('supertest');
 const {describe, test, before, after} = require("node:test");
 
@@ -8,6 +7,7 @@ const C_USER = require("../../utils/constants/cUsers");
 
 const { createTestUser } = require("../helpers/beforeTests");
 const { buildTestUser } = require("../helpers/testBuilders");
+const { assertEqual, assertEqualReturn } = require("../helpers/assertTests");
 const { deleteTestUsers } = require("../helpers/afterTests");
 
 
@@ -61,173 +61,132 @@ describe('Testing /api/users', () => {
      */
     describe('[API]: CREATE User', () => {
 
-        test(`[TEST]: CREATE valid User [EXPECTED]: status code ${C_HTTP.STATUS.CREATED}`, async () => {
+        test(`[TEST]: CREATE valid User [EXPECTED]: Status Code ${C_HTTP.STATUS.CREATED}`, async () => {
 
             const response = await request(app).post('/api/users')
                 .send( buildTestUser(C_USER.ROLES.EMPLOYEE, 'users',) );
 
-            assert.equal(response.statusCode, C_HTTP.STATUS.CREATED,
-                `Expected status code ${C_HTTP.STATUS.CREATED}, got ${response.statusCode} \n 
-                ${JSON.stringify(response.body, null, 2)}`);
-            if (response.statusCode === C_HTTP.STATUS.CREATED) {
-                users.push(response.body.user_id);
-            }
+            const body = assertEqualReturn(response, C_HTTP.STATUS.CREATED);
+            if ( body.user_id !== undefined ) {users.push(body.user_id);}
         });
 
-        test(`[TEST]: CREATE first name missing [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE first name missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
 
             const response = await request(app).post('/api/users')
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.FIRST_NAME));
 
-            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n 
-                ${JSON.stringify(response.body, null, 2)}`);
-            if (response.statusCode === C_HTTP.STATUS.CREATED) {
-                users.push(response.body.user_id);
-            }
+            const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
+            if ( body.user_id !== undefined ) {users.push(body.user_id);}
         });
 
-        test(`[TEST]: CREATE last name missing [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE last name missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
 
             const response = await request(app).post('/api/users')
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.LAST_NAME,));
 
-            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n 
-                ${JSON.stringify(response.body, null, 2)}`);
-            if (response.statusCode === C_HTTP.STATUS.CREATED) {
-                users.push(response.body.user_id);
-            }
+            const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
+            if ( body.user_id !== undefined ) {users.push(body.user_id);}
         });
 
-        test(`[TEST]: CREATE email missing [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE email missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
 
             const response = await request(app).post('/api/users')
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.EMAIL,));
 
-            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
-                `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n 
-                ${JSON.stringify(response.body, null, 2)}`);
-            if (response.statusCode === C_HTTP.STATUS.CREATED) {
-                users.push(response.body.user_id);
-            }
+            const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
+            if ( body.user_id !== undefined ) {users.push(body.user_id);}
         });
 
-        test(`[TEST]: CREATE password missing [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE password missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
 
             const response = await request(app).post('/api/users')
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.SECURE_COLUMNS.PASSWORD,));
 
-            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST, `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n 
-            ${JSON.stringify(response.body, null, 2)}`)
-            if (response.statusCode === C_HTTP.STATUS.CREATED) {
-                users.push(response.body.user_id);
-            }
+            const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
+            if ( body.user_id !== undefined ) {users.push(body.user_id);}
         });
 
-        test(`[TEST]: CREATE role missing [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST]: CREATE role missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
 
             const response = await request(app).post('/api/users')
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.ROLE,));
 
-            assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST, `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode} \n 
-            ${JSON.stringify(response.body, null, 2)}`)
-            if (response.statusCode === C_HTTP.STATUS.CREATED) {
-                users.push(response.body.user_id);
-            }
+            const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
+            if ( body.user_id !== undefined ) {users.push(body.user_id);}
         });
 
-        test(`[TEST]: CREATE duplicate email [EXPECTED]: status code ${C_HTTP.STATUS.INTERNAL_SERVER_ERROR}`, async () => {
+        test(`[TEST]: CREATE duplicate email [EXPECTED]: Status Code ${C_HTTP.STATUS.INTERNAL_SERVER_ERROR}`, async () => {
 
-            const response = await request(app).post('/api/users')
-                .send( validUser );
+            const response1 = await request(app).post('/api/users').send( validUser );
+            const body1 = assertEqualReturn(response1, C_HTTP.STATUS.INTERNAL_SERVER_ERROR);
+            if ( body1.user_id !== undefined ) {users.push(body1.user_id);}
 
-            const responseInvalid = await request(app).post('/api/users')
-                .send( validUser );
-
-            assert.equal(responseInvalid.statusCode, C_HTTP.STATUS.INTERNAL_SERVER_ERROR,
-                `Expected status code ${C_HTTP.STATUS.INTERNAL_SERVER_ERROR}, got ${responseInvalid.statusCode} \n 
-                ${JSON.stringify(responseInvalid.body, null, 2)}`);
-            if (responseInvalid.statusCode === C_HTTP.STATUS.CREATED) {
-                users.push(responseInvalid.body.user_id);
-            }
+            const response2 = await request(app).post('/api/users').send( validUser );
+            const body2 = assertEqualReturn(response2, C_HTTP.STATUS.INTERNAL_SERVER_ERROR);
+            if ( body2.user_id !== undefined ) {users.push(body2.user_id);}
         });
         
         
     })
     /**
      * Tests the READ user endpoint.
-     *
-     * Validates that users can be retrieved with default pagination and
-     * that a specific user can be retrieved by ID.
      */
     describe('[API]: READ User', () => {
 
-        test(`[TEST]: READ by default pagination [EXPECTED]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: READ by default pagination [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
 
             const response = await request(app).get('/api/users');
-
-            assert.equal(response.statusCode, C_HTTP.STATUS.OK,
-                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode} \n 
-                ${JSON.stringify(response.body, null, 2)}`);
+            assertEqual(response, C_HTTP.STATUS.OK);
         });
 
-        test(`[TEST]: valid id [EXPECTED]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: valid id [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
 
             const response = await request(app).get(`/api/users/${users[0]}`);
-
-            assert.equal(response.statusCode, C_HTTP.STATUS.OK,
-                `Expected status code ${C_HTTP.STATUS.OK}, got ${response.statusCode} \n 
-                ${JSON.stringify(response.body, null, 2)}`);
+            assertEqual(response, C_HTTP.STATUS.OK);
         })
     })
     /**
      * Tests the UPDATE user endpoint.
-     *
-     * Validates that individual user fields can be updated using PATCH.
      */
     describe('[API]: UPDATE User', () => {
-        test(`[TEST]: UPDATE first name [EXPECTED]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: UPDATE first name [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).patch(`/api/users/${users[0]}`).send({
                 first_name: "TestUserUpdated"
             });
-            assert.equal(response.statusCode, C_HTTP.STATUS.OK,)
+            assertEqual(response, C_HTTP.STATUS.OK);
         })
-        test(`[TEST]: UPDATE last name [EXPECTED]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: UPDATE last name [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).patch(`/api/users/${users[0]}`).send({
                 last_name: "UserUpdated"
             })
-            assert.equal(response.statusCode, C_HTTP.STATUS.OK,)
+            assertEqual(response, C_HTTP.STATUS.OK);
         })
-        test(`[TEST]: UPDATE email [EXPECTED]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: UPDATE email [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).patch(`/api/users/${users[0]}`).send({
                 email: "whoops@update.com",
             })
-            assert.equal(response.statusCode, C_HTTP.STATUS.OK,)
+            assertEqual(response, C_HTTP.STATUS.OK);
         })
-        test(`[TEST]: UPDATE password [EXPECTED]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: UPDATE password [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).patch(`/api/users/${users[0]}`).send({
                 password_hash: "new password"
             })
-            assert.equal(response.statusCode, C_HTTP.STATUS.OK,)
+            assertEqual(response, C_HTTP.STATUS.OK);
         })
-        test(`[TEST]: UPDATE role [EXPECTED]: status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: UPDATE role [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
             const response = await request(app).patch(`/api/users/${users[0]}`).send({
                 account_role: "Employee"
             })
-            assert.equal(response.statusCode, C_HTTP.STATUS.OK,)
+            assertEqual(response, C_HTTP.STATUS.OK);
         })
     })
     /**
      * Tests the DELETE user endpoint.
-     *
-     * Validates that an existing user can be deleted and then removes
-     * that user ID from the cleanup array.
      */
     describe('[API]: DELETE User', () => {
-        test(`[TEST]: DELETE user [EXPECTED]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
+        test(`[TEST]: DELETE user [EXPECTED]: Status Code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
             const response = await request(app).delete(`/api/users/${users[0]}`);
-            assert.equal(response.statusCode, C_HTTP.STATUS.NO_CONTENT,)
+            assertEqual(response, C_HTTP.STATUS.NO_CONTENT);
             users.splice(0, 1);
         })
     })
