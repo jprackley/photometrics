@@ -187,7 +187,7 @@ CREATE TABLE tasks
     category     task_category          DEFAULT 'Other',
     priority     task_priority          DEFAULT 'Normal',
     description  TEXT                   DEFAULT NULL,
-    status       task_status            DEFAULT 'To-Do',
+    status       task_status            DEFAULT 'Assigned',
     progress     DECIMAL                DEFAULT 0,
     start_time   TIMESTAMPTZ            DEFAULT now(),
     due_time     TIMESTAMPTZ            DEFAULT NULL,

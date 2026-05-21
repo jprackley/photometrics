@@ -46,11 +46,15 @@ const MESSAGE = {
     },
     PRODUCTIVITY: {
         OK: 'Productivity updated successfully',
-        NOT_FOUND: 'Could not update productivity, no user found',
+        NOT_FOUND: 'Could not fetch productivity, no user found',
     },
     WORKFLOW: {
         OK: 'Workflow updated successfully',
-        NOT_FOUND: 'Could not update workflow, no user found',
+        NOT_FOUND: 'Could not fetch workflow, no user found',
+    },
+    EMPLOYEE_ACTIVITY: {
+        OK: 'Employee activity updated successfully',
+        NOT_FOUND: 'Could not fetch employee activity, no user found',
     },
     PROJECTS: {
         OK: 'Projects fetched successfully',
