@@ -7,7 +7,7 @@ const { query } = require("../../db");
 const {param} = require("express-validator");
 const C_HTTP = require("../../../utils/constants/cHTTP");
 
-app.get(
+router.get(
     '/:id',
     param('id').isUUID().withMessage('Invalid User UUID'),
     asyncHandler(async (req, res) => {
