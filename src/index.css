@@ -4,3 +4,177 @@ body {
   margin: 0;
   font-family: Arial, Helventica, sans-serif;
 }
+
+/* Settings-driven appearance classes. These make the Settings page options
+   affect the live UI even before backend settings endpoints are deployed. */
+.pm-accent-violet {
+  --pm-accent-50: #f5f3ff;
+  --pm-accent-100: #ede9fe;
+  --pm-accent-200: #ddd6fe;
+  --pm-accent-500: #8b5cf6;
+  --pm-accent-600: #7c3aed;
+  --pm-accent-700: #6d28d9;
+  --pm-accent-800: #5b21b6;
+}
+
+.pm-accent-blue {
+  --pm-accent-50: #eff6ff;
+  --pm-accent-100: #dbeafe;
+  --pm-accent-200: #bfdbfe;
+  --pm-accent-500: #3b82f6;
+  --pm-accent-600: #2563eb;
+  --pm-accent-700: #1d4ed8;
+  --pm-accent-800: #1e40af;
+}
+
+.pm-accent-green {
+  --pm-accent-50: #ecfdf5;
+  --pm-accent-100: #d1fae5;
+  --pm-accent-200: #a7f3d0;
+  --pm-accent-500: #10b981;
+  --pm-accent-600: #059669;
+  --pm-accent-700: #047857;
+  --pm-accent-800: #065f46;
+}
+
+.pm-accent-slate {
+  --pm-accent-50: #f8fafc;
+  --pm-accent-100: #f1f5f9;
+  --pm-accent-200: #e2e8f0;
+  --pm-accent-500: #64748b;
+  --pm-accent-600: #475569;
+  --pm-accent-700: #334155;
+  --pm-accent-800: #1e293b;
+}
+
+.pm-accent-blue .bg-violet-50,
+.pm-accent-green .bg-violet-50,
+.pm-accent-slate .bg-violet-50,
+.pm-accent-blue .bg-violet-100,
+.pm-accent-green .bg-violet-100,
+.pm-accent-slate .bg-violet-100 {
+  background-color: var(--pm-accent-100) !important;
+}
+
+.pm-accent-blue .bg-violet-600,
+.pm-accent-green .bg-violet-600,
+.pm-accent-slate .bg-violet-600 {
+  background-color: var(--pm-accent-600) !important;
+}
+
+.pm-accent-blue .hover\:bg-violet-700:hover,
+.pm-accent-green .hover\:bg-violet-700:hover,
+.pm-accent-slate .hover\:bg-violet-700:hover {
+  background-color: var(--pm-accent-700) !important;
+}
+
+.pm-accent-blue .text-violet-600,
+.pm-accent-green .text-violet-600,
+.pm-accent-slate .text-violet-600,
+.pm-accent-blue .text-violet-700,
+.pm-accent-green .text-violet-700,
+.pm-accent-slate .text-violet-700,
+.pm-accent-blue .text-violet-800,
+.pm-accent-green .text-violet-800,
+.pm-accent-slate .text-violet-800 {
+  color: var(--pm-accent-700) !important;
+}
+
+.pm-accent-blue .border-violet-200,
+.pm-accent-green .border-violet-200,
+.pm-accent-slate .border-violet-200,
+.pm-accent-blue .border-violet-300,
+.pm-accent-green .border-violet-300,
+.pm-accent-slate .border-violet-300 {
+  border-color: var(--pm-accent-200) !important;
+}
+
+.pm-accent-blue .focus\:border-violet-500:focus,
+.pm-accent-green .focus\:border-violet-500:focus,
+.pm-accent-slate .focus\:border-violet-500:focus {
+  border-color: var(--pm-accent-500) !important;
+}
+
+.pm-compact-tables table th,
+.pm-compact-tables table td {
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+}
+
+.pm-compact-tables table {
+  font-size: 0.8125rem;
+}
+
+.pm-theme-dark {
+  color-scheme: dark;
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+.pm-theme-dark .bg-slate-50 {
+  background-color: #0f172a !important;
+}
+
+.pm-theme-dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+.pm-theme-dark .bg-slate-100,
+.pm-theme-dark .bg-slate-200 {
+  background-color: #334155 !important;
+}
+
+.pm-theme-dark .bg-emerald-50 {
+  background-color: rgba(6, 78, 59, 0.35) !important;
+}
+
+.pm-theme-dark .bg-amber-50 {
+  background-color: rgba(120, 53, 15, 0.35) !important;
+}
+
+.pm-theme-dark .bg-red-50 {
+  background-color: rgba(127, 29, 29, 0.35) !important;
+}
+
+.pm-theme-dark .border-slate-100,
+.pm-theme-dark .border-slate-200,
+.pm-theme-dark .border-slate-300 {
+  border-color: #475569 !important;
+}
+
+.pm-theme-dark .text-black,
+.pm-theme-dark .text-slate-950,
+.pm-theme-dark .text-slate-900,
+.pm-theme-dark .text-slate-800,
+.pm-theme-dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+.pm-theme-dark .text-slate-600,
+.pm-theme-dark .text-slate-500,
+.pm-theme-dark .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+
+.pm-theme-dark input,
+.pm-theme-dark select,
+.pm-theme-dark textarea {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #475569 !important;
+}
+
+.pm-theme-dark input::placeholder,
+.pm-theme-dark textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.pm-theme-dark .shadow-sm,
+.pm-theme-dark .shadow {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45) !important;
+}
+
+.pm-theme-dark .hover\:bg-slate-50:hover,
+.pm-theme-dark .hover\:bg-slate-100:hover {
+  background-color: #334155 !important;
+}
