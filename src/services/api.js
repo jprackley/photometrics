@@ -67,21 +67,121 @@ function saveUseApiDataSetting(value) {
 /**
  * Adapter function so the frontend matches the backend data.
  */
+function formatApiDateForDisplay(value) {
+    if (!value) return "";
+
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) return String(value);
+
+    return parsedDate.toLocaleDateString([], {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+    });
+}
+
+function isSeedRecord(record) {
+    const searchable = [
+        record?.email,
+        record?.project_name,
+        record?.task_name,
+        record?.description,
+        record?.notes,
+        record?.name,
+    ].join(" ").toLowerCase();
+
+    return searchable.includes("[seed:photometrics]")
+        || searchable.includes("seed.project")
+        || searchable.includes("seed task")
+        || searchable.includes("seed project")
+        || searchable.includes("@photometrics.local");
+}
+
+function toArrayPayload(payload) {
+    const unwrapped = unwrapApiPayload(payload);
+    if (Array.isArray(unwrapped)) return unwrapped;
+    return unwrapped ? [unwrapped] : [];
+}
+
 function projectFromApi(project) {
     return {
-        id: project.project_id,
-        backendId: project.project_id,
-        name: project.project_name,
-        clientId: project.client_id,
-        client: project.client_name || project.client_id || "Unassigned Client",
-        startDate: project.start_time,
-        dueDate: project.due_time,
-        status: project.status,
-        priority: project.priority,
+        id: project.project_id || project.id,
+        backendId: project.project_id || project.id,
+        name: project.project_name || project.name || "Untitled Project",
+        clientId: project.client_id || project.clientId || null,
+        client: project.client_name
+            || project.company_name
+            || project.client
+            || (project.client_id ? `Client ${String(project.client_id).slice(0, 8)}` : "Unassigned Client"),
+        startDate: formatApiDateForDisplay(project.start_time || project.startDate),
+        dueDate: formatApiDateForDisplay(project.due_time || project.dueDate),
+        status: project.status || "To-Do",
+        priority: project.priority || "Normal",
         description: project.description || "",
-        images: project.images || "0",
-        progress: project.progress || 0,
+        images: project.image_count ?? project.images ?? "0",
+        progress: Number(project.progress ?? project.percent_complete ?? 0) || 0,
     };
+}
+
+function taskFromApi(task) {
+    return {
+        id: task.task_id || task.id,
+        backendId: task.task_id || task.id,
+        taskName: task.task_name || task.taskName || "Untitled Task",
+        projectId: task.project_id || task.projectId || null,
+        project: task.project_name || task.project || (task.project_id ? `Project ${String(task.project_id).slice(0, 8)}` : "Unassigned Project"),
+        assignedToId: task.assigned_to || task.assignedToId || null,
+        assignedTo: task.assigned_to_name || task.assigned_to_email || task.assignedTo || (task.assigned_to ? `Employee ${String(task.assigned_to).slice(0, 8)}` : "Unassigned"),
+        dueDate: formatApiDateForDisplay(task.due_time || task.dueDate),
+        priority: task.priority || "Normal",
+        estimatedHours: Number(task.estimated_hours ?? task.estimatedHours ?? 0) || 0,
+        trackedSeconds: Number(task.tracked_seconds ?? task.trackedSeconds ?? task.totalTrackedSeconds ?? 0) || 0,
+        status: task.status || "To-Do",
+        timerStartedAt: task.timerStartedAt || null,
+        lastStoppedAt: formatApiDateForDisplay(task.last_stopped_at || task.lastStoppedAt),
+    };
+}
+
+function employeeFromApi(employee) {
+    const firstName = employee.first_name || "";
+    const lastName = employee.last_name || "";
+    const displayName = employee.display_name || `${firstName} ${lastName}`.trim() || employee.name || employee.email || "Unnamed Employee";
+    const role = employee.title || employee.role || employee.account_role || "Employee";
+
+    return {
+        id: employee.user_id || employee.id,
+        backendId: employee.user_id || employee.id,
+        employeeId: employee.employee_id || employee.employeeId || employee.user_id || employee.id,
+        name: displayName,
+        role,
+        email: employee.email || "",
+        phone: employee.phone_number || employee.phone || "",
+        status: employee.status || (employee.is_active === false ? "Inactive" : "Active"),
+        currentTask: employee.current_task || employee.currentTask || "No active task",
+        activeTasks: Number(employee.active_tasks ?? employee.activeTasks ?? 0) || 0,
+        completedToday: Number(employee.completed_today ?? employee.completedToday ?? 0) || 0,
+        hoursToday: Number(employee.hours_today ?? employee.hoursToday ?? 0) || 0,
+        efficiency: Number(employee.efficiency ?? 0) || 0,
+        availability: employee.availability || employee.status || (employee.is_active === false ? "Inactive" : "Available"),
+    };
+}
+
+function normalizeProjectRows(payload) {
+    return toArrayPayload(payload)
+        .filter((project) => !isSeedRecord(project))
+        .map(projectFromApi);
+}
+
+function normalizeTaskRows(payload) {
+    return toArrayPayload(payload)
+        .filter((task) => !isSeedRecord(task))
+        .map(taskFromApi);
+}
+
+function normalizeEmployeeRows(payload) {
+    return toArrayPayload(payload)
+        .filter((employee) => !isSeedRecord(employee))
+        .map(employeeFromApi);
 }
 
 function projectToApi(project) {
@@ -851,6 +951,12 @@ export {
     buildApiUrl,
     apiRequest,
     clearPublishedApiErrors,
+    projectFromApi,
+    taskFromApi,
+    employeeFromApi,
+    normalizeProjectRows,
+    normalizeTaskRows,
+    normalizeEmployeeRows,
     projectToApi,
     unwrapApiPayload,
     normalizeDashboardKpis,
