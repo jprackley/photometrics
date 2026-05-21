@@ -214,10 +214,10 @@ function Dashboard({ onPageChange, currentUser }) {
         unwrap: false,
         transformPayload: activeProjectsKpiFromApi,
     });
-    const { data: productivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.productivity, productivity);
-    const { data: workflowData } = useApiPlaceholder(API_ENDPOINTS.dashboard.workflow, workflow);
-    const { data: employeeActivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.employeeActivity, employeeActivity);
-    const { data: projectProgressData } = useApiPlaceholder(API_ENDPOINTS.dashboard.projectProgress, projectProgress);
+    const { data: productivityData } = useApiPlaceholder(null, productivity);
+    const { data: workflowData } = useApiPlaceholder(null, workflow);
+    const { data: employeeActivityData } = useApiPlaceholder(null, employeeActivity);
+    const { data: projectProgressData } = useApiPlaceholder(null, projectProgress);
     const hasManagerAccess = canManageContent(currentUser);
     const employeeName = currentUser?.employeeName || currentUser?.name;
     const employeeActivityRows = Array.isArray(employeeActivityData) ? employeeActivityData : [];

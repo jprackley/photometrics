@@ -50,6 +50,7 @@ import {
     apiPlaceholders,
     getUseApiDataSetting,
     normalizeBackendUser,
+    normalizeEmployeeRows,
     saveUseApiDataSetting,
     unwrapApiPayload,
     useApiPlaceholder,
@@ -263,7 +264,9 @@ function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
  * Manager employee management page with search, filters, summary cards, export, and edit modals.
  */
 function EmployeesPage({ globalSearch = "" }) {
-    const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees);
+    const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
+        transformPayload: normalizeEmployeeRows,
+    });
 
     const [employeeRows, setEmployeeRows] = useState(employees);
     const [employeeSort, setEmployeeSort] = useState({ key: "name", direction: "asc" });

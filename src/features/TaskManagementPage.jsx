@@ -50,6 +50,7 @@ import {
     apiPlaceholders,
     getUseApiDataSetting,
     normalizeBackendUser,
+    normalizeTaskRows,
     saveUseApiDataSetting,
     unwrapApiPayload,
     useApiPlaceholder,
@@ -277,7 +278,9 @@ function TimerControl({ task, currentTime, onStart, onStop, isAnotherTimerRunnin
  * Manager task management page with timer controls, sorting, filtering, pagination, and CSV export.
  */
 function TaskManagementPage() {
-    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasks, taskItems);
+    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasks, taskItems, {
+        transformPayload: normalizeTaskRows,
+    });
     const [taskRows, setTaskRows] = useState(taskItems);
     const [taskSort, setTaskSort] = useState({ key: "dueDate", direction: "asc" });
     const [taskPage, setTaskPage] = useState(1);
@@ -788,7 +791,9 @@ function TimerControlSecure({ task, currentTime, currentUser, onStart, onStop, i
  * Role-aware task page that limits employees to assigned tasks while preserving manager controls.
  */
 function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
-    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasks, taskItems);
+    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasks, taskItems, {
+        transformPayload: normalizeTaskRows,
+    });
     const [taskRows, setTaskRows] = useState(taskItems.map(normalizeTaskForTimers));
     const [taskSort, setTaskSort] = useState({ key: "dueDate", direction: "asc" });
     const [taskPage, setTaskPage] = useState(1);

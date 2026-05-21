@@ -199,28 +199,59 @@ function downloadSettingsReport(settings) {
     );
 }
 
+const SETTINGS_STORAGE_KEY = "photometrics-manager-settings-v1";
+
+function mergeSettings(baseSettings, savedSettings) {
+    if (!savedSettings || typeof savedSettings !== "object" || Array.isArray(savedSettings)) {
+        return { ...baseSettings };
+    }
+
+    return {
+        ...baseSettings,
+        ...savedSettings,
+        company: { ...baseSettings.company, ...(savedSettings.company || {}) },
+        workflow: { ...baseSettings.workflow, ...(savedSettings.workflow || {}) },
+        notifications: { ...baseSettings.notifications, ...(savedSettings.notifications || {}) },
+        security: { ...baseSettings.security, ...(savedSettings.security || {}) },
+        exportBackup: { ...baseSettings.exportBackup, ...(savedSettings.exportBackup || {}) },
+        appearance: { ...baseSettings.appearance, ...(savedSettings.appearance || {}) },
+    };
+}
+
+function loadSavedSettings() {
+    if (typeof window === "undefined") return { ...settingsData };
+
+    try {
+        const savedSettings = JSON.parse(window.localStorage.getItem(SETTINGS_STORAGE_KEY) || "null");
+        return mergeSettings(settingsData, savedSettings);
+    } catch (storageError) {
+        console.warn("Saved settings could not be loaded. Using defaults.", storageError);
+        return { ...settingsData };
+    }
+}
+
+function saveSettingsLocally(settings) {
+    if (typeof window === "undefined") return;
+
+    try {
+        window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    } catch (storageError) {
+        console.warn("Settings could not be saved locally.", storageError);
+    }
+}
+
 /**
  * Manager settings page for company, workflow, notification, security, backup, and appearance options.
  */
 function SettingsPage() {
-    const { data: loadedSettings } = useApiPlaceholder(API_ENDPOINTS.settings, settingsData);
-    const [settings, setSettings] = useState(() => ({
-        ...settingsData,
-    }));
+    const savedSettings = useMemo(() => loadSavedSettings(), []);
+    const { data: loadedSettings } = useApiPlaceholder(null, savedSettings);
+    const [settings, setSettings] = useState(savedSettings);
     const [savedMessage, setSavedMessage] = useState("");
 
     useEffect(() => {
         if (loadedSettings && typeof loadedSettings === "object" && !Array.isArray(loadedSettings)) {
-            setSettings((current) => ({
-                ...current,
-                ...loadedSettings,
-                company: { ...current.company, ...(loadedSettings.company || {}) },
-                workflow: { ...current.workflow, ...(loadedSettings.workflow || {}) },
-                notifications: { ...current.notifications, ...(loadedSettings.notifications || {}) },
-                security: { ...current.security, ...(loadedSettings.security || {}) },
-                exportBackup: { ...current.exportBackup, ...(loadedSettings.exportBackup || {}) },
-                appearance: { ...current.appearance, ...(loadedSettings.appearance || {}) },
-            }));
+            setSettings((current) => mergeSettings(current, loadedSettings));
         }
     }, [loadedSettings]);
 
@@ -238,22 +269,15 @@ function SettingsPage() {
     };
 
     const saveSettings = async () => {
-        if (getUseApiDataSetting()) {
-            try {
-                await apiPlaceholders.updateSettings(settings);
-            } catch (apiError) {
-                console.warn("Settings API endpoint is not connected yet. Saving locally.", apiError);
-            }
-        }
-
-        setSavedMessage("Settings saved. The mock data mode can be changed from the login screen before signing in.");
+        saveSettingsLocally(settings);
+        setSavedMessage("Settings saved locally. Backend settings storage is not deployed yet.");
     };
 
     const resetSettings = () => {
-        setSettings({
-            ...settingsData,
-        });
-        setSavedMessage("Settings reset to default values. Mock data mode remains controlled from the login screen.");
+        const defaultSettings = { ...settingsData };
+        setSettings(defaultSettings);
+        saveSettingsLocally(defaultSettings);
+        setSavedMessage("Settings reset to default values.");
     };
 
     const activeNotificationCount = Object.entries(settings.notifications)
