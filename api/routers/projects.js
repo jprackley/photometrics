@@ -13,6 +13,7 @@ const {query} = require("../db");
 const C_HTTP = require("../../utils/constants/cHTTP");
 const C_NODE = require("../../utils/constants/cNodeServer");
 const C_PROJECT = require("../../utils/constants/cProjects");
+const {values} = require("pg/lib/native/query");
 
 
 //----------------------------------------------------------------------------------
@@ -44,31 +45,31 @@ const C_PROJECT = require("../../utils/constants/cProjects");
 router.post(
     '/',
     [
-        body('client_id').optional().isUUID().withMessage('Invalid client ID format'),
-        body('managed_by').optional().isUUID().withMessage('Invalid user ID format'),
+        body('client_id').optional({ values: 'null' }).isUUID().withMessage('Invalid client ID format'),
+        body('managed_by').optional({ values: 'null' }).isUUID().withMessage('Invalid user ID format'),
 
         body('project_name').isString().isLength({
             min: C_PROJECT.MIN.NAME,
             max: C_PROJECT.MAX.NAME
         }).withMessage(`Project name must be less than ${C_PROJECT.MAX.NAME} characters long`),
 
-        body('description').optional().isString().isLength({
+        body('description').optional({ values: 'null' }).isString().isLength({
             min: C_PROJECT.MIN.DESCRIPTION,
             max: C_PROJECT.MAX.DESCRIPTION
         }).withMessage(`Project description must be less than ${C_PROJECT.MAX.DESCRIPTION} characters long`),
 
-        body('status').optional().isIn(Object.values(C_PROJECT.STATUS)).withMessage('Invalid project status'),
-        body('priority').optional().isIn(Object.values(C_PROJECT.PRIORITY)).withMessage('Invalid project priority'),
+        body('status').optional({ values: 'null' }).isIn(Object.values(C_PROJECT.STATUS)).withMessage('Invalid project status'),
+        body('priority').optional({ values: 'null' }).isIn(Object.values(C_PROJECT.PRIORITY)).withMessage('Invalid project priority'),
 
-        body('notes').optional().isString().isLength({
+        body('notes').optional({ values: 'null' }).isString().isLength({
             min: C_PROJECT.MIN.NOTES,
             max: C_PROJECT.MAX.NOTES
         }).withMessage(`Notes must be less than ${C_PROJECT.MAX.NOTES} characters long`),
 
-        body('start_time').optional().isISO8601().withMessage('Invalid start time format'),
-        body('shoot_time').optional().isISO8601().withMessage('Invalid shoot time format'),
-        body('due_time').optional().isISO8601().withMessage('Invalid due time format'),
-        body('completed_at').optional().isISO8601().withMessage('Invalid completed time format'),
+        body('start_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid start time format'),
+        body('shoot_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid shoot time format'),
+        body('due_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid due time format'),
+        body('completed_at').optional({ values: 'null' }).isISO8601().withMessage('Invalid completed time format'),
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'CREATE Project - ');
