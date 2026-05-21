@@ -164,6 +164,7 @@ router.get(
         `;
         const {rows} = await query(sql, [param]);
         if (rows.length === 0) return res.status(404).json({error: {code: 404, message: 'Productivity KPI not found'}});
+        res.json(rows[0]);
     })
 );
 
