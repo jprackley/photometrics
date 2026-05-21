@@ -25,9 +25,7 @@ const LEGACY_API_DATA_SETTING_KEY = "photometrics-use-api-data";
 const API_DATA_SETTING_KEY = "photometrics-use-api-data-v2";
 const API_DATA_SETTING_EVENT = "photometrics-api-data-setting-changed";
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL !== "/"
-    ? import.meta.env.VITE_API_BASE_URL
-    : "/api";
+  import.meta.env.VITE_API_BASE_URL || "/api";
 const DEFAULT_PAGE_LIMIT = 50;
 
 /**
