@@ -36,7 +36,7 @@ router.get(
                      t.status,
                      p.project_name
 
-            ORDER BY t.updated_at;
+            ORDER BY t.updated_at DESC;
          `;
         const { rows } = await query(sql, [param]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
@@ -70,7 +70,7 @@ router.get(
                      t.status,
                      p.project_name
 
-            ORDER BY t.updated_at;
+            ORDER BY t.updated_at DESC;
          `;
         const { rows } = await query(sql);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
