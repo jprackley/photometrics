@@ -71,6 +71,7 @@ router.get(
                                ON t.assigned_to = u.user_id
                      LEFT JOIN task_time tt
                                ON tt.task_id = t.task_id
+            WHERE u.account_role = 'Employee'
 
             GROUP BY
                 u.user_id,
@@ -152,7 +153,7 @@ router.get(
                      LEFT JOIN task_time tt
                                ON tt.task_id = t.task_id
             
-            WHERE u.user_id = $1
+            WHERE u.user_id = $1 AND u.account_role = 'Employee'
 
             GROUP BY
                 u.user_id,
