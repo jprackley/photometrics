@@ -52,7 +52,7 @@ router.post(
             max: C_PROJECT.MAX.NAME
         }).withMessage(`Project name must be less than ${C_PROJECT.MAX.NAME} characters long`),
 
-        body('description').isString().isLength({
+        body('description').optional().isString().isLength({
             min: C_PROJECT.MIN.DESCRIPTION,
             max: C_PROJECT.MAX.DESCRIPTION
         }).withMessage(`Project description must be less than ${C_PROJECT.MAX.DESCRIPTION} characters long`),
