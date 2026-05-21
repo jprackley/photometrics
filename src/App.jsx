@@ -15,7 +15,7 @@ import {
   apiPlaceholders,
   clearPublishedApiErrors,
 } from "./services/api.js";
-import { getPublicUser, mockUsers, placeholderPages } from "./data/mockData";
+import { getPublicUser, mockUsers, placeholderPages, settingsData } from "./data/mockData";
 import { canAccessPage, canManageContent } from "./utils/accessControl";
 import {
     AnalyticsPage,
@@ -29,6 +29,58 @@ import {
     SettingsPage,
     TaskManagementPageSecure,
 } from "./features/Pages";
+
+
+const SETTINGS_STORAGE_KEY = "photometrics-manager-settings-v1";
+const SETTINGS_UPDATED_EVENT = "photometrics-settings-updated";
+
+function mergeSettings(baseSettings, savedSettings) {
+    if (!savedSettings || typeof savedSettings !== "object" || Array.isArray(savedSettings)) {
+        return { ...baseSettings };
+    }
+
+    return {
+        ...baseSettings,
+        ...savedSettings,
+        company: { ...baseSettings.company, ...(savedSettings.company || {}) },
+        workflow: { ...baseSettings.workflow, ...(savedSettings.workflow || {}) },
+        notifications: { ...baseSettings.notifications, ...(savedSettings.notifications || {}) },
+        security: { ...baseSettings.security, ...(savedSettings.security || {}) },
+        exportBackup: { ...baseSettings.exportBackup, ...(savedSettings.exportBackup || {}) },
+        appearance: { ...baseSettings.appearance, ...(savedSettings.appearance || {}) },
+    };
+}
+
+function loadSavedAppSettings() {
+    if (typeof window === "undefined") return { ...settingsData };
+
+    try {
+        const savedSettings = JSON.parse(window.localStorage.getItem(SETTINGS_STORAGE_KEY) || "null");
+        return mergeSettings(settingsData, savedSettings);
+    } catch (storageError) {
+        console.warn("Saved settings could not be loaded. Using defaults.", storageError);
+        return { ...settingsData };
+    }
+}
+
+function resolveTheme(theme) {
+    if (theme === "System" && typeof window !== "undefined" && window.matchMedia) {
+        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "Dark" : "Light";
+    }
+
+    return theme === "Dark" ? "Dark" : "Light";
+}
+
+function getAppAppearanceClassName(settings) {
+    const appearance = settings?.appearance || settingsData.appearance;
+    const theme = resolveTheme(appearance.theme);
+    const accent = String(appearance.accentColor || "Violet").toLowerCase();
+    const compactClass = appearance.compactTables ? "pm-compact-tables" : "";
+
+    return [`pm-theme-${theme.toLowerCase()}`, `pm-accent-${accent}`, compactClass]
+        .filter(Boolean)
+        .join(" ");
+}
 
 function getApiErrorHelp(error) {
     const endpoint = error?.endpoint || "unknown endpoint";
@@ -196,9 +248,25 @@ export default function App() {
     // Always require authentication on application startup.
     // Persisted sessions are cleared so the app always opens on the login screen.
     const [currentUser, setCurrentUser] = useState(null);
+    const [appSettings, setAppSettings] = useState(() => loadSavedAppSettings());
 
     useEffect(() => {
         window.localStorage.removeItem("photometrics-session");
+    }, []);
+
+    useEffect(() => {
+        const syncSettings = () => setAppSettings(loadSavedAppSettings());
+        const systemThemeQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
+
+        window.addEventListener(SETTINGS_UPDATED_EVENT, syncSettings);
+        window.addEventListener("storage", syncSettings);
+        systemThemeQuery?.addEventListener?.("change", syncSettings);
+
+        return () => {
+            window.removeEventListener(SETTINGS_UPDATED_EVENT, syncSettings);
+            window.removeEventListener("storage", syncSettings);
+            systemThemeQuery?.removeEventListener?.("change", syncSettings);
+        };
     }, []);
 
     /**
@@ -265,8 +333,10 @@ export default function App() {
         return <LoginPage onLogin={handleLogin} />;
     }
 
+    const appearanceClassName = getAppAppearanceClassName(appSettings);
+
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-950">
+        <div className={`min-h-screen bg-slate-50 text-slate-950 ${appearanceClassName}`}>
             <div className="flex min-h-screen flex-col">
                 <Topbar
                     isSidebarCollapsed={isSidebarCollapsed}
@@ -290,7 +360,7 @@ export default function App() {
                     <main className="min-w-0 flex-1 overflow-x-hidden">
                         <ApiErrorBanner />
                         <ErrorBoundary key={page}>
-                            {page === "dashboard" && <Dashboard onPageChange={setAuthorizedPage} currentUser={currentUser} />}
+                            {page === "dashboard" && <Dashboard onPageChange={setAuthorizedPage} currentUser={currentUser} appSettings={appSettings} />}
                             {page === "projects" && <ProjectsAndAssignmentsSecure currentUser={currentUser} globalSearch={globalSearch} />}
                             {page === "employees" && canManageContent(currentUser) && <EmployeesPage globalSearch={globalSearch} />}
                             {page === "tasks" && <TaskManagementPageSecure currentUser={currentUser} globalSearch={globalSearch} />}

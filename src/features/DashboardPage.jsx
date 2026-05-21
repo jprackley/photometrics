@@ -209,7 +209,7 @@ function ColoredLineSegment({ data, segment, index }) {
 /**
  * Main dashboard view. Managers see team metrics; employees see only their own work queue and progress.
  */
-function Dashboard({ onPageChange, currentUser }) {
+function Dashboard({ onPageChange, currentUser, appSettings }) {
     const { data: dashboardKpiPayload } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.active, kpis, {
         unwrap: false,
         transformPayload: activeProjectsKpiFromApi,
@@ -219,6 +219,7 @@ function Dashboard({ onPageChange, currentUser }) {
     const { data: employeeActivityData } = useApiPlaceholder(null, employeeActivity);
     const { data: projectProgressData } = useApiPlaceholder(null, projectProgress);
     const hasManagerAccess = canManageContent(currentUser);
+    const showDashboardTips = appSettings?.appearance?.showDashboardTips !== false;
     const employeeName = currentUser?.employeeName || currentUser?.name;
     const employeeActivityRows = Array.isArray(employeeActivityData) ? employeeActivityData : [];
     const projectProgressRows = Array.isArray(projectProgressData) ? projectProgressData : [];
@@ -275,6 +276,12 @@ function Dashboard({ onPageChange, currentUser }) {
                     </div>
                 ))}
             </div>
+
+            {showDashboardTips && (
+                <div className="pm-dashboard-tip rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800 shadow-sm">
+                    Dashboard tip: use the page search and sidebar sections to quickly narrow projects, employees, tasks, reports, and analytics.
+                </div>
+            )}
 
             {hasManagerAccess ? (
                 <>
