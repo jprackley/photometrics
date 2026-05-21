@@ -235,7 +235,7 @@ CREATE TABLE time_entries
     employee_id   UUID        NOT NULL,
     start_time    TIMESTAMPTZ NOT NULL,
     end_time      TIMESTAMPTZ          DEFAULT NULL,
-    total_time    DECIMAL              DEFAULT 0,
+    total_time    DECIMAL              DEFAULT 0, -- in hours
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT fk_time_entries_task
         FOREIGN KEY (task_id)
@@ -273,7 +273,7 @@ VALUES (
            '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
            'Manager',
            true,
-           true,
+           false,
            'Active',
            'Photometrics',
            'Operations'
@@ -313,7 +313,7 @@ VALUES (
            '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
            'Employee',
            false,
-           true,
+           false,
            'Active',
            'Photometrics',
            'Editing'

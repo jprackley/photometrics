@@ -23,18 +23,14 @@ app.use('/api/time-entries', require('./routers/time.entries'));
 app.use('/api/users', require('./routers/users'));
 app.use('/api/employees', require('./routers/read-only/employees'));
 
+app.use('/api/kpi/tasks', require('./routers/dashboard/taskKPI'));
+app.use('/api/kpi/images', require('./routers/dashboard/imageKPI'));
+app.use('/api/kpi/employees', require('./routers/dashboard/employeeKPI'));
 const projectKpiRouter = require('./routers/dashboard/projectKPI');
 app.use('/api/kpi/projects', projectKpiRouter);
 app.use('/kpi/projects', projectKpiRouter);
 
-const taskKpiRouter = require('./routers/dashboard/taskKPI');
-app.use('/api/kpi/tasks', taskKpiRouter);
-
-const imageKpiRouter = require('./routers/dashboard/imageKPI');
-app.use('/api/kpi/images', imageKpiRouter);
-
-const employeeKpiRouter = require('./routers/dashboard/employeeKPI');
-app.use('/api/kpi/employees', employeeKpiRouter);
+app.use('/api/dashboard/productivity', require('./routers/dashboard/productivityKPI'));
 
 // Error handler MUST BE LAST
 app.use((err, req, res, next) => {
