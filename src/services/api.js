@@ -85,16 +85,19 @@ function projectFromApi(project) {
 }
 
 function projectToApi(project) {
-    return {
-        client_id: project.clientId,
-        managed_by: project.managedBy || null,
+    const payload = {
         project_name: project.name,
-        description: project.description || "",
+        description: project.description,
         status: project.status,
         priority: project.priority || "Normal",
         start_time: project.startDate,
         due_time: project.dueDate,
     };
+
+    if (project.clientId) payload.client_id = project.clientId;
+    if (project.managedBy) payload.managed_by = project.managedBy;
+
+    return payload;
 }
 
 // Centralized route map for backend resources. Updating routes here keeps the UI components decoupled from backend path changes.
