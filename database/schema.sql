@@ -266,7 +266,7 @@ SELECT
             COUNT(t.task_id) FILTER (
                 WHERE t.status = 'Completed'
             )::numeric / NULLIF(COUNT(t.task_id), 0) * 100, 2
-        ), 0 ) AS progress,
+        ), 100 ) AS progress,
     p.status,
     p.due_time
 FROM projects p
@@ -275,6 +275,21 @@ WHERE p.status IN ('To-Do', 'In Progress', 'On Hold')
 GROUP BY p.project_id, p.project_name, p.status, p.due_time
 ORDER BY p.due_time DESC;
 
+CREATE OR REPLACE VIEW assignment AS
+SELECT
+    u.user_id AS employee_id,
+    p.project_id,
+    p.project_name,
+    t.task_id,
+    t.task_name,
+    t.created_at AS assigned_date,
+    t.due_time AS due_date,
+    t.status AS status
+FROM users u
+LEFT JOIN tasks t ON u.user_id = t.assigned_to
+LEFT JOIN projects p ON t.project_id = p.project_id
+WHERE u.account_role = 'Employee'
+ORDER BY assigned_date DESC;
 ---------------------------------------------------------------------------
 -- HARDCODED LOGIN USERS
 ---------------------------------------------------------------------------
