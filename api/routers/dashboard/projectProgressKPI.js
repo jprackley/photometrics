@@ -1,5 +1,4 @@
 const express = require('express');
-const app = require("../../index");
 const router = express.Router();
 
 const asyncHandler = require('../../../utils/helpers/asyncHandler');
@@ -9,7 +8,7 @@ const {param} = require("express-validator");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
 
-app.get(
+router.get(
     '/',
     asyncHandler(async (req, res) => {
         handleValidation(req, 'GET Project Progress KPI - ');
@@ -23,7 +22,7 @@ app.get(
         res.json(rows);
     }));
 
-app.get(
+router.get(
     '/:id',
     param('id').isUUID().withMessage('Invalid Project UUID'),
     asyncHandler(async (req, res) => {
