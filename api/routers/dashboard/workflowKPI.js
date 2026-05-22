@@ -28,7 +28,8 @@ router.get(
                      LEFT JOIN tasks t
                                ON t.assigned_to = u.user_id
             WHERE u.user_id = $1
-            GROUP BY t.status
+            GROUP BY t.status,
+                     t.due_time
             ORDER BY t.status;
         `;
 
@@ -59,7 +60,8 @@ router.get(
             FROM users u
                      LEFT JOIN tasks t
                                ON t.assigned_to = u.user_id
-            GROUP BY t.status
+            GROUP BY t.status,
+                     t.due_time
             ORDER BY t.status;
         `;
 
