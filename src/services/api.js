@@ -80,6 +80,46 @@ function formatApiDateForDisplay(value) {
     });
 }
 
+function formatApiDateTimeForDisplay(value) {
+    if (!value) return "";
+
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) return String(value);
+
+    return parsedDate.toLocaleString([], {
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function toMetricNumber(value, fallback = 0) {
+    const numberValue = Number.parseFloat(value);
+    return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function getDisplayNameFromApi(record, fallback = "Unnamed Employee") {
+    const nameParts = [record?.first_name, record?.middle_name, record?.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    return record?.display_name
+        || record?.employee_name
+        || record?.assigned_to_name
+        || record?.name
+        || nameParts
+        || record?.email
+        || fallback;
+}
+
+function shortBackendId(value, fallback = "Unassigned") {
+    if (!value) return fallback;
+    return String(value).slice(0, 8);
+}
+
 function isSeedRecord(record) {
     const searchable = [
         record?.email,
@@ -88,6 +128,9 @@ function isSeedRecord(record) {
         record?.description,
         record?.notes,
         record?.name,
+        record?.display_name,
+        record?.employee_name,
+        record?.assigned_to_name,
     ].join(" ").toLowerCase();
 
     return searchable.includes("[seed:photometrics]")
@@ -101,6 +144,154 @@ function toArrayPayload(payload) {
     const unwrapped = unwrapApiPayload(payload);
     if (Array.isArray(unwrapped)) return unwrapped;
     return unwrapped ? [unwrapped] : [];
+}
+
+
+const ACCENT_COLOR_HEX_BY_NAME = {
+    Violet: "#7c3aed",
+    Blue: "#1976d2",
+    Green: "#10b981",
+    Slate: "#475569",
+};
+
+const TIMEZONE_IANA_BY_LABEL = {
+    "Pacific Time": "America/Los_Angeles",
+    "Mountain Time": "America/Denver",
+    "Central Time": "America/Chicago",
+    "Eastern Time": "America/New_York",
+};
+
+const TIMEZONE_LABEL_BY_IANA = Object.fromEntries(
+    Object.entries(TIMEZONE_IANA_BY_LABEL).map(([label, value]) => [value, label])
+);
+
+function toBooleanSetting(value, fallback = false) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value !== 0;
+    if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        if (["true", "1", "yes", "on"].includes(normalized)) return true;
+        if (["false", "0", "no", "off"].includes(normalized)) return false;
+    }
+
+    return fallback;
+}
+
+function normalizeTitleOption(value, fallback) {
+    if (!value) return fallback;
+    const normalized = String(value).trim().toLowerCase();
+    if (!normalized) return fallback;
+
+    return normalized
+        .split(/[\s_-]+/)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+}
+
+function normalizeThemeOption(value, fallback = "Light") {
+    const option = normalizeTitleOption(value, fallback);
+    return ["Light", "Dark", "System"].includes(option) ? option : fallback;
+}
+
+function normalizeAccentOption(value, fallback = "Violet") {
+    if (!value) return fallback;
+
+    const normalized = String(value).trim();
+    const lowered = normalized.toLowerCase();
+
+    if (lowered === "#1976d2" || lowered === "#2563eb" || lowered.includes("blue")) return "Blue";
+    if (lowered === "#10b981" || lowered === "#059669" || lowered.includes("green")) return "Green";
+    if (lowered === "#475569" || lowered === "#64748b" || lowered.includes("slate")) return "Slate";
+    if (lowered === "#7c3aed" || lowered === "#8b5cf6" || lowered.includes("violet") || lowered.includes("purple")) return "Violet";
+
+    return fallback;
+}
+
+function normalizeTimezoneOption(value, fallback = "Pacific Time") {
+    if (!value) return fallback;
+    const stringValue = String(value).trim();
+
+    if (TIMEZONE_LABEL_BY_IANA[stringValue]) return TIMEZONE_LABEL_BY_IANA[stringValue];
+    if (TIMEZONE_IANA_BY_LABEL[stringValue]) return stringValue;
+
+    const titleValue = normalizeTitleOption(stringValue.replace(/_/g, " "), fallback);
+    if (TIMEZONE_IANA_BY_LABEL[titleValue]) return titleValue;
+
+    return fallback;
+}
+
+function getFirstSettingsRecord(payload) {
+    const unwrapped = unwrapApiPayload(payload);
+    if (Array.isArray(unwrapped)) return unwrapped[0] || null;
+    return unwrapped || null;
+}
+
+function normalizeBackendSettings(payload, baseSettings = {}, currentUser = null) {
+    const record = getFirstSettingsRecord(payload);
+
+    if (!record || typeof record !== "object") {
+        return { ...baseSettings };
+    }
+
+    const baseCompany = baseSettings.company || {};
+    const baseNotifications = baseSettings.notifications || {};
+    const baseAppearance = baseSettings.appearance || {};
+
+    const backendNotifications = record.notifications ?? record.notification_enabled ?? record.notifications_enabled;
+    const notificationsEnabled = toBooleanSetting(backendNotifications, true);
+
+    return {
+        ...baseSettings,
+        company: {
+            ...baseCompany,
+            companyName: record.companyname || record.company_name || record.companyName || baseCompany.companyName || "Photometrics",
+            timezone: normalizeTimezoneOption(record.timezone || record.time_zone, baseCompany.timezone || "Pacific Time"),
+            language: record.language || baseCompany.language || "en",
+        },
+        notifications: {
+            ...baseNotifications,
+            dueDateAlerts: notificationsEnabled,
+            reviewQueueAlerts: notificationsEnabled,
+            productivityAlerts: notificationsEnabled,
+        },
+        appearance: {
+            ...baseAppearance,
+            theme: normalizeThemeOption(record.theme, baseAppearance.theme || "Light"),
+            accentColor: normalizeAccentOption(record.accentcolor || record.accent_color || record.accentColor, baseAppearance.accentColor || "Violet"),
+            compactTables: toBooleanSetting(record.compacttables ?? record.compact_tables ?? record.compactTables, baseAppearance.compactTables || false),
+            showDashboardTips: toBooleanSetting(record.showdashboardtips ?? record.show_dashboard_tips ?? record.showDashboardTips, baseAppearance.showDashboardTips ?? true),
+        },
+        backend: {
+            ...(baseSettings.backend || {}),
+            settingId: record.setting_id || record.settingId || baseSettings.backend?.settingId || null,
+            userId: record.user_id || record.userId || currentUser?.userId || currentUser?.id || baseSettings.backend?.userId || null,
+            createdAt: record.created_at || record.createdAt || baseSettings.backend?.createdAt || null,
+            updatedAt: record.updated_at || record.updatedAt || baseSettings.backend?.updatedAt || null,
+        },
+    };
+}
+
+function settingsToApiPayload(settings = {}, currentUser = null) {
+    const appearance = settings.appearance || {};
+    const company = settings.company || {};
+    const notifications = settings.notifications || {};
+    const backend = settings.backend || {};
+
+    return {
+        user_id: backend.userId || currentUser?.userId || currentUser?.id || currentUser?.employeeId,
+        theme: String(appearance.theme || "Light").toLowerCase(),
+        accentcolor: ACCENT_COLOR_HEX_BY_NAME[appearance.accentColor] || appearance.accentColor || ACCENT_COLOR_HEX_BY_NAME.Violet,
+        compacttables: Boolean(appearance.compactTables),
+        showdashboardtips: appearance.showDashboardTips !== false,
+        notifications: Boolean(
+            notifications.dueDateAlerts
+            || notifications.reviewQueueAlerts
+            || notifications.productivityAlerts
+        ),
+        companyname: company.companyName || "Photometrics",
+        language: company.language || settings.language || "en",
+        timezone: TIMEZONE_IANA_BY_LABEL[company.timezone] || company.timezone || "America/Los_Angeles",
+    };
 }
 
 function projectFromApi(project) {
@@ -143,9 +334,7 @@ function taskFromApi(task) {
 }
 
 function employeeFromApi(employee) {
-    const firstName = employee.first_name || "";
-    const lastName = employee.last_name || "";
-    const displayName = employee.display_name || `${firstName} ${lastName}`.trim() || employee.name || employee.email || "Unnamed Employee";
+    const displayName = getDisplayNameFromApi(employee);
     const role = employee.title || employee.role || employee.account_role || "Employee";
 
     return {
@@ -182,6 +371,120 @@ function normalizeEmployeeRows(payload) {
     return toArrayPayload(payload)
         .filter((employee) => !isSeedRecord(employee))
         .map(employeeFromApi);
+}
+
+function assignmentFromApi(assignment) {
+    const employeeId = assignment.employee_id || assignment.assigned_to || assignment.user_id || assignment.employeeId || assignment.assignedToId || null;
+    const taskId = assignment.task_id || assignment.id || assignment.taskId;
+    const assignedTo = getDisplayNameFromApi(assignment, employeeId ? `Employee ${shortBackendId(employeeId)}` : "Unassigned");
+
+    return {
+        id: assignment.id || taskId || `assignment-${shortBackendId(employeeId)}-${shortBackendId(assignment.project_id)}`,
+        backendId: assignment.id || taskId,
+        employeeId,
+        assignedToId: employeeId,
+        projectId: assignment.project_id || assignment.projectId || null,
+        taskId,
+        project: assignment.project_name || assignment.project || (assignment.project_id ? `Project ${shortBackendId(assignment.project_id)}` : "Unassigned Project"),
+        taskType: assignment.task_name || assignment.taskType || assignment.category || "Assigned Task",
+        assignedTo,
+        assignedDate: formatApiDateForDisplay(assignment.assigned_date || assignment.assignedDate || assignment.created_at),
+        dueDate: formatApiDateForDisplay(assignment.due_date || assignment.due_time || assignment.dueDate),
+        priority: assignment.priority || "Normal",
+        status: assignment.status || "Assigned",
+    };
+}
+
+function normalizeAssignmentRows(payload) {
+    return toArrayPayload(payload)
+        .filter((assignment) => !isSeedRecord(assignment))
+        .map(assignmentFromApi);
+}
+
+const DASHBOARD_COLORS = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444", "#14b8a6", "#8b5cf6", "#64748b"];
+
+function normalizeProductivityKpiRows(payload) {
+    return toArrayPayload(payload)
+        .filter((row) => !isSeedRecord(row))
+        .map((row, index) => {
+            const displayName = getDisplayNameFromApi(row, `Employee ${index + 1}`);
+            const completionRate = toMetricNumber(row.completion_rate_percent ?? row.completionRate ?? row.value ?? row.rate);
+
+            return {
+                day: displayName,
+                name: displayName,
+                value: completionRate,
+                color: DASHBOARD_COLORS[index % DASHBOARD_COLORS.length],
+                userId: row.user_id || row.id,
+                assignedTasks: toMetricNumber(row.assigned_tasks ?? row.assignedTasks),
+                completedTasks: toMetricNumber(row.completed_tasks ?? row.completedTasks),
+                pendingTasks: toMetricNumber(row.pending_tasks ?? row.pendingTasks),
+                overdueTasks: toMetricNumber(row.overdue_tasks ?? row.overdueTasks),
+                totalHours: toMetricNumber(row.total_hours ?? row.totalHours),
+                completionRatePercent: completionRate,
+            };
+        });
+}
+
+function normalizeWorkflowKpiRows(payload) {
+    return toArrayPayload(payload)
+        .filter((row) => !isSeedRecord(row))
+        .map((row, index) => {
+            const status = row.status || row.name || `Status ${index + 1}`;
+            const count = toMetricNumber(row.count ?? row.value ?? row.total);
+
+            return {
+                name: status,
+                status,
+                value: count,
+                count,
+                displayValue: String(count),
+                color: row.color || DASHBOARD_COLORS[index % DASHBOARD_COLORS.length],
+            };
+        });
+}
+
+function normalizeEmployeeActivityKpiRows(payload) {
+    return toArrayPayload(payload)
+        .filter((row) => !isSeedRecord(row))
+        .map((row) => {
+            const displayName = getDisplayNameFromApi(row);
+            const description = String(row.description || row.activity || row.task_name || "Updated task");
+            const statusMatch = description.match(/Status:\s*([^\n]+)/i);
+            const status = row.status || (statusMatch ? statusMatch[1].trim() : "Updated");
+            const activityText = description
+                .split(/\n/)[0]
+                .replace(`${displayName} updated Task for Project `, "")
+                .replace(/\s+updated at:\s*$/i, "")
+                .trim() || row.task_name || "Task update";
+
+            return [
+                displayName,
+                activityText,
+                formatApiDateTimeForDisplay(row.updated_at || row.created_at),
+                status,
+            ];
+        });
+}
+
+function normalizeProjectProgressKpiRows(payload) {
+    return toArrayPayload(payload)
+        .filter((row) => !isSeedRecord(row))
+        .map((row) => {
+            const totalTasks = toMetricNumber(row.total_tasks ?? row.totalTasks);
+            const completedTasks = toMetricNumber(row.completed_tasks ?? row.completedTasks);
+            const remainingTasks = Math.max(0, totalTasks - completedTasks);
+
+            return [
+                row.project_name || row.name || row.project || "Untitled Project",
+                totalTasks,
+                completedTasks,
+                remainingTasks,
+                toMetricNumber(row.progress ?? row.progress_percent ?? row.percent_complete),
+                row.status || "To-Do",
+                formatApiDateForDisplay(row.due_time || row.due_date || row.dueDate),
+            ];
+        });
 }
 
 function projectToApi(project) {
@@ -896,10 +1199,47 @@ const apiPlaceholders = {
     deleteEmployee: (employeeId) => apiRequest(`${API_ENDPOINTS.employees}/${employeeId}`, {
         method: "DELETE",
     }),
-    updateSettings: (settings) => apiRequest(API_ENDPOINTS.settings, {
-        method: "PATCH",
-        body: JSON.stringify(settings),
-    }),
+    getSettings: () => apiRequest(API_ENDPOINTS.settings),
+    saveSettings: async (settings, currentUser) => {
+        const payload = settingsToApiPayload(settings, currentUser);
+        const settingId = settings?.backend?.settingId || settings?.setting_id || settings?.settingId;
+        const updateEndpoints = settingId
+            ? [
+                { endpoint: `${API_ENDPOINTS.settings}/${encodeURIComponent(settingId)}`, method: "PATCH" },
+                { endpoint: `${API_ENDPOINTS.settings}/${encodeURIComponent(settingId)}`, method: "PUT" },
+                { endpoint: API_ENDPOINTS.settings, method: "PATCH" },
+                { endpoint: API_ENDPOINTS.settings, method: "PUT" },
+            ]
+            : [
+                { endpoint: API_ENDPOINTS.settings, method: "PATCH" },
+                { endpoint: API_ENDPOINTS.settings, method: "PUT" },
+                { endpoint: API_ENDPOINTS.settings, method: "POST" },
+            ];
+
+        let lastError;
+
+        for (let index = 0; index < updateEndpoints.length; index += 1) {
+            const { endpoint, method } = updateEndpoints[index];
+            const isLastAttempt = index === updateEndpoints.length - 1;
+
+            try {
+                return await apiRequest(endpoint, {
+                    method,
+                    body: JSON.stringify(payload),
+                    suppressApiError: !isLastAttempt,
+                });
+            } catch (settingsError) {
+                lastError = settingsError;
+
+                if (![404, 405].includes(Number(settingsError.status))) {
+                    throw settingsError;
+                }
+            }
+        }
+
+        throw lastError || new Error("Settings update failed.");
+    },
+    updateSettings: (settings, currentUser) => apiPlaceholders.saveSettings(settings, currentUser),
     updateUserProfile: (userId, profile) => apiRequest(`/users/${userId}/profile`, {
         method: "PATCH",
         body: JSON.stringify(profile),
@@ -955,8 +1295,15 @@ export {
     taskFromApi,
     employeeFromApi,
     normalizeProjectRows,
+    normalizeBackendSettings,
+    settingsToApiPayload,
     normalizeTaskRows,
     normalizeEmployeeRows,
+    normalizeAssignmentRows,
+    normalizeProductivityKpiRows,
+    normalizeWorkflowKpiRows,
+    normalizeEmployeeActivityKpiRows,
+    normalizeProjectProgressKpiRows,
     projectToApi,
     unwrapApiPayload,
     normalizeDashboardKpis,
