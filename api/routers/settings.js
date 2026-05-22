@@ -24,13 +24,30 @@ router.post(
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'POST Settings - ');
+
+        const fields = [
+            ...Object.values(C_SETTINGS.REQUIRED_COLUMNS),
+            ...Object.values(C_SETTINGS.MUTABLE_COLUMNS)
+        ];
+        const columns = [];
+        const values = [];
+        const params = [];
+
+        fields.forEach((field) => {
+            if (req.body[field] !== undefined) {
+                params.push(req.body[field]);
+                columns.push(field);
+                values.push(`$${params.length}`);
+            }
+        });
+
         const { user_id } = req.body;
         const sql = `
-            INSERT INTO settings (user_id)
-            VALUES ($1)
+            INSERT INTO settings (${columns.join(', ')})
+            VALUES (${values.join(', ')})
             RETURNING *;
         `;
-        const { rows } = await query(sql, [user_id]);
+        const { rows } = await query(sql, params);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
     })
 );
