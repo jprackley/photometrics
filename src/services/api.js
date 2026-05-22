@@ -99,12 +99,38 @@ function toMetricNumber(value, fallback = 0) {
     return Number.isFinite(numberValue) ? numberValue : fallback;
 }
 
-function getDisplayNameFromApi(record, fallback = "Unnamed Employee") {
-    const nameParts = [record?.first_name, record?.middle_name, record?.last_name]
+function buildDisplayName(firstName, middleName, lastName, fallback = "") {
+    return [firstName, middleName, lastName]
         .filter(Boolean)
         .join(" ")
         .replace(/\s+/g, " ")
-        .trim();
+        .trim() || fallback;
+}
+
+function splitFullName(fullName = "") {
+    const parts = String(fullName || "")
+        .trim()
+        .replace(/\s+/g, " ")
+        .split(" ")
+        .filter(Boolean);
+
+    if (parts.length === 0) {
+        return { firstName: "", middleName: "", lastName: "" };
+    }
+
+    if (parts.length === 1) {
+        return { firstName: parts[0], middleName: "", lastName: parts[0] };
+    }
+
+    return {
+        firstName: parts[0],
+        middleName: parts.length > 2 ? parts.slice(1, -1).join(" ") : "",
+        lastName: parts[parts.length - 1],
+    };
+}
+
+function getDisplayNameFromApi(record, fallback = "Unnamed Employee") {
+    const nameParts = buildDisplayName(record?.first_name, record?.middle_name, record?.last_name);
 
     return record?.display_name
         || record?.employee_name
@@ -277,18 +303,20 @@ function settingsToApiPayload(settings = {}, currentUser = null) {
     const notifications = settings.notifications || {};
     const backend = settings.backend || {};
 
+    // The backend validator expects camelCase body fields, even though PostgreSQL
+    // returns unquoted camelCase columns as lowercase keys such as accentcolor.
     return {
         user_id: backend.userId || currentUser?.userId || currentUser?.id || currentUser?.employeeId,
         theme: String(appearance.theme || "Light").toLowerCase(),
-        accentcolor: ACCENT_COLOR_HEX_BY_NAME[appearance.accentColor] || appearance.accentColor || ACCENT_COLOR_HEX_BY_NAME.Violet,
-        compacttables: Boolean(appearance.compactTables),
-        showdashboardtips: appearance.showDashboardTips !== false,
+        accentColor: ACCENT_COLOR_HEX_BY_NAME[appearance.accentColor] || appearance.accentColor || ACCENT_COLOR_HEX_BY_NAME.Violet,
+        compactTables: Boolean(appearance.compactTables),
+        showDashboardTips: appearance.showDashboardTips !== false,
         notifications: Boolean(
             notifications.dueDateAlerts
             || notifications.reviewQueueAlerts
             || notifications.productivityAlerts
         ),
-        companyname: company.companyName || "Photometrics",
+        companyName: company.companyName || "Photometrics",
         language: company.language || settings.language || "en",
         timezone: TIMEZONE_IANA_BY_LABEL[company.timezone] || company.timezone || "America/Los_Angeles",
     };
@@ -321,6 +349,7 @@ function taskFromApi(task) {
         taskName: task.task_name || task.taskName || "Untitled Task",
         projectId: task.project_id || task.projectId || null,
         project: task.project_name || task.project || (task.project_id ? `Project ${String(task.project_id).slice(0, 8)}` : "Unassigned Project"),
+        category: task.category || "Other",
         assignedToId: task.assigned_to || task.assignedToId || null,
         assignedTo: task.assigned_to_name || task.assigned_to_email || task.assignedTo || (task.assigned_to ? `Employee ${String(task.assigned_to).slice(0, 8)}` : "Unassigned"),
         dueDate: formatApiDateForDisplay(task.due_time || task.dueDate),
@@ -341,8 +370,14 @@ function employeeFromApi(employee) {
         id: employee.user_id || employee.id,
         backendId: employee.user_id || employee.id,
         employeeId: employee.employee_id || employee.employeeId || employee.user_id || employee.id,
+        userId: employee.user_id || employee.id,
+        firstName: employee.first_name || "",
+        middleName: employee.middle_name || "",
+        lastName: employee.last_name || "",
+        displayName,
         name: displayName,
         role,
+        accountRole: employee.account_role || employee.role || "Employee",
         email: employee.email || "",
         phone: employee.phone_number || employee.phone || "",
         status: employee.status || (employee.is_active === false ? "Inactive" : "Active"),
@@ -503,6 +538,49 @@ function projectToApi(project) {
     return payload;
 }
 
+function employeeToApiPayload(employee = {}) {
+    const splitName = splitFullName(employee.name || employee.displayName || employee.display_name || "");
+    const firstName = String(employee.firstName || employee.first_name || splitName.firstName || "").trim();
+    const middleName = String(employee.middleName || employee.middle_name || splitName.middleName || "").trim();
+    const lastName = String(employee.lastName || employee.last_name || splitName.lastName || firstName || "Employee").trim();
+    const displayName = buildDisplayName(firstName, middleName, lastName, employee.name || employee.email || "Employee");
+    const accountRoleValue = employee.accountRole || employee.account_role || employee.role;
+    const accountRole = ["Manager", "Employee"].includes(accountRoleValue)
+        ? accountRoleValue
+        : "Employee";
+
+    return {
+        employee_id: employee.employeeId || employee.employee_id || undefined,
+        manager_id: employee.managerId || employee.manager_id || undefined,
+        first_name: firstName || "New",
+        middle_name: middleName || undefined,
+        last_name: lastName || "Employee",
+        display_name: displayName,
+        title: employee.title || (accountRole === employee.role ? undefined : employee.role) || undefined,
+        status: employee.status || "Active",
+        email: String(employee.email || "").trim(),
+        phone_number: employee.phone || employee.phone_number || undefined,
+        password_hash: employee.password || employee.password_hash || undefined,
+        account_role: accountRole,
+        is_active: employee.is_active ?? true,
+        is_admin: employee.is_admin ?? accountRole === "Manager",
+    };
+}
+
+function taskToApiPayload(task = {}) {
+    return {
+        project_id: task.projectId || task.project_id || undefined,
+        task_name: task.taskName || task.task_name || "Untitled Task",
+        category: task.category || "Other",
+        priority: task.priority || "Normal",
+        description: task.description || undefined,
+        status: task.status || "To-Do",
+        due_time: task.dueDate || task.due_time || undefined,
+        assigned_to: task.assignedToId || task.assigned_to || undefined,
+        assigned_by: task.assignedById || task.assigned_by || undefined,
+    };
+}
+
 // Centralized route map for backend resources. Updating routes here keeps the UI components decoupled from backend path changes.
 const API_ENDPOINTS = {
     // Authentication endpoints for login/logout and session handling.
@@ -551,6 +629,7 @@ const API_ENDPOINTS = {
     // Expected operations: list, read by ID, create, patch update, and delete/deactivate.
     // Also used for user role and permission metadata.
     users: "/users",
+    usersList: "/users?all=true",
 
     //------------------------------------------------------------------
     // CRUD for projects.
@@ -559,6 +638,7 @@ const API_ENDPOINTS = {
     // Main project management endpoint.
     // Stores project details, status, deadlines, linked client, assigned employees, uploaded files, etc.
     projects: "/projects",
+    projectsList: "/projects?all=true",
 
     //------------------------------------------------------------------
     // Image/file upload CRUD for project attachments.
@@ -599,6 +679,7 @@ const API_ENDPOINTS = {
     // - timer tracking linkage
     //-----------------------------------------------------------------------
     tasks: "/tasks",
+    tasksList: "/tasks?all=true",
 
     //-----------------------------------------------------------------------
     // Stores clocked work time for tasks/projects.
@@ -1028,7 +1109,7 @@ function getPreviewDatabaseUser(credentials) {
  * Provides a temporary database-backed login bridge when the dedicated auth route is not available.
  */
 async function loginWithUsersEndpoint(credentials) {
-    const payload = await apiRequest(`${API_ENDPOINTS.users}?all=true`);
+    const payload = await apiRequest(API_ENDPOINTS.usersList);
     const users = unwrapApiPayload(payload) || [];
     const normalizedEmail = String(credentials?.email || "").trim().toLowerCase();
     const matchedUser = users.find((user) => String(user.email || "").trim().toLowerCase() === normalizedEmail);
@@ -1188,31 +1269,36 @@ const apiPlaceholders = {
     deleteAssignment: (assignmentId) => apiRequest(`${API_ENDPOINTS.assignments}/${assignmentId}`, {
         method: "DELETE",
     }),
-    createEmployee: (employee) => apiRequest(API_ENDPOINTS.employees, {
+    createEmployee: (employee) => apiRequest(API_ENDPOINTS.users, {
         method: "POST",
-        body: JSON.stringify(employee),
+        body: JSON.stringify(employeeToApiPayload(employee)),
     }),
-    updateEmployee: (employeeId, employee) => apiRequest(`${API_ENDPOINTS.employees}/${employeeId}`, {
+    updateEmployee: (employeeId, employee) => apiRequest(`${API_ENDPOINTS.users}/${employeeId}`, {
         method: "PATCH",
-        body: JSON.stringify(employee),
+        body: JSON.stringify(employeeToApiPayload(employee)),
     }),
-    deleteEmployee: (employeeId) => apiRequest(`${API_ENDPOINTS.employees}/${employeeId}`, {
+    deleteEmployee: (employeeId) => apiRequest(`${API_ENDPOINTS.users}/${employeeId}`, {
         method: "DELETE",
     }),
-    getSettings: () => apiRequest(API_ENDPOINTS.settings),
+    getSettings: (currentUser) => {
+        const userId = currentUser?.userId || currentUser?.user_id || currentUser?.id || currentUser?.employeeId;
+        if (!userId) {
+            const error = new Error("Settings cannot be loaded without a user id.");
+            error.status = 400;
+            throw error;
+        }
+
+        return apiRequest(`${API_ENDPOINTS.settings}/${encodeURIComponent(userId)}`);
+    },
     saveSettings: async (settings, currentUser) => {
         const payload = settingsToApiPayload(settings, currentUser);
-        const settingId = settings?.backend?.settingId || settings?.setting_id || settings?.settingId;
-        const updateEndpoints = settingId
+        const userId = payload.user_id || settings?.backend?.userId || currentUser?.userId || currentUser?.user_id || currentUser?.id || currentUser?.employeeId;
+        const updateEndpoints = userId
             ? [
-                { endpoint: `${API_ENDPOINTS.settings}/${encodeURIComponent(settingId)}`, method: "PATCH" },
-                { endpoint: `${API_ENDPOINTS.settings}/${encodeURIComponent(settingId)}`, method: "PUT" },
-                { endpoint: API_ENDPOINTS.settings, method: "PATCH" },
-                { endpoint: API_ENDPOINTS.settings, method: "PUT" },
+                { endpoint: `${API_ENDPOINTS.settings}/${encodeURIComponent(userId)}`, method: "PATCH" },
+                { endpoint: API_ENDPOINTS.settings, method: "POST" },
             ]
             : [
-                { endpoint: API_ENDPOINTS.settings, method: "PATCH" },
-                { endpoint: API_ENDPOINTS.settings, method: "PUT" },
                 { endpoint: API_ENDPOINTS.settings, method: "POST" },
             ];
 
@@ -1254,11 +1340,11 @@ const apiPlaceholders = {
     }),
     createTask: (task) => apiRequest(API_ENDPOINTS.tasks, {
         method: "POST",
-        body: JSON.stringify(task),
+        body: JSON.stringify(taskToApiPayload(task)),
     }),
     updateTask: (taskId, task) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}`, {
         method: "PATCH",
-        body: JSON.stringify(task),
+        body: JSON.stringify(taskToApiPayload(task)),
     }),
     deleteTask: (taskId) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}`, {
         method: "DELETE",
@@ -1305,6 +1391,8 @@ export {
     normalizeEmployeeActivityKpiRows,
     normalizeProjectProgressKpiRows,
     projectToApi,
+    employeeToApiPayload,
+    taskToApiPayload,
     unwrapApiPayload,
     normalizeDashboardKpis,
     normalizeBackendUser,
