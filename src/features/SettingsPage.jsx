@@ -260,7 +260,7 @@ function SettingsPage({ currentUser }) {
             setErrorMessage("");
 
             try {
-                const payload = await apiPlaceholders.getSettings();
+                const payload = await apiPlaceholders.getSettings(currentUser);
                 const normalizedSettings = normalizeBackendSettings(payload, savedSettings, currentUser);
 
                 if (!isMounted) return;

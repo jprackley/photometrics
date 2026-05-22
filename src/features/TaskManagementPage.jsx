@@ -205,9 +205,10 @@ function TaskForm({ initialTask, projectOptions, employeeOptions, onCancel, onSa
                         onChange={(event) => updateField("priority", event.target.value)}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                     >
-                        <option>High</option>
-                        <option>Medium</option>
                         <option>Low</option>
+                        <option>Normal</option>
+                        <option>High</option>
+                        <option>Urgent</option>
                     </select>
                 </FormField>
 
@@ -217,10 +218,12 @@ function TaskForm({ initialTask, projectOptions, employeeOptions, onCancel, onSa
                         onChange={(event) => updateField("status", event.target.value)}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                     >
-                        <option>Not Started</option>
+                        <option>Assigned</option>
+                        <option>To-Do</option>
                         <option>In Progress</option>
-                        <option>Review</option>
+                        <option>Paused</option>
                         <option>Completed</option>
+                        <option>Cancelled</option>
                     </select>
                 </FormField>
             </div>
@@ -278,7 +281,7 @@ function TimerControl({ task, currentTime, onStart, onStop, isAnotherTimerRunnin
  * Manager task management page with timer controls, sorting, filtering, pagination, and CSV export.
  */
 function TaskManagementPage() {
-    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasks, taskItems, {
+    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
         transformPayload: normalizeTaskRows,
     });
     const [taskRows, setTaskRows] = useState(taskItems);
@@ -364,7 +367,7 @@ function TaskManagementPage() {
     const activeTask = taskRows.find((task) => task.id === activeTimerTaskId);
     const totalTrackedSeconds = taskRows.reduce((total, task) => total + getLiveTrackedSeconds(task, timerTick), 0);
     const completedTasks = taskRows.filter((task) => task.status === "Completed").length;
-    const reviewTasks = taskRows.filter((task) => task.status === "Review").length;
+    const reviewTasks = taskRows.filter((task) => task.category === "Quality Review").length;
     const openTasks = taskRows.filter((task) => task.status !== "Completed").length;
     const highPriorityTasks = taskRows.filter((task) => task.priority === "High" && task.status !== "Completed").length;
 
@@ -390,10 +393,10 @@ function TaskManagementPage() {
                 project: projectNames[0] || "Unassigned Project",
                 assignedTo: "",
                 dueDate: "May 30, 2026",
-                priority: "Medium",
+                priority: "Normal",
                 estimatedHours: 1,
                 trackedSeconds: 0,
-                status: "Not Started",
+                status: "To-Do",
                 timerStartedAt: null,
                 lastStoppedAt: "",
             },
@@ -791,7 +794,7 @@ function TimerControlSecure({ task, currentTime, currentUser, onStart, onStop, i
  * Role-aware task page that limits employees to assigned tasks while preserving manager controls.
  */
 function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
-    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasks, taskItems, {
+    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
         transformPayload: normalizeTaskRows,
     });
     const [taskRows, setTaskRows] = useState(taskItems.map(normalizeTaskForTimers));
@@ -887,7 +890,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
     const activeTask = taskRows.find((task) => task.id === activeTimerTaskId);
     const totalTrackedSeconds = accessibleTaskRows.reduce((total, task) => total + getLiveTrackedSeconds(task, timerTick, hasManagerAccess ? null : currentUser), 0);
     const completedTasks = accessibleTaskRows.filter((task) => task.status === "Completed").length;
-    const reviewTasks = accessibleTaskRows.filter((task) => task.status === "Review").length;
+    const reviewTasks = accessibleTaskRows.filter((task) => task.category === "Quality Review").length;
     const openTasks = accessibleTaskRows.filter((task) => task.status !== "Completed").length;
     const highPriorityTasks = accessibleTaskRows.filter((task) => task.priority === "High" && task.status !== "Completed").length;
 
@@ -917,10 +920,10 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                 project: projectNames[0] || "Unassigned Project",
                 assignedTo: "",
                 dueDate: "May 30, 2026",
-                priority: "Medium",
+                priority: "Normal",
                 estimatedHours: 1,
                 trackedSeconds: 0,
-                status: "Not Started",
+                status: "To-Do",
                 timerStartedAt: null,
                 lastStoppedAt: "",
                 timersByUser: {},

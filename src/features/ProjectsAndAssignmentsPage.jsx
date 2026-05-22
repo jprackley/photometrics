@@ -186,9 +186,12 @@ function ProjectForm({ initialProject, onCancel, onSave }) {
                         onChange={(event) => updateField("status", event.target.value)}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                     >
+                        <option>To-Do</option>
                         <option>In Progress</option>
-                        <option>Review</option>
+                        <option>On Hold</option>
                         <option>Completed</option>
+                        <option>Cancelled</option>
+                        <option>Archived</option>
                     </select>
                 </FormField>
             </div>
@@ -275,9 +278,10 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
                         onChange={(event) => updateField("priority", event.target.value)}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                     >
-                        <option>High</option>
-                        <option>Medium</option>
                         <option>Low</option>
+                        <option>Normal</option>
+                        <option>High</option>
+                        <option>Urgent</option>
                     </select>
                 </FormField>
 
@@ -287,9 +291,12 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
                         onChange={(event) => updateField("status", event.target.value)}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                     >
+                        <option>Assigned</option>
+                        <option>To-Do</option>
                         <option>In Progress</option>
-                        <option>Review</option>
+                        <option>Paused</option>
                         <option>Completed</option>
+                        <option>Cancelled</option>
                     </select>
                 </FormField>
             </div>
@@ -319,7 +326,7 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
  */
 function ProjectsAndAssignments() {
     const localAssignmentFallback = getUseApiDataSetting() ? [] : assignments;
-    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projects, projects, {
+    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projectsList, projects, {
         transformPayload: normalizeProjectRows,
     });
     const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
@@ -413,7 +420,7 @@ function ProjectsAndAssignments() {
                 dueDate: "May 30, 2026",
                 images: "0",
                 progress: 0,
-                status: "In Progress",
+                status: "To-Do",
             },
         });
     };
@@ -430,8 +437,8 @@ function ProjectsAndAssignments() {
                 assignedTo: "",
                 assignedDate: "May 01, 2026",
                 dueDate: "May 30, 2026",
-                priority: "Medium",
-                status: "In Progress",
+                priority: "Normal",
+                status: "Assigned",
             },
         });
     };
@@ -769,7 +776,7 @@ function ProjectsAndAssignments() {
  */
 function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
     const localAssignmentFallback = getUseApiDataSetting() ? [] : assignments;
-    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projects, projects, {
+    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projectsList, projects, {
         transformPayload: normalizeProjectRows,
     });
     const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
@@ -916,8 +923,8 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                 assignedTo: "",
                 assignedDate: "May 01, 2026",
                 dueDate: "May 30, 2026",
-                priority: "Medium",
-                status: "In Progress",
+                priority: "Normal",
+                status: "Assigned",
             },
         });
     };

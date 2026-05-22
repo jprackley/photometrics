@@ -251,7 +251,7 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
         { key: "myAssignedTasks", label: "My Assigned Tasks", value: assignedTasks.length, objects: assignedTasks },
         { key: "myOpenTasks", label: "My Open Tasks", value: assignedTasks.filter((task) => task.status !== "Completed").length, objects: assignedTasks.filter((task) => task.status !== "Completed") },
         { key: "myCompletedTasks", label: "My Completed Tasks", value: assignedTasks.filter((task) => task.status === "Completed").length, objects: assignedTasks.filter((task) => task.status === "Completed") },
-        { key: "myReviewTasks", label: "My Review Tasks", value: assignedTasks.filter((task) => task.status === "Review").length, objects: assignedTasks.filter((task) => task.status === "Review") },
+        { key: "myReviewTasks", label: "My Review Tasks", value: assignedTasks.filter((task) => task.category === "Quality Review").length, objects: assignedTasks.filter((task) => task.category === "Quality Review") },
         { key: "myTrackedTime", label: "My Tracked Time", value: assignedTasks.reduce((total, task) => total + normalizeNumber(task.trackedSeconds), 0), displayValue: formatDuration(assignedTasks.reduce((total, task) => total + normalizeNumber(task.trackedSeconds), 0)), objects: assignedTasks },
         { key: "accessLevel", label: "Access Level", value: "Employee" },
     ]);
@@ -473,7 +473,7 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
 function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [], onPageChange }) {
     const openTasks = assignedTasks.filter((task) => task.status !== "Completed");
     const completedTasks = assignedTasks.filter((task) => task.status === "Completed");
-    const reviewTasks = assignedTasks.filter((task) => task.status === "Review");
+    const reviewTasks = assignedTasks.filter((task) => task.category === "Quality Review");
     const highPriorityTasks = assignedTasks.filter((task) => task.priority === "High");
     const completionRate = assignedTasks.length
         ? Math.round((completedTasks.length / assignedTasks.length) * 100)
@@ -483,7 +483,7 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [
     const nextTasks = [...openTasks]
         .sort((leftTask, rightTask) => getSortableValue(leftTask, "dueDate") - getSortableValue(rightTask, "dueDate"))
         .slice(0, 4);
-    const statusCounts = ["Not Started", "In Progress", "Review", "Completed"].map((status) => ({
+    const statusCounts = ["Assigned", "To-Do", "In Progress", "Paused", "Completed", "Cancelled"].map((status) => ({
         status,
         count: assignedTasks.filter((task) => task.status === status).length,
     }));

@@ -155,8 +155,40 @@ function EmployeeStatusBadge({ value }) {
 /**
  * Create/edit form for employee records.
  */
+function getEmployeeNameParts(employee = {}) {
+    const existingName = String(employee.name || employee.displayName || employee.display_name || "").trim();
+    const parts = existingName.split(/\s+/).filter(Boolean);
+
+    return {
+        firstName: employee.firstName || employee.first_name || parts[0] || "",
+        middleName: employee.middleName || employee.middle_name || (parts.length > 2 ? parts.slice(1, -1).join(" ") : ""),
+        lastName: employee.lastName || employee.last_name || (parts.length > 1 ? parts[parts.length - 1] : ""),
+    };
+}
+
+function buildEmployeeDisplayName(form = {}) {
+    return [form.firstName, form.middleName, form.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
-    const [form, setForm] = useState(initialEmployee);
+    const [form, setForm] = useState(() => {
+        const nameParts = getEmployeeNameParts(initialEmployee);
+        const accountRole = ["Manager", "Employee"].includes(initialEmployee.accountRole || initialEmployee.account_role || initialEmployee.role)
+            ? (initialEmployee.accountRole || initialEmployee.account_role || initialEmployee.role)
+            : "Employee";
+
+        return {
+            ...initialEmployee,
+            ...nameParts,
+            accountRole,
+            role: initialEmployee.role || accountRole,
+            password: initialEmployee.password || "",
+        };
+    });
 
     const updateField = (field, value) => {
         setForm((current) => ({ ...current, [field]: value }));
@@ -164,8 +196,13 @@ function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
 
     const handleSubmit = (event) => {
         event.preventDefault();
+        const displayName = buildEmployeeDisplayName(form);
+
         onSave({
             ...form,
+            name: displayName,
+            displayName,
+            role: form.accountRole || form.role || "Employee",
             activeTasks: normalizeNumber(form.activeTasks),
             completedToday: normalizeNumber(form.completedToday),
             hoursToday: normalizeNumber(form.hoursToday),
@@ -176,15 +213,37 @@ function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
     return (
         <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FormField label="Employee Name">
-                    <TextInput value={form.name} onChange={(value) => updateField("name", value)} placeholder="Employee name" />
+                <FormField label="First Name">
+                    <TextInput value={form.firstName} onChange={(value) => updateField("firstName", value)} placeholder="First name" />
                 </FormField>
 
-                <FormField label="Role">
+                <FormField label="Middle Name">
+                    <TextInput value={form.middleName} onChange={(value) => updateField("middleName", value)} placeholder="Middle name or initial" />
+                </FormField>
+
+                <FormField label="Last Name">
+                    <TextInput value={form.lastName} onChange={(value) => updateField("lastName", value)} placeholder="Last name" />
+                </FormField>
+
+                <FormField label="Account Role">
+                    <select
+                        value={form.accountRole}
+                        onChange={(event) => updateField("accountRole", event.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    >
+                        <option>Employee</option>
+                        <option>Manager</option>
+                    </select>
+                </FormField>
+
+                <FormField label="Job Title">
                     <input
                         list="employee-role-options"
-                        value={form.role}
-                        onChange={(event) => updateField("role", event.target.value)}
+                        value={form.title || form.role || ""}
+                        onChange={(event) => {
+                            updateField("title", event.target.value);
+                            updateField("role", event.target.value);
+                        }}
                         placeholder="Photo Editor"
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                     />
@@ -197,6 +256,10 @@ function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
 
                 <FormField label="Email">
                     <TextInput value={form.email} onChange={(value) => updateField("email", value)} placeholder="employee@company.com" type="email" />
+                </FormField>
+
+                <FormField label="Temporary Password">
+                    <TextInput value={form.password} onChange={(value) => updateField("password", value)} placeholder="Leave blank unless creating or changing password" type="password" />
                 </FormField>
 
                 <FormField label="Phone">
@@ -341,9 +404,16 @@ function EmployeesPage({ globalSearch = "" }) {
             mode: "create",
             data: {
                 id: generateNextId("EMP", employeeRows),
+                firstName: "",
+                middleName: "",
+                lastName: "",
                 name: "",
-                role: "Photo Editor",
+                displayName: "",
+                accountRole: "Employee",
+                role: "Employee",
+                title: "Photo Editor",
                 email: "",
+                password: "password",
                 phone: "",
                 status: "Active",
                 currentTask: "",
@@ -357,15 +427,23 @@ function EmployeesPage({ globalSearch = "" }) {
     };
 
     const saveEmployee = async (employee) => {
+        const displayName = buildEmployeeDisplayName(employee) || employee.name?.trim() || "Unnamed Employee";
         const cleanEmployee = {
             ...employee,
             id: employee.id || generateNextId("EMP", employeeRows),
-            name: employee.name.trim() || "Unnamed Employee",
-            role: employee.role.trim() || "Unassigned Role",
-            email: employee.email.trim(),
-            phone: employee.phone.trim(),
-            currentTask: employee.currentTask.trim() || "No active task",
-            availability: employee.availability.trim() || employee.status,
+            firstName: String(employee.firstName || "").trim() || displayName.split(" ")[0] || "New",
+            middleName: String(employee.middleName || "").trim(),
+            lastName: String(employee.lastName || "").trim() || displayName.split(" ").slice(-1)[0] || "Employee",
+            name: displayName,
+            displayName,
+            accountRole: employee.accountRole || "Employee",
+            role: employee.accountRole || employee.role || "Employee",
+            title: employee.title || (employee.role !== employee.accountRole ? employee.role : ""),
+            email: String(employee.email || "").trim(),
+            password: employeeModal.mode === "create" ? (employee.password || "password") : employee.password,
+            phone: String(employee.phone || "").trim(),
+            currentTask: String(employee.currentTask || "").trim() || "No active task",
+            availability: String(employee.availability || "").trim() || employee.status,
         };
 
         if (getUseApiDataSetting()) {

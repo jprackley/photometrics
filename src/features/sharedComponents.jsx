@@ -128,9 +128,11 @@ function Badge({ value }) {
     const style =
         value === "Completed"
             ? "bg-emerald-100 text-emerald-700"
-            : value === "Review"
+            : ["Paused", "On Hold", "Quality Review"].includes(value)
                 ? "bg-amber-100 text-amber-700"
-                : "bg-violet-100 text-violet-700";
+                : ["Cancelled", "Archived", "Rejected"].includes(value)
+                    ? "bg-red-100 text-red-700"
+                    : "bg-violet-100 text-violet-700";
 
     return (
         <span className={`rounded-md px-3 py-1 text-xs font-medium ${style}`}>
@@ -147,11 +149,13 @@ function PriorityBadge({ value }) {
 
     // Set badge colors based on priority
     const style =
-        value === "High"
+        value === "Urgent"
             ? "bg-red-100 text-red-700"
-            : value === "Medium"
+            : value === "High"
                 ? "bg-orange-100 text-orange-700"
-                : "bg-slate-100 text-slate-700";
+                : value === "Normal"
+                    ? "bg-violet-100 text-violet-700"
+                    : "bg-slate-100 text-slate-700";
 
     return (
         <span className={`rounded-md px-3 py-1 text-xs font-medium ${style}`}>
