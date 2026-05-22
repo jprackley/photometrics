@@ -16,8 +16,9 @@ router.get(
             FROM assignments;
         `;
         const {rows } = await query(sql);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.ASSIGNMENTS.NOT_FOUND}});
+        //Comment out to test something
+        //if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+        //    .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.ASSIGNMENTS.NOT_FOUND}});
         res.json(rows);
     })
 );
@@ -33,8 +34,8 @@ router.get(
             WHERE task_id = $1;
         `;
         const {rows } = await query(sql, [param]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.ASSIGNMENTS.NOT_FOUND}});
+        //if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+        //    .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.ASSIGNMENTS.NOT_FOUND}});
         res.json(rows);
     })
 );
