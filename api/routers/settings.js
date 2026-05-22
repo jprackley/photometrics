@@ -10,9 +10,9 @@ const C_SETTINGS = require("../../utils/constants/cSettings");
 
 
 router.post(
-    '/:id',
+    '/',
     [
-        param('id').isUUID().withMessage('Invalid Setting UUID'),
+        body('user_id').isUUID().withMessage('Invalid user_id UUID'),
         body('theme').optional({values: "falsy"}).isIn(['light', 'dark']).withMessage('Invalid Theme'),
         body('accentColor').optional({values: "falsy"}).isHexColor().withMessage('Invalid Accent Color'),
         body('compactTables').optional({values: "falsy"}).isBoolean().withMessage('Invalid Compact Tables'),
@@ -24,13 +24,13 @@ router.post(
     ],
     asyncHandler(async (req, res) => {
         handleValidation(req, 'POST Settings - ');
-        const {setting_id, setting_value} = req.body;
+        const { user_id } = req.body;
         const sql = `
             INSERT INTO settings (user_id)
             VALUES ($1)
             RETURNING *;
         `;
-        const {rows } = await query(sql, [setting_id, setting_value]);
+        const { rows } = await query(sql, [user_id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
     })
 );
