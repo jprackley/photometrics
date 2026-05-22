@@ -1,5 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+DROP VIEW IF EXISTS task_progress_view CASCADE;
+
 DROP TABLE IF EXISTS time_entries CASCADE;
 DROP TABLE IF EXISTS images CASCADE;
 DROP TABLE IF EXISTS tasks CASCADE;
@@ -35,8 +37,8 @@ CREATE TYPE project_priority AS ENUM (
     'Urgent'
     );
 CREATE TYPE task_status AS ENUM (
-    'To-Do',
     'Assigned',
+    'To-Do',
     'In Progress',
     'Paused',
     'Completed',
@@ -248,6 +250,30 @@ CREATE TABLE time_entries
     CONSTRAINT chk_time_entry_end_after_start
         CHECK (end_time IS NULL OR end_time >= start_time)
 );
+
+---------------------------------------------------------------------------
+-- Views
+---------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW project_progress_view AS
+SELECT
+    p.project_id,
+    p.project_name,
+    COUNT(t.task_id) AS total_tasks,
+    COUNT(t.status) FILTER ( WHERE t.status = 'Completed' ) AS completed_tasks,
+    COALESCE(
+        ROUND(
+            COUNT(t.task_id) FILTER (
+                WHERE t.status = 'Completed'
+            )::numeric / NULLIF(COUNT(t.task_id), 0) * 100, 2
+        ), 0 ) AS progress,
+    p.status,
+    p.due_time
+FROM projects p
+    LEFT JOIN tasks t ON p.project_id = t.project_id
+WHERE p.status IN ('To-Do', 'In Progress', 'On Hold')
+GROUP BY p.project_id, p.project_name, p.status, p.due_time
+ORDER BY p.due_time DESC;
 
 ---------------------------------------------------------------------------
 -- HARDCODED LOGIN USERS

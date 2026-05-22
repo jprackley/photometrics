@@ -60,6 +60,10 @@ const MESSAGE = {
         OK: 'Projects fetched successfully',
         NOT_FOUND: 'Could not fetch projects, no user found',
     },
+    PROJECTS_PROGRESS: {
+        OK: 'Project progress fetched successfully',
+        NOT_FOUND: 'Could not fetch project progress',
+    },
     TASKS: {
         OK: 'Tasks fetched successfully',
         NOT_FOUND: 'Could not fetch tasks, no user found',
