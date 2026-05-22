@@ -51,6 +51,10 @@ import {
     getUseApiDataSetting,
     normalizeBackendUser,
     normalizeDashboardKpis,
+    normalizeProductivityKpiRows,
+    normalizeWorkflowKpiRows,
+    normalizeEmployeeActivityKpiRows,
+    normalizeProjectProgressKpiRows,
     saveUseApiDataSetting,
     unwrapApiPayload,
     useApiPlaceholder,
@@ -214,10 +218,18 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
         unwrap: false,
         transformPayload: activeProjectsKpiFromApi,
     });
-    const { data: productivityData } = useApiPlaceholder(null, productivity);
-    const { data: workflowData } = useApiPlaceholder(null, workflow);
-    const { data: employeeActivityData } = useApiPlaceholder(null, employeeActivity);
-    const { data: projectProgressData } = useApiPlaceholder(null, projectProgress);
+    const { data: productivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.productivity, productivity, {
+        transformPayload: normalizeProductivityKpiRows,
+    });
+    const { data: workflowData } = useApiPlaceholder(API_ENDPOINTS.dashboard.workflow, workflow, {
+        transformPayload: normalizeWorkflowKpiRows,
+    });
+    const { data: employeeActivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.employeeActivity, employeeActivity, {
+        transformPayload: normalizeEmployeeActivityKpiRows,
+    });
+    const { data: projectProgressData } = useApiPlaceholder(API_ENDPOINTS.dashboard.projectProgress, projectProgress, {
+        transformPayload: normalizeProjectProgressKpiRows,
+    });
     const hasManagerAccess = canManageContent(currentUser);
     const showDashboardTips = appSettings?.appearance?.showDashboardTips !== false;
     const employeeName = currentUser?.employeeName || currentUser?.name;
@@ -291,7 +303,7 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
                 {/* Productivity chart */}
                 <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
                     <h2 className="mb-2 text-xl font-bold sm:text-2xl">
-                        Employee Productivity Over Time
+                        Employee Productivity
                     </h2>
 
                     <ResponsiveContainer width="100%" height={230}>
@@ -315,8 +327,8 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
                             <YAxis
                                 axisLine={false}
                                 tickLine={false}
-                                domain={[0, 60]}
-                                ticks={[0, 15, 30, 45, 60]}
+                                domain={[0, 100]}
+                                ticks={[0, 25, 50, 75, 100]}
                             />
 
                             <Tooltip />
@@ -409,7 +421,7 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
                                     </div>
 
                                     <strong className="text-base">
-                                        {item.value}%
+                                        {item.displayValue ?? `${item.value}%`}
                                     </strong>
                                 </div>
                             ))}
@@ -664,7 +676,7 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
                 {/* Table header */}
                 <thead>
                 <tr>
-                    {["Employee", "Current Task", "Time Spent", "Status"]
+                    {["Employee", "Activity", "Updated", "Status"]
                         .map((h) => (
                             <th
                                 key={h}
@@ -729,7 +741,7 @@ function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
                 {/* Table header */}
                 <thead>
                 <tr>
-                    {["Project", "Total Images", "Completed", "Remaining", "Progress"]
+                    {["Project", "Total Tasks", "Completed", "Remaining", "Progress"]
                         .map((h) => (
                             <th
                                 key={h}

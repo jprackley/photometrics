@@ -51,6 +51,7 @@ import {
     getUseApiDataSetting,
     normalizeBackendUser,
     normalizeProjectRows,
+    normalizeAssignmentRows,
     projectToApi,
     saveUseApiDataSetting,
     unwrapApiPayload,
@@ -321,10 +322,12 @@ function ProjectsAndAssignments() {
     const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projects, projects, {
         transformPayload: normalizeProjectRows,
     });
-    const { data: loadedAssignmentRows } = useApiPlaceholder(null, localAssignmentFallback);
+    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
+        transformPayload: normalizeAssignmentRows,
+    });
 
-    const [projectRows, setProjectRows] = useState(projects);
-    const [assignmentRows, setAssignmentRows] = useState(assignments);
+    const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
+    const [assignmentRows, setAssignmentRows] = useState(() => localAssignmentFallback);
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);
@@ -769,10 +772,12 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
     const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projects, projects, {
         transformPayload: normalizeProjectRows,
     });
-    const { data: loadedAssignmentRows } = useApiPlaceholder(null, localAssignmentFallback);
+    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
+        transformPayload: normalizeAssignmentRows,
+    });
 
-    const [projectRows, setProjectRows] = useState(projects);
-    const [assignmentRows, setAssignmentRows] = useState(assignments);
+    const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
+    const [assignmentRows, setAssignmentRows] = useState(() => localAssignmentFallback);
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);

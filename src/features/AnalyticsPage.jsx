@@ -53,6 +53,8 @@ import {
     normalizeEmployeeRows,
     normalizeTaskRows,
     normalizeProjectRows,
+    normalizeAssignmentRows,
+    normalizeProductivityKpiRows,
     saveUseApiDataSetting,
     unwrapApiPayload,
     useApiPlaceholder,
@@ -160,14 +162,18 @@ function AnalyticsPage({ globalSearch = "" }) {
         transformPayload: normalizeProjectRows,
     });
     const localAssignmentFallback = getUseApiDataSetting() ? [] : assignments;
-    const { data: loadedAssignmentRows } = useApiPlaceholder(null, localAssignmentFallback);
+    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
+        transformPayload: normalizeAssignmentRows,
+    });
     const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasks, taskItems, {
         transformPayload: normalizeTaskRows,
     });
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
         transformPayload: normalizeEmployeeRows,
     });
-    const { data: productivityData } = useApiPlaceholder(null, productivity);
+    const { data: productivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.productivity, productivity, {
+        transformPayload: normalizeProductivityKpiRows,
+    });
 
     const projectRows = Array.isArray(loadedProjectRows) ? loadedProjectRows : [];
     const assignmentRows = Array.isArray(loadedAssignmentRows) ? loadedAssignmentRows : [];

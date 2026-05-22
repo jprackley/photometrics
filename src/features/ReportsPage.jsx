@@ -53,6 +53,7 @@ import {
     normalizeEmployeeRows,
     normalizeTaskRows,
     normalizeProjectRows,
+    normalizeAssignmentRows,
     saveUseApiDataSetting,
     unwrapApiPayload,
     useApiPlaceholder,
@@ -203,7 +204,9 @@ function ReportsPage({ globalSearch = "" }) {
         transformPayload: normalizeProjectRows,
     });
     const localAssignmentFallback = getUseApiDataSetting() ? [] : assignments;
-    const { data: loadedAssignmentRows } = useApiPlaceholder(null, localAssignmentFallback);
+    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
+        transformPayload: normalizeAssignmentRows,
+    });
     const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasks, taskItems, {
         transformPayload: normalizeTaskRows,
     });
