@@ -46,8 +46,6 @@ router.get(
     asyncHandler(async (req, res) => {
         handleValidation(req, 'GET Workflow KPI - ');
 
-        const { id: param } = req.params;
-
         const sql = `
             SELECT
                 CASE
@@ -65,7 +63,7 @@ router.get(
             ORDER BY t.status;
         `;
 
-        const {rows} = await query(sql, [param]);
+        const {rows} = await query(sql);
 
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
             .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.WORKFLOW.NOT_FOUND}});
