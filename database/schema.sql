@@ -1,6 +1,8 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 DROP VIEW IF EXISTS task_progress_view CASCADE;
+DROP VIEW IF EXISTS project_progress_view CASCADE;
+DROP VIEW IF EXISTS assignments CASCADE;
 
 DROP TABLE IF EXISTS time_entries CASCADE;
 DROP TABLE IF EXISTS images CASCADE;
@@ -9,6 +11,7 @@ DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS clients CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS addresses CASCADE;
+DROP TABLE IF EXISTS settings CASCADE;
 
 DROP TYPE IF EXISTS image_status CASCADE;
 DROP TYPE IF EXISTS task_priority CASCADE;
@@ -119,6 +122,23 @@ CREATE TABLE users
 
     CONSTRAINT chk_password_expires_after_update
         CHECK (password_expires_at IS NULL OR password_updated_at IS NULL OR password_expires_at >= password_updated_at)
+);
+
+
+CREATE TABLE settings
+(
+    setting_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id           UUID REFERENCES users (user_id) ON DELETE CASCADE,
+    theme             VARCHAR(255)     DEFAULT 'dark',
+    accentColor       VARCHAR(255)     DEFAULT '#1976d2',
+    compactTables     BOOLEAN          DEFAULT false,
+    showDashboardTips BOOLEAN          DEFAULT true,
+    notifications     BOOLEAN          DEFAULT true,
+    companyName       TEXT             DEFAULT 'Photometrics',
+    language          VARCHAR(255)     DEFAULT 'en',
+    timezone          VARCHAR(255)     DEFAULT 'America/New_York',
+    created_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS clients

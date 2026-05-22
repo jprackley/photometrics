@@ -76,6 +76,10 @@ const MESSAGE = {
         OK: 'Users fetched successfully',
         NOT_FOUND: 'Could not fetch users, no user found',
     },
+    SETTINGS: {
+        OK: 'Settings fetched successfully',
+        NOT_FOUND: 'Could not fetch settings, no user found',
+    },
     CLIENT: {
         OK: 'Client fetched successfully',
         NOT_FOUND: 'Could not fetch client, no client found',

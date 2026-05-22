@@ -145,6 +145,18 @@ router.post(
             RETURNING ${C_USER.SAFE_RETURN}
         `;
         const { rows } = await query(sql, params);
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.USERS.NOT_FOUND}});
+
+        const sqlSettings = `          
+            INSERT INTO settings (user_id)
+            VALUES ($1)
+            RETURNING *
+        `
+        const { rows: settingsRows } = await query(sqlSettings, [rows[0].user_id]);
+        if (settingsRows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND}});
+
         res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
     })
 );
@@ -312,11 +324,18 @@ router.delete(
     asyncHandler(async (req, res) => {
         handleValidation(req, 'DELETE User - ');
         const { id } = req.params;
+
+        const sqlSettings = `DELETE FROM settings WHERE user_id = $1`;
+/*        const { rows: settingsRows } = await query(sqlSettings, [id]);
+        if (settingsRows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND}});*/
+
         const { rowCount } = await query('DELETE FROM users WHERE user_id = $1', [id]);
         if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.NOT_FOUND } });
+
         res.status(C_HTTP.STATUS.NO_CONTENT).send();
     })
 )
