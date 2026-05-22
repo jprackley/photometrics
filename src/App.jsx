@@ -288,7 +288,7 @@ export default function App() {
             if (!currentUser || !getUseApiDataSetting()) return;
 
             try {
-                const payload = await apiPlaceholders.getSettings();
+                const payload = await apiPlaceholders.getSettings(currentUser);
                 const backendSettings = normalizeBackendSettings(payload, loadSavedAppSettings(), currentUser);
 
                 if (!isMounted) return;
