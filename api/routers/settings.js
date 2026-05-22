@@ -127,7 +127,7 @@ router.delete(
     asyncHandler(async (req, res) => {
         handleValidation(req, 'DELETE Settings - ');
         const {id} = req.params;
-        const {rows} = await query('DELETE FROM settings WHERE user_id = $1', [id]);
+        const {rows} = await query('DELETE FROM settings WHERE user_id = $1 RETURNING *', [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
