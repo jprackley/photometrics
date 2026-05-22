@@ -45,12 +45,9 @@ import {
 
 import { Logo } from "../components/Layout";
 import {
-    API_ENDPOINTS,
     apiPlaceholders,
     getUseApiDataSetting,
-    normalizeBackendUser,
-    unwrapApiPayload,
-    useApiPlaceholder,
+    normalizeBackendSettings,
 } from "../services/api";
 import {
     assignments,
@@ -245,21 +242,53 @@ function saveSettingsLocally(settings) {
 /**
  * Manager settings page for company, workflow, notification, security, backup, and appearance options.
  */
-function SettingsPage() {
+function SettingsPage({ currentUser }) {
     const savedSettings = useMemo(() => loadSavedSettings(), []);
-    const { data: loadedSettings } = useApiPlaceholder(null, savedSettings);
     const [settings, setSettings] = useState(savedSettings);
     const [savedMessage, setSavedMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
+    const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+    const [isSavingSettings, setIsSavingSettings] = useState(false);
 
     useEffect(() => {
-        if (loadedSettings && typeof loadedSettings === "object" && !Array.isArray(loadedSettings)) {
-            setSettings((current) => mergeSettings(current, loadedSettings));
+        let isMounted = true;
+
+        async function loadBackendSettings() {
+            if (!getUseApiDataSetting()) return;
+
+            setIsLoadingSettings(true);
+            setErrorMessage("");
+
+            try {
+                const payload = await apiPlaceholders.getSettings();
+                const normalizedSettings = normalizeBackendSettings(payload, savedSettings, currentUser);
+
+                if (!isMounted) return;
+
+                setSettings(normalizedSettings);
+                saveSettingsLocally(normalizedSettings);
+            } catch (apiError) {
+                if (!isMounted) return;
+
+                console.warn("Settings could not be loaded from the backend. Using local settings.", apiError);
+                setErrorMessage("Backend settings could not be loaded, so the page is showing the last local settings copy.");
+            } finally {
+                if (isMounted) {
+                    setIsLoadingSettings(false);
+                }
+            }
         }
-    }, [loadedSettings]);
+
+        loadBackendSettings();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [currentUser, savedSettings]);
 
     const updateSection = (section, field, value) => {
         setSavedMessage("");
-
+        setErrorMessage("");
 
         setSettings((current) => ({
             ...current,
@@ -270,16 +299,40 @@ function SettingsPage() {
         }));
     };
 
-    const saveSettings = async () => {
-        saveSettingsLocally(settings);
-        setSavedMessage("Settings saved locally. Backend settings storage is not deployed yet.");
+    const persistSettings = async (nextSettings, successMessage) => {
+        setIsSavingSettings(true);
+        setSavedMessage("");
+        setErrorMessage("");
+
+        try {
+            let settingsToStore = nextSettings;
+
+            if (getUseApiDataSetting()) {
+                const payload = await apiPlaceholders.saveSettings(nextSettings, currentUser);
+                settingsToStore = normalizeBackendSettings(payload || nextSettings, nextSettings, currentUser);
+            }
+
+            setSettings(settingsToStore);
+            saveSettingsLocally(settingsToStore);
+            setSavedMessage(successMessage);
+        } catch (apiError) {
+            console.warn("Settings backend save failed. Keeping the local copy so the UI still updates.", apiError);
+            setSettings(nextSettings);
+            saveSettingsLocally(nextSettings);
+            setSavedMessage("Settings were applied locally.");
+            setErrorMessage("The backend settings save failed. Check the settings route/method, then save again.");
+        } finally {
+            setIsSavingSettings(false);
+        }
     };
 
-    const resetSettings = () => {
-        const defaultSettings = { ...settingsData };
-        setSettings(defaultSettings);
-        saveSettingsLocally(defaultSettings);
-        setSavedMessage("Settings reset to default values.");
+    const saveSettings = async () => {
+        await persistSettings(settings, getUseApiDataSetting() ? "Settings saved to the backend and applied." : "Settings saved locally and applied.");
+    };
+
+    const resetSettings = async () => {
+        const defaultSettings = mergeSettings(settingsData, { backend: settings.backend });
+        await persistSettings(defaultSettings, getUseApiDataSetting() ? "Settings reset and saved to the backend." : "Settings reset to default values.");
     };
 
     const activeNotificationCount = Object.entries(settings.notifications)
@@ -316,16 +369,29 @@ function SettingsPage() {
                         <button
                             type="button"
                             onClick={saveSettings}
-                            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+                            disabled={isSavingSettings}
+                            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            Save Settings
+                            {isSavingSettings ? "Saving..." : "Save Settings"}
                         </button>
                     </div>
                 </div>
 
+                {isLoadingSettings && (
+                    <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+                        Loading settings from the backend...
+                    </div>
+                )}
+
                 {savedMessage && (
                     <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
                         {savedMessage}
+                    </div>
+                )}
+
+                {errorMessage && (
+                    <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                        {errorMessage}
                     </div>
                 )}
             </div>
@@ -568,7 +634,8 @@ function SettingsPage() {
                 <button
                     type="button"
                     onClick={resetSettings}
-                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    disabled={isSavingSettings}
+                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                     Reset Defaults
                 </button>
