@@ -40,4 +40,35 @@ router.get(
     })
 )
 
+router.get(
+    '/',
+    asyncHandler(async (req, res) => {
+        handleValidation(req, 'GET Workflow KPI - ');
+
+        const { id: param } = req.params;
+
+        const sql = `
+            SELECT
+                CASE
+                    WHEN t.status NOT IN ('Completed', 'Cancelled')
+                        AND t.due_time < NOW()
+                        THEN 'Overdue'
+                    ELSE t.status::text
+                    END AS status,
+                COUNT(t.task_id) AS count
+            FROM users u
+                     LEFT JOIN tasks t
+                               ON t.assigned_to = u.user_id
+            GROUP BY t.status
+            ORDER BY t.status;
+        `;
+
+        const {rows} = await query(sql, [param]);
+
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.WORKFLOW.NOT_FOUND}});
+        res.json(rows);
+    })
+)
+
 module.exports = router;
