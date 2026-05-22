@@ -14,6 +14,7 @@ import {
   getUseApiDataSetting,
   apiPlaceholders,
   clearPublishedApiErrors,
+  normalizeBackendSettings,
 } from "./services/api.js";
 import { getPublicUser, mockUsers, placeholderPages, settingsData } from "./data/mockData";
 import { canAccessPage, canManageContent } from "./utils/accessControl";
@@ -60,6 +61,17 @@ function loadSavedAppSettings() {
     } catch (storageError) {
         console.warn("Saved settings could not be loaded. Using defaults.", storageError);
         return { ...settingsData };
+    }
+}
+
+function saveAppSettings(settings) {
+    if (typeof window === "undefined") return;
+
+    try {
+        window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+        window.dispatchEvent(new CustomEvent(SETTINGS_UPDATED_EVENT, { detail: settings }));
+    } catch (storageError) {
+        console.warn("Settings could not be saved locally for app appearance.", storageError);
     }
 }
 
@@ -269,6 +281,32 @@ export default function App() {
         };
     }, []);
 
+    useEffect(() => {
+        let isMounted = true;
+
+        async function loadBackendAppSettings() {
+            if (!currentUser || !getUseApiDataSetting()) return;
+
+            try {
+                const payload = await apiPlaceholders.getSettings();
+                const backendSettings = normalizeBackendSettings(payload, loadSavedAppSettings(), currentUser);
+
+                if (!isMounted) return;
+
+                setAppSettings(backendSettings);
+                saveAppSettings(backendSettings);
+            } catch (apiError) {
+                console.warn("Backend settings could not be loaded for app appearance. Using local settings.", apiError);
+            }
+        }
+
+        loadBackendAppSettings();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [currentUser]);
+
     /**
      * Persists the selected user session when requested and resets the workspace to the dashboard.
      */
@@ -367,7 +405,7 @@ export default function App() {
                             {page === "reports" && canManageContent(currentUser) && <ReportsPage globalSearch={globalSearch} />}
                             {page === "analytics" && canManageContent(currentUser) && <AnalyticsPage globalSearch={globalSearch} />}
                             {page === "settings" && (canManageContent(currentUser)
-                                ? <SettingsPage />
+                                ? <SettingsPage currentUser={currentUser} />
                                 : <EmployeeSettingsPage currentUser={currentUser} onUserUpdate={updateCurrentUser} />
                             )}
                             {placeholderPages[page] && <PlaceholderPage title={placeholderPages[page]} />}
