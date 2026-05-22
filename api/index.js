@@ -24,6 +24,7 @@ app.use('/api/users', require('./routers/users'));
 app.use('/api/employees', require('./routers/read-only/employees'));
 
 app.use('/api/assignments', require('./routers/assignments'));
+app.use('/api/settings', require('./routers/settings'));
 
 app.use('/api/kpi/tasks', require('./routers/dashboard/taskKPI'));
 app.use('/api/kpi/images', require('./routers/dashboard/imageKPI'));
