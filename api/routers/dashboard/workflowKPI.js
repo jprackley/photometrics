@@ -17,7 +17,12 @@ router.get(
 
         const sql = `
             SELECT
-                t.status,
+                CASE
+                    WHEN t.status NOT IN ('Completed', 'Cancelled')
+                        AND t.due_time < NOW()
+                        THEN 'Overdue'
+                    ELSE t.status::text
+                    END AS status,
                 COUNT(t.task_id) AS count
             FROM users u
                      LEFT JOIN tasks t
