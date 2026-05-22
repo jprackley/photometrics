@@ -275,8 +275,9 @@ WHERE p.status IN ('To-Do', 'In Progress', 'On Hold')
 GROUP BY p.project_id, p.project_name, p.status, p.due_time
 ORDER BY p.due_time DESC;
 
-CREATE OR REPLACE VIEW assignment AS
+CREATE OR REPLACE VIEW assignments AS
 SELECT
+    t.task_id AS id,
     u.user_id AS employee_id,
     p.project_id,
     p.project_name,

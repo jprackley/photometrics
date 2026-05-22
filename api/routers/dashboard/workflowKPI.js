@@ -30,7 +30,7 @@ router.get(
         const {rows} = await query(sql, [param]);
 
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.WORKFLOW}});
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.WORKFLOW.NOT_FOUND}});
         res.json(rows);
     })
 )

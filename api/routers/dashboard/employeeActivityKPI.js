@@ -40,7 +40,7 @@ router.get(
          `;
         const { rows } = await query(sql, [param]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.EMPLOYEE_ACTIVITY}});
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.EMPLOYEE_ACTIVITY.NOT_FOUND}});
         res.json(rows);
     })
 )
@@ -74,7 +74,7 @@ router.get(
          `;
         const { rows } = await query(sql);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.EMPLOYEE_ACTIVITY}});
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.EMPLOYEE_ACTIVITY.NOT_FOUND}});
         res.json(rows);
     })
 )

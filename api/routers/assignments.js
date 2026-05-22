@@ -1,0 +1,42 @@
+const express = require('express');
+const router = express.Router();
+
+const asyncHandler = require('../../utils/helpers/asyncHandler');
+const {handleValidation} = require("../validators/queryHandler");
+const { query } = require("../db");
+const {param} = require("express-validator");
+const C_HTTP = require("../../utils/constants/cHTTP");
+
+router.get(
+    '/',
+    asyncHandler(async (req, res) => {
+        handleValidation(req, 'GET Assignments - ');
+        const sql = `
+            SELECT *
+            FROM assignments;
+        `;
+        const {rows } = await query(sql);
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.ASSIGNMENTS.NOT_FOUND}});
+        res.json(rows);
+    })
+);
+
+router.get(
+    '/:id',
+    asyncHandler(async (req, res) => {
+        handleValidation(req, 'GET Assignments - ');
+        const {id: param} = req.params;
+        const sql = `
+            SELECT *
+            FROM assignments
+            WHERE task_id = $1;
+        `;
+        const {rows } = await query(sql, [param]);
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.ASSIGNMENTS.NOT_FOUND}});
+        res.json(rows);
+    })
+);
+
+module.exports = router;

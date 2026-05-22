@@ -70,7 +70,7 @@ const MESSAGE = {
     },
     ASSIGNMENTS: {
         OK: 'Assignments fetched successfully',
-        NOT_FOUND: 'Could not fetch assignments, no user found',
+        NOT_FOUND: 'Could not fetch assignments',
     },
     USERS: {
         OK: 'Users fetched successfully',
