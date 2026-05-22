@@ -191,7 +191,7 @@ router.delete(
     asyncHandler(async (req, res) => {
         handleValidation(req, 'DELETE Time Entry - ');
         const {id} = req.params;
-        const {rowCount} = await query('DELETE FROM time_entries WHERE time_entry_id = $1', [id]);
+        const {rowCount} = await query('DELETE FROM time_entries WHERE time_entry_id = $1 RETURNING *', [id]);
         if (rowCount === 0) return res.status(404).json({error: {code: 404, message: 'Time entry not found'}});
         res.status(C_HTTP.STATUS.NO_CONTENT).send();
     })

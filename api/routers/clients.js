@@ -418,7 +418,7 @@ router.delete(
     asyncHandler(async (req, res) => {
         handleValidation(req, 'DELETE Client:id - ');
         const { id } = req.params;
-        const { rowCount } = await query('DELETE FROM clients WHERE client_id = $1', [id]);
+        const { rowCount } = await query('DELETE FROM clients WHERE client_id = $1 RETURNING *', [id]);
         if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Client not found' } });
         res.status(C_HTTP.STATUS.NO_CONTENT).send();
     })

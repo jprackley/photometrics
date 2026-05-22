@@ -241,7 +241,7 @@ router.delete(
     asyncHandler(async (req, res) => {
         handleValidation(req, 'DELETE Image - ');
         const {id} = req.params;
-        const {rowCount} = await query('DELETE FROM images WHERE image_id = $1', [id]);
+        const {rowCount} = await query('DELETE FROM images WHERE image_id = $1 RETURNING *', [id]);
 
         if (rowCount === 0) {
             return res.status(C_HTTP.STATUS.NOT_FOUND).json({
