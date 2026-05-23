@@ -382,6 +382,7 @@ function employeeFromApi(employee) {
         displayName,
         name: displayName,
         role,
+        title: employee.title || (employee.role && employee.role !== employee.account_role ? employee.role : ""),
         accountRole: employee.account_role || employee.role || "Employee",
         email: employee.email || "",
         phone: employee.phone_number || employee.phone || "",
@@ -639,7 +640,7 @@ const API_ENDPOINTS = {
         },
         employees: {
             // Backend collection uses singular employee for active and plural employees for total.
-            active: "/kpi/employee/active?v=true",
+            active: "/kpi/employees/active?v=true",
             total: "/kpi/employees/total?v=true",
         },
     },
