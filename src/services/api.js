@@ -1430,18 +1430,38 @@ const apiPlaceholders = {
         throw lastError || new Error("Settings update failed.");
     },
     updateSettings: (settings, currentUser) => apiPlaceholders.saveSettings(settings, currentUser),
-    updateUserProfile: (userId, profile) => apiRequest(`/users/${userId}/profile`, {
+    // User settings/profile actions must use the real backend routes. The backend
+    // exposes PATCH /users/:id and PATCH/POST /settings, not nested
+    // /users/:id/profile, /password, or /preferences routes.
+    updateUserProfile: (userId, profile = {}) => {
+        const cleanName = String(profile.preferredName || profile.name || "").trim();
+        const nameParts = splitFullName(cleanName);
+        const payload = {
+            first_name: nameParts.firstName || "Employee",
+            middle_name: nameParts.middleName || undefined,
+            last_name: nameParts.lastName || nameParts.firstName || "Employee",
+            display_name: cleanName || profile.email || "Employee",
+            email: String(profile.email || "").trim(),
+            phone_number: profile.phone || undefined,
+            account_role: ["Manager", "Employee"].includes(profile.role) ? profile.role : undefined,
+            title: profile.title || undefined,
+        };
+
+        return apiRequest(`${API_ENDPOINTS.users}/${encodeURIComponent(userId)}`, {
+            method: "PATCH",
+            body: JSON.stringify(Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""))),
+        });
+    },
+    changeUserPassword: (userId, passwordData = {}) => apiRequest(`${API_ENDPOINTS.users}/${encodeURIComponent(userId)}`, {
         method: "PATCH",
-        body: JSON.stringify(profile),
+        body: JSON.stringify({ password_hash: passwordData.newPassword || passwordData.password || "" }),
     }),
-    changeUserPassword: (userId, passwordData) => apiRequest(`/users/${userId}/password`, {
-        method: "PATCH",
-        body: JSON.stringify(passwordData),
-    }),
-    updateUserPreferences: (userId, preferences) => apiRequest(`/users/${userId}/preferences`, {
-        method: "PATCH",
-        body: JSON.stringify(preferences),
-    }),
+    updateUserPreferences: (userId, preferences = {}) => apiPlaceholders.saveSettings({
+        appearance: preferences,
+        company: {},
+        notifications: {},
+        backend: { userId },
+    }, { userId, id: userId }),
     createTask: (task) => apiRequest(API_ENDPOINTS.tasks, {
         method: "POST",
         body: JSON.stringify(taskToApiPayload(task)),
