@@ -456,7 +456,30 @@ function assignmentFromApi(assignment) {
 function normalizeAssignmentRows(payload) {
     return toArrayPayload(payload)
         .filter((assignment) => !isSeedRecord(assignment))
+        .filter((assignment) => assignment && (assignment.task_id || assignment.id || assignment.taskId))
         .map(assignmentFromApi);
+}
+
+function timeEntryFromApi(entry) {
+    const totalHours = Number(entry.total_time ?? entry.totalTime ?? entry.hours ?? 0) || 0;
+
+    return {
+        id: entry.time_entry_id || entry.id,
+        backendId: entry.time_entry_id || entry.id,
+        taskId: entry.task_id || entry.taskId || null,
+        employeeId: entry.employee_id || entry.employeeId || null,
+        startTime: entry.start_time || entry.startTime || null,
+        endTime: entry.end_time || entry.endTime || null,
+        totalHours,
+        totalSeconds: totalHours * 3600,
+        createdAt: entry.created_at || entry.createdAt || null,
+    };
+}
+
+function normalizeTimeEntryRows(payload) {
+    return toArrayPayload(payload)
+        .filter((entry) => !isSeedRecord(entry))
+        .map(timeEntryFromApi);
 }
 
 const DASHBOARD_COLORS = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444", "#14b8a6", "#8b5cf6", "#64748b"];
@@ -718,7 +741,7 @@ const API_ENDPOINTS = {
     //----------------------------------------------------------------------
     // The live backend does not currently expose /assignments reliably.
     // Assignment-style UI rows are derived from task records instead.
-    assignments: "/tasks?all=true",
+    assignments: "/assignments",
 
     //-----------------------------------------------------------------------
     // This API endpoint will be READ-ONLY. Use "/users" for all user management.
@@ -752,6 +775,7 @@ const API_ENDPOINTS = {
     // employeeId, taskId, startTime, endTime, duration
     //-----------------------------------------------------------------------
     timeEntries: "/time-entries",
+    timeEntriesList: "/time-entries?all=true",
 
     //-----------------------------------------------------------------------
     // Generated reports endpoint.
@@ -1466,6 +1490,7 @@ export {
     normalizeTaskRows,
     normalizeEmployeeRows,
     normalizeAssignmentRows,
+    normalizeTimeEntryRows,
     normalizeProductivityKpiRows,
     normalizeWorkflowKpiRows,
     normalizeEmployeeActivityKpiRows,
