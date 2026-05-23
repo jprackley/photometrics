@@ -606,9 +606,11 @@ const API_ENDPOINTS = {
     //----------------------------------------------------------------------------------
     dashboard: {
         kpis: "/dashboard/kpis",
-        productivity: "/dashboard/productivity",
+        // The dashboard user-based widgets should be driven by /users?all=true so
+        // they show the same two live accounts used for login/employee management.
+        productivity: "/users?all=true",
         workflow: "/dashboard/workflow",
-        employeeActivity: "/dashboard/employee-activity",
+        employeeActivity: "/users?all=true",
         projectProgress: "/dashboard/project-progress",
     },
 
@@ -636,7 +638,8 @@ const API_ENDPOINTS = {
             total: "/kpi/images/total?v=true",
         },
         employees: {
-            active: "/kpi/employees/active?v=true",
+            // Backend collection uses singular employee for active and plural employees for total.
+            active: "/kpi/employee/active?v=true",
             total: "/kpi/employees/total?v=true",
         },
     },
@@ -679,7 +682,9 @@ const API_ENDPOINTS = {
     // Expected relationships:
     // employeeId <-> projectId <-> taskId
     //----------------------------------------------------------------------
-    assignments: "/assignments",
+    // The live backend does not currently expose /assignments reliably.
+    // Assignment-style UI rows are derived from task records instead.
+    assignments: "/tasks?all=true",
 
     //-----------------------------------------------------------------------
     // This API endpoint will be READ-ONLY. Use "/users" for all user management.
@@ -691,7 +696,8 @@ const API_ENDPOINTS = {
     // - availability/status
     // - employee dashboard displays
     //-----------------------------------------------------------------------
-    employees: "/employees",
+    // Employee management should use the users table so both login users are visible.
+    employees: "/users?all=true",
 
     //-----------------------------------------------------------------------
     // Task CRUD tied to projects and employees.
@@ -1210,7 +1216,9 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
             setError(null);
 
             try {
-                const payload = await apiRequest(endpoint);
+                const payload = await apiRequest(endpoint, {
+                    suppressApiError: Boolean(options.suppressApiError),
+                });
                 const nextData = typeof options.transformPayload === "function"
                     ? options.transformPayload(payload)
                     : options.unwrap === false
@@ -1323,7 +1331,12 @@ const apiPlaceholders = {
             throw error;
         }
 
-        return apiRequest(`${API_ENDPOINTS.settings}/${encodeURIComponent(userId)}`);
+        // Settings load failures should not raise the global API banner because the
+        // settings page already falls back to the last local copy. Saving still uses
+        // POST /api/settings, which is the confirmed backend route.
+        return apiRequest(`${API_ENDPOINTS.settings}/${encodeURIComponent(userId)}`, {
+            suppressApiError: true,
+        });
     },
     saveSettings: async (settings, currentUser) => {
         const payload = settingsToApiPayload(settings, currentUser);
