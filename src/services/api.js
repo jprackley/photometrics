@@ -6,7 +6,7 @@
 // reusable data-loading hook used by page components.
 // -----------------------------------------------------------------------------
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // -----------------------------------------------------------------------------
 // API CONFIGURATION
@@ -1188,6 +1188,17 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
     const [data, setData] = useState(() => (getUseApiDataSetting() ? getEmptyDataForFallback(fallbackData) : fallbackData));
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const fallbackDataRef = useRef(fallbackData);
+    const optionsRef = useRef(options);
+
+    // Many pages pass arrays/objects/functions inline to this hook. Those values get
+    // recreated on every render, so they must not be direct fetch-effect dependencies.
+    // Keeping the latest values in refs prevents infinite API request loops while still
+    // letting the loader use the newest transform/fallback values.
+    useEffect(() => {
+        fallbackDataRef.current = fallbackData;
+        optionsRef.current = options;
+    });
 
     useEffect(() => {
         const syncApiDataSetting = () => setUseApiData(getUseApiDataSetting());
@@ -1206,23 +1217,25 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
 
         if (!useApiData || !endpoint) {
             setError(null);
-            setData(fallbackData);
+            setData(fallbackDataRef.current);
             return undefined;
         }
 
-        setData(getEmptyDataForFallback(fallbackData));
+        setData(getEmptyDataForFallback(fallbackDataRef.current));
 
         async function loadData() {
+            const currentOptions = optionsRef.current || {};
+
             setIsLoading(true);
             setError(null);
 
             try {
                 const payload = await apiRequest(endpoint, {
-                    suppressApiError: Boolean(options.suppressApiError),
+                    suppressApiError: Boolean(currentOptions.suppressApiError),
                 });
-                const nextData = typeof options.transformPayload === "function"
-                    ? options.transformPayload(payload)
-                    : options.unwrap === false
+                const nextData = typeof currentOptions.transformPayload === "function"
+                    ? currentOptions.transformPayload(payload)
+                    : currentOptions.unwrap === false
                         ? payload
                         : unwrapApiPayload(payload);
 
@@ -1232,7 +1245,7 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
             } catch (apiError) {
                 if (isMounted) {
                     setError(apiError.message);
-                    setData(getEmptyDataForFallback(fallbackData));
+                    setData(getEmptyDataForFallback(fallbackDataRef.current));
                 }
 
                 console.warn(`API data failed for ${endpoint}. Mock data is disabled while database mode is on.`, apiError);
@@ -1248,7 +1261,7 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
         return () => {
             isMounted = false;
         };
-    }, [endpoint, fallbackData, options.transformPayload, options.unwrap, useApiData]);
+    }, [endpoint, useApiData]);
 
     return { data, isLoading, error };
 }
