@@ -94,6 +94,23 @@ function formatApiDateTimeForDisplay(value) {
     });
 }
 
+
+function toApiDateTime(value) {
+    if (!value) return undefined;
+
+    const stringValue = String(value).trim();
+    if (!stringValue) return undefined;
+
+    const parsedDate = new Date(stringValue);
+    if (Number.isNaN(parsedDate.getTime())) return undefined;
+
+    return parsedDate.toISOString();
+}
+
+function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+}
+
 function toMetricNumber(value, fallback = 0) {
     const numberValue = Number.parseFloat(value);
     return Number.isFinite(numberValue) ? numberValue : fallback;
@@ -528,29 +545,25 @@ function normalizeProjectProgressKpiRows(payload) {
         });
 }
 
-function toApiDate(value) {
-    if (!value) return undefined;
-
-    const parsedDate = new Date(value);
-    if (Number.isNaN(parsedDate.getTime())) return undefined;
-
-    return parsedDate.toISOString();
-}
-
 function projectToApi(project) {
     const payload = {
-        project_name: String(project.name || "").trim() || "Untitled Project",
+        project_name: String(project.name || project.project_name || "Untitled Project").trim(),
         description: project.description || undefined,
-        company_name: project.client || undefined,
         status: project.status || "To-Do",
-        start_time: toApiDate(project.startDate),
-        due_time: toApiDate(project.dueDate),
+        priority: project.priority || "Normal",
+        notes: project.notes || undefined,
+        start_time: toApiDateTime(project.startDate || project.start_time),
+        shoot_time: toApiDateTime(project.shootDate || project.shoot_time),
+        due_time: toApiDateTime(project.dueDate || project.due_time),
+        completed_at: toApiDateTime(project.completedAt || project.completed_at),
     };
 
-    if (project.clientId) payload.client_id = project.clientId;
-    if (project.managedBy) payload.managed_by = project.managedBy;
+    const clientId = project.clientId || project.client_id;
+    const managerId = project.managedBy || project.managed_by || project.managerId;
+    if (isUuid(clientId)) payload.client_id = clientId;
+    if (isUuid(managerId)) payload.managed_by = managerId;
 
-    return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+    return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""));
 }
 
 function employeeToApiPayload(employee = {}) {
@@ -583,20 +596,30 @@ function employeeToApiPayload(employee = {}) {
 }
 
 function taskToApiPayload(task = {}) {
+    const projectId = task.projectId || task.project_id;
+    const assignedTo = task.assignedToId || task.assigned_to || task.employeeId;
+    const assignedBy = task.assignedById || task.assigned_by;
+
     const payload = {
-        project_id: task.projectId || task.project_id || undefined,
-        task_name: task.taskName || task.task_name || task.taskType || "Untitled Task",
-        category: task.category || "Other",
+        project_id: isUuid(projectId) ? projectId : undefined,
+        task_name: String(task.taskName || task.task_name || task.taskType || "Untitled Task").trim(),
+        category: task.category || task.taskCategory || task.taskType || "Other",
         priority: task.priority || "Normal",
         description: task.description || undefined,
         status: task.status || "Assigned",
-        start_time: toApiDate(task.assignedDate || task.start_time || task.startDate),
-        due_time: toApiDate(task.dueDate || task.due_time),
-        assigned_to: task.assignedToId || task.assigned_to || undefined,
-        assigned_by: task.assignedById || task.assigned_by || undefined,
+        progress: task.progress ?? undefined,
+        start_time: toApiDateTime(task.startDate || task.assignedDate || task.start_time),
+        due_time: toApiDateTime(task.dueDate || task.due_time),
+        completed_at: toApiDateTime(task.completedAt || task.completed_at),
+        assigned_to: isUuid(assignedTo) ? assignedTo : undefined,
+        assigned_by: isUuid(assignedBy) ? assignedBy : undefined,
     };
 
-    return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+    if (!["Import", "Cull", "Edit", "Quality Review", "Export", "Delivery", "Other"].includes(payload.category)) {
+        payload.category = "Other";
+    }
+
+    return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""));
 }
 
 // Centralized route map for backend resources. Updating routes here keeps the UI components decoupled from backend path changes.
@@ -698,7 +721,6 @@ const API_ENDPOINTS = {
     // The live backend does not currently expose /assignments reliably.
     // Assignment-style UI rows are derived from task records instead.
     assignments: "/tasks?all=true",
-    assignmentsCrud: "/tasks",
 
     //-----------------------------------------------------------------------
     // This API endpoint will be READ-ONLY. Use "/users" for all user management.
@@ -1201,17 +1223,11 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
     const [data, setData] = useState(() => (getUseApiDataSetting() ? getEmptyDataForFallback(fallbackData) : fallbackData));
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const fallbackDataRef = useRef(fallbackData);
+    const fallbackRef = useRef(fallbackData);
     const optionsRef = useRef(options);
 
-    // Many pages pass arrays/objects/functions inline to this hook. Those values get
-    // recreated on every render, so they must not be direct fetch-effect dependencies.
-    // Keeping the latest values in refs prevents infinite API request loops while still
-    // letting the loader use the newest transform/fallback values.
-    useEffect(() => {
-        fallbackDataRef.current = fallbackData;
-        optionsRef.current = options;
-    });
+    fallbackRef.current = fallbackData;
+    optionsRef.current = options;
 
     useEffect(() => {
         const syncApiDataSetting = () => setUseApiData(getUseApiDataSetting());
@@ -1230,19 +1246,18 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
 
         if (!useApiData || !endpoint) {
             setError(null);
-            setData(fallbackDataRef.current);
+            setData(fallbackRef.current);
             return undefined;
         }
 
-        setData(getEmptyDataForFallback(fallbackDataRef.current));
+        setData(getEmptyDataForFallback(fallbackRef.current));
 
         async function loadData() {
-            const currentOptions = optionsRef.current || {};
-
             setIsLoading(true);
             setError(null);
 
             try {
+                const currentOptions = optionsRef.current || {};
                 const payload = await apiRequest(endpoint, {
                     suppressApiError: Boolean(currentOptions.suppressApiError),
                 });
@@ -1258,7 +1273,7 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
             } catch (apiError) {
                 if (isMounted) {
                     setError(apiError.message);
-                    setData(getEmptyDataForFallback(fallbackDataRef.current));
+                    setData(getEmptyDataForFallback(fallbackRef.current));
                 }
 
                 console.warn(`API data failed for ${endpoint}. Mock data is disabled while database mode is on.`, apiError);
@@ -1328,17 +1343,9 @@ const apiPlaceholders = {
     deleteProject: (projectId) => apiRequest(`${API_ENDPOINTS.projects}/${projectId}`, {
         method: "DELETE",
     }),
-    createAssignment: (assignment) => apiRequest(API_ENDPOINTS.assignmentsCrud, {
-        method: "POST",
-        body: JSON.stringify(taskToApiPayload(assignment)),
-    }),
-    updateAssignment: (assignmentId, assignment) => apiRequest(`${API_ENDPOINTS.assignmentsCrud}/${assignmentId}`, {
-        method: "PATCH",
-        body: JSON.stringify(taskToApiPayload(assignment)),
-    }),
-    deleteAssignment: (assignmentId) => apiRequest(`${API_ENDPOINTS.assignmentsCrud}/${assignmentId}`, {
-        method: "DELETE",
-    }),
+    createAssignment: (assignment) => apiPlaceholders.createTask(assignment),
+    updateAssignment: (assignmentId, assignment) => apiPlaceholders.updateTask(assignmentId, assignment),
+    deleteAssignment: (assignmentId) => apiPlaceholders.deleteTask(assignmentId),
     createEmployee: (employee) => apiRequest(API_ENDPOINTS.users, {
         method: "POST",
         body: JSON.stringify(employeeToApiPayload(employee)),
