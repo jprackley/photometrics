@@ -10,7 +10,7 @@ const C_HTTP = require('../../utils/constants/cHTTP');
 const C_NODE = require('../../utils/constants/cNodeServer');
 
 const asyncHandler = require('../../utils/helpers/asyncHandler');
-const {handleValidation, paginate, buildPagination} = require("../validators/queryHandler");
+const {validationErrorHandler, paginate, buildPagination} = require("../handlers");
 const { query } = require('../db');
 const {MESSAGE} = require("../../utils/constants/cHTTP");
 
@@ -113,7 +113,7 @@ router.post(
             .withMessage('Invalid account role. Must be one of: ' + Object.values(C_USER.ROLES).join(',')),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'CREATE User - ');
+        validationErrorHandler(req, 'CREATE User - ');
 
         const hashedPassword = await bcrypt.hash(req.body.password_hash, C_AUTH.SALT_ROUNDS);
 
@@ -174,7 +174,7 @@ router.get(
     '/',
     [paginate],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Users - ');
+        validationErrorHandler(req, 'READ Users - ');
         const {
             all = C_NODE.PAGINATE.ALL,
             page  = C_NODE.PAGINATE.PAGE,
@@ -254,7 +254,7 @@ router.get(
     `/:id`,
     [param('id').isUUID()],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ User:id - ');
+        validationErrorHandler(req, 'READ User:id - ');
         const { id } = req.params;
         const { rows } = await query(`SELECT ${C_USER.SAFE_RETURN} FROM users WHERE user_id = $1`, [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
@@ -270,7 +270,7 @@ router.get(
 router.patch(
     '/:id',
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'UPDATE User - ');
+        validationErrorHandler(req, 'UPDATE User - ');
         const {id} = req.params;
         const fields = [
             ...Object.values(C_USER.REQUIRED_COLUMNS),
@@ -322,7 +322,7 @@ router.delete(
     '/:id',
     [param('id').isUUID()],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'DELETE User - ');
+        validationErrorHandler(req, 'DELETE User - ');
         const { id } = req.params;
 
 /*        const sqlSettings = `DELETE FROM settings WHERE user_id = $1 RETURNING *`;

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const asyncHandler = require('../../utils/helpers/asyncHandler');
-const {handleValidation} = require("../validators/queryHandler");
+const {validationErrorHandler} = require("../handlers");
 const { query } = require("../db");
 const {param} = require("express-validator");
 const C_HTTP = require("../../utils/constants/cHTTP");
@@ -10,7 +10,7 @@ const C_HTTP = require("../../utils/constants/cHTTP");
 router.get(
     '/',
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Assignments - ');
+        validationErrorHandler(req, 'GET Assignments - ');
         const sql = `
             SELECT *
             FROM assignments;
@@ -26,7 +26,7 @@ router.get(
 router.get(
     '/:id',
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Assignments - ');
+        validationErrorHandler(req, 'GET Assignments - ');
         const {id: param} = req.params;
         const sql = `
             SELECT *

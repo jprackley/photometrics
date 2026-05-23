@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const asyncHandler = require('../../utils/helpers/asyncHandler');
-const {handleValidation} = require("../validators/queryHandler");
+const {validationErrorHandler} = require("../handlers");
 const { query } = require("../db");
 const {param, body} = require("express-validator");
 const C_HTTP = require("../../utils/constants/cHTTP");
@@ -23,7 +23,7 @@ router.post(
         body('timezone').optional({values: "falsy"}).isIn(['America/New_York', 'America/Los_Angeles', 'Europe/London']).withMessage('Invalid Timezone'),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'POST Settings - ');
+        validationErrorHandler(req, 'POST Settings - ');
 
         const fields = [
             ...Object.values(C_SETTINGS.REQUIRED_COLUMNS),
@@ -57,7 +57,7 @@ router.post(
 router.get(
     '/:id',
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Settings - ');
+        validationErrorHandler(req, 'GET Settings - ');
         const {id: param} = req.params;
 
         const sql = `
@@ -86,7 +86,7 @@ router.patch(
         body('timezone').optional({values: "falsy"}).isIn(['America/New_York', 'America/Los_Angeles', 'Europe/London']).withMessage('Invalid Timezone'),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'PATCH Settings - ');
+        validationErrorHandler(req, 'PATCH Settings - ');
         const { id } = req.params;
         const fields = [
             ...Object.values(C_SETTINGS.REQUIRED_COLUMNS),
@@ -125,7 +125,7 @@ router.delete(
     '/:id',
     param('id').isUUID().withMessage('Invalid Setting UUID'),
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'DELETE Settings - ');
+        validationErrorHandler(req, 'DELETE Settings - ');
         const {id} = req.params;
         const {rows} = await query('DELETE FROM settings WHERE user_id = $1 RETURNING *', [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({

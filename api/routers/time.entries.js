@@ -1,5 +1,5 @@
 const express = require('express');
-const {paginate, handleValidation, buildPagination} = require("../validators/queryHandler");
+const {paginate, validationErrorHandler, buildPagination} = require("../handlers");
 const {param, body} = require("express-validator");
 const asyncHandler = require('../../utils/helpers/asyncHandler');
 const {query} = require("../db");
@@ -21,7 +21,7 @@ router.post(
         body('total_time').isDecimal().withMessage('Invalid duration format'),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'CREATE Time Entry - ');
+        validationErrorHandler(req, 'CREATE Time Entry - ');
 
         const fields = [
             ...Object.values(C_TIME.REQUIRED_COLUMNS),
@@ -58,7 +58,7 @@ router.get(
         param('id').isUUID().withMessage('Invalid time_entry_id UUID')
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Time Entry - ');
+        validationErrorHandler(req, 'READ Time Entry - ');
         const { id } = req.params;
         const { rows } = await query('SELECT * FROM time_entries WHERE time_entry_id = $1', [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
@@ -82,7 +82,7 @@ router.get(
     '/',
     [ paginate ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Time Entries - ');
+        validationErrorHandler(req, 'READ Time Entries - ');
         const {
             all = C_NODE.PAGINATE.ALL,
             page  = C_NODE.PAGINATE.PAGE,
@@ -148,7 +148,7 @@ router.patch(
         body('total_time').optional({ values: 'null' }).isDecimal().withMessage('Invalid duration format')
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'UPDATE Time Entry - ');
+        validationErrorHandler(req, 'UPDATE Time Entry - ');
         const { id } = req.params;
         const fields = [
             ...Object.values(C_TIME.REQUIRED_COLUMNS),
@@ -189,7 +189,7 @@ router.delete(
     '/:id',
     [param('id').isUUID().withMessage('Invalid time_entry_id UUID')],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'DELETE Time Entry - ');
+        validationErrorHandler(req, 'DELETE Time Entry - ');
         const {id} = req.params;
         const {rowCount} = await query('DELETE FROM time_entries WHERE time_entry_id = $1 RETURNING *', [id]);
         if (rowCount === 0) return res.status(404).json({error: {code: 404, message: 'Time entry not found'}});

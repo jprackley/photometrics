@@ -4,15 +4,15 @@ const router = express.Router();
 const C_USER = require('../../../utils/constants/cUsers');
 
 const asyncHandler = require('../../../utils/helpers/asyncHandler');
-const { verbose } = require('../../validators/queryHandler');
-const {handleValidation} = require("../../validators/queryHandler");
+const { verbose } = require('../../handlers');
+const {validationErrorHandler} = require("../../handlers");
 const { query } = require("../../db");
 
 router.get(
     '/active',
     [verbose],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Active Employees - ');
+        validationErrorHandler(req, 'GET Active Employees - ');
         const { v } = req.query;
         let activeEmployees = {
             active: 0,
@@ -39,7 +39,7 @@ router.get(
     '/total',
     [verbose],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Total Employees - ');
+        validationErrorHandler(req, 'GET Total Employees - ');
         const { v } = req.query;
         let totalEmployees = {
             total: 0,

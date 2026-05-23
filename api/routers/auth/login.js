@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 
 const query = require("../../db").query;
 const asyncHandler = require("../../../utils/helpers/asyncHandler");
-const {handleValidation} = require("../../validators/queryHandler")
+const {validationErrorHandler} = require("../../handlers")
 const {compare} = require("bcrypt");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
@@ -61,7 +61,7 @@ router.post(
         body('password_hash').isString().notEmpty().withMessage('Password is required')
     ],
     asyncHandler(async ( req, res ) => {
-        handleValidation( req, 'LOGIN User - ');
+        validationErrorHandler( req, 'LOGIN User - ');
 
         const { email, password_hash } = req.body;
 

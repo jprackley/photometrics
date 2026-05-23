@@ -4,9 +4,9 @@ const router = express.Router();
 
 const {
     paginate,
-    handleValidation,
+    validationErrorHandler,
     buildPagination,
-} = require("../validators/queryHandler");
+} = require("../handlers");
 const asyncHandler = require("../../utils/helpers/asyncHandler");
 const {query} = require("../db");
 
@@ -72,7 +72,7 @@ router.post(
         body('completed_at').optional({ values: 'null' }).isISO8601().withMessage('Invalid completed time format'),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'CREATE Project - ');
+        validationErrorHandler(req, 'CREATE Project - ');
         const fields = [
             ...Object.values(C_PROJECT.REQUIRED_COLUMNS),
             ...Object.values(C_PROJECT.MUTABLE_COLUMNS)
@@ -133,7 +133,7 @@ router.get(
     '/',
     [paginate],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Projects - ');
+        validationErrorHandler(req, 'READ Projects - ');
         const {
             all = C_NODE.PAGINATE.ALL,
             page  = C_NODE.PAGINATE.PAGE,
@@ -220,7 +220,7 @@ router.get(
     '/:id',
     [param('id').isUUID().withMessage('Invalid Project ID')],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Project:id - ');
+        validationErrorHandler(req, 'READ Project:id - ');
         const { id } = req.params;
         const { rows } = await query('SELECT * FROM projects WHERE project_id = $1', [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
@@ -306,7 +306,7 @@ router.patch(
         body('completed_at').optional({ values: 'null' }).isISO8601().withMessage('Invalid completed time format'),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'UPDATE Project:id - ');
+        validationErrorHandler(req, 'UPDATE Project:id - ');
         const { id } = req.params;
         const fields = [
             ...Object.values(C_PROJECT.REQUIRED_COLUMNS),
@@ -367,7 +367,7 @@ router.delete(
     '/:id',
     [param('id').isUUID().withMessage('ID is an invalid UUID')],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'DELETE Project:id - ');
+        validationErrorHandler(req, 'DELETE Project:id - ');
         const { id } = req.params;
         const { rows } = await query('DELETE FROM projects WHERE project_id = $1 RETURNING *', [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({

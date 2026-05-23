@@ -11,8 +11,8 @@ const { query } = require('../db');
 const {
     paginate,
     buildPagination,
-    handleValidation
-} = require('../validators/queryHandler');
+    validationErrorHandler
+} = require('../handlers');
 
 //----------------------------------------------------------------------------------
 // CREATE Client
@@ -129,7 +129,7 @@ router.post(
 
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'CREATE Client - ');
+        validationErrorHandler(req, 'CREATE Client - ');
 
         const columnKeys = [
             ...Object.values(C_CLIENT.REQUIRED_COLUMNS),
@@ -170,7 +170,7 @@ router.get(
     '/',
     [paginate],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Clients - ');
+        validationErrorHandler(req, 'READ Clients - ');
         const {
             all = C_NODE.PAGINATE.ALL,
             page = C_NODE.PAGINATE.PAGE,
@@ -251,7 +251,7 @@ router.get(
     '/:id',
     [param('id').isUUID()],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Client:id - ');
+        validationErrorHandler(req, 'READ Client:id - ');
         const { id } = req.params;
         const { rows } = await query('SELECT * FROM clients WHERE client_id = $1', [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
@@ -375,7 +375,7 @@ router.patch(
         }).withMessage(`Country must be between ${C_CLIENT.MIN.COUNTRY} and ${C_CLIENT.MAX.COUNTRY} characters.`),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'UPDATE Client:id - ');
+        validationErrorHandler(req, 'UPDATE Client:id - ');
         const { id } = req.params;
         const fields = [
             ...Object.values(C_CLIENT.REQUIRED_COLUMNS),
@@ -416,7 +416,7 @@ router.delete(
     '/:id',
     [param('id').isUUID()],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'DELETE Client:id - ');
+        validationErrorHandler(req, 'DELETE Client:id - ');
         const { id } = req.params;
         const { rowCount } = await query('DELETE FROM clients WHERE client_id = $1 RETURNING *', [id]);
         if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Client not found' } });

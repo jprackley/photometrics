@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const asyncHandler = require('../../../utils/helpers/asyncHandler');
-const {handleValidation} = require("../../validators/queryHandler");
+const {validationErrorHandler} = require("../../handlers");
 const { query } = require("../../db");
 const {param} = require("express-validator");
 
@@ -11,7 +11,7 @@ const C_HTTP = require("../../../utils/constants/cHTTP");
 router.get(
     '/',
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Productivity KPI - ');
+        validationErrorHandler(req, 'GET Productivity KPI - ');
 
         const sql = `
             WITH task_time AS (
@@ -93,7 +93,7 @@ router.get(
     '/:id',
     param('id').isUUID().withMessage('Invalid User UUID'),
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Productivity KPI - ');
+        validationErrorHandler(req, 'GET Productivity KPI - ');
         const {id: param} = req.params;
         const sql = `
             WITH task_time AS (

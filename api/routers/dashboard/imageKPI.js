@@ -4,15 +4,15 @@ const router = express.Router();
 const C_IMAGE = require('../../../utils/constants/cImages');
 
 const asyncHandler = require('../../../utils/helpers/asyncHandler');
-const { verbose } = require('../../validators/queryHandler');
-const {handleValidation} = require("../../validators/queryHandler");
+const { verbose } = require('../../handlers');
+const {validationErrorHandler} = require("../../handlers");
 const { query } = require("../../db");
 
 router.get(
     '/active',
     [verbose],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Active Images - ');
+        validationErrorHandler(req, 'GET Active Images - ');
         const { v } = req.query;
         let activeImages = {
             active: 0,
@@ -39,7 +39,7 @@ router.get(
     '/completed',
     [verbose],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Completed Images - ');
+        validationErrorHandler(req, 'GET Completed Images - ');
         const { v } = req.query;
         let completedImages = {
             completed: 0,
@@ -66,7 +66,7 @@ router.get(
     '/remaining',
     [verbose],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Remaining Images - ');
+        validationErrorHandler(req, 'GET Remaining Images - ');
         const { v } = req.query;
         let remainingImages = {
             remaining: 0,
@@ -93,7 +93,7 @@ router.get(
     '/total',
     [verbose],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Total Images - ');
+        validationErrorHandler(req, 'GET Total Images - ');
         const { v } = req.query;
         let totalImages = {
             total: 0,

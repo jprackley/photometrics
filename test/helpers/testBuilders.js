@@ -1,7 +1,15 @@
 const C_USER = require("../../utils/constants/cUsers");
 const C_CLIENT = require("../../utils/constants/cClients");
 
-function buildTestUser( role, testSuiteName, missingField = null, overrundField = null ) {
+/**
+ * Builds a User for test suites. Can define field to overrun or leave as an empty string.
+ * @param {string} role
+ * @param {string} testSuiteName
+ * @param {string|null} [missingField]
+ * @param {string|null} [overrunField]
+ * @returns {Object} user
+ **/
+function buildTestUser( role, testSuiteName, missingField = null, overrunField = null ) {
 
     let user = {
         employee_id: "",
@@ -15,33 +23,40 @@ function buildTestUser( role, testSuiteName, missingField = null, overrundField 
         account_role: role,
     };
 
-    if ( missingField !== null && overrundField !== null ) {
+    if (missingField !== null && overrunField !== null) {
 
         throw new Error("Build Test User: Missing and Overrund Fields cannot be used together.");
 
-    } else if ( Object.values(C_USER.REQUIRED_COLUMNS).includes(missingField) ) {
+    } else if (Object.values(C_USER.REQUIRED_COLUMNS).includes(missingField)) {
 
         console.log("CREATED User Object with missing: ", missingField);
         user[missingField] = "";
 
-    } else if ( Object.values(C_USER.SECURE_COLUMNS).includes(missingField) ) {
+    } else if (Object.values(C_USER.SECURE_COLUMNS).includes(missingField)) {
 
         console.log("CREATED User Object with missing: ", missingField);
         user[missingField] = "";
 
-    } else if ( Object.values(C_USER.REQUIRED_COLUMNS).includes(overrundField)   ) {
+    } else if (Object.values(C_USER.REQUIRED_COLUMNS).includes(overrunField)) {
 
-        if ( overrundField === C_USER.REQUIRED_COLUMNS.EMAIL ) {
-            user[overrundField] = `t`.repeat(C_USER.MAX.EMAIL - 14).concat(`@testsuite.com`);
+        if (overrunField === C_USER.REQUIRED_COLUMNS.EMAIL) {
+            user[overrunField] = `t`.repeat(C_USER.MAX.EMAIL - 14).concat(`@testsuite.com`);
         } else {
-            user[overrundField] = `t`.repeat(C_USER.MAX[overrundField]);
+            user[overrunField] = `t`.repeat(C_USER.MAX[overrunField]);
         }
-        console.log("CREATED User Object with overrund: ", overrundField)
+        console.log("CREATED User Object with overrund: ", overrunField)
     }
     return user;
 }
-
-function buildTestClient( testSuiteName,  missingField = null, overrundField = null ) {
+/**
+ * Builds a Client for test suites. Can define field to overrun or leave as an empty string.
+ *
+ * @param {string} testSuiteName
+ * @param {string|null} missingField
+ * @param {string|null} overrunField
+ * @returns {Object} client
+ **/
+function buildTestClient( testSuiteName,  missingField = null, overrunField = null ) {
     const emailPrefix = 't'
     const emailDomain = `@testsuite.com`
 
@@ -74,7 +89,7 @@ function buildTestClient( testSuiteName,  missingField = null, overrundField = n
     let minMaxKey = '';
 
     //Ensures the Client is not tested against a missing AND overrund field.
-    if ( missingField !== null && overrundField !== null ) {
+    if ( missingField !== null && overrunField !== null ) {
 
         throw new Error(`Build Test ${testSuiteName}: Missing and Overrund Fields cannot be used together.`);
 
@@ -91,23 +106,23 @@ function buildTestClient( testSuiteName,  missingField = null, overrundField = n
             `\nDATA: ${JSON.stringify(client, null, 2)}`)
 
     } //Verify the overrund field is in the required or mutable columns.
-    else if ( Object.values(C_CLIENT.REQUIRED_COLUMNS).includes(overrundField)
-        || Object.values(C_CLIENT.MUTABLE_COLUMNS).includes(overrundField) ) {
+    else if ( Object.values(C_CLIENT.REQUIRED_COLUMNS).includes(overrunField)
+        || Object.values(C_CLIENT.MUTABLE_COLUMNS).includes(overrunField) ) {
 
         // Maps the field name to the min/max length property name in the constant file.
-        minMaxKey = C_CLIENT.MIN_MAX_MAPPING[overrundField];
+        minMaxKey = C_CLIENT.MIN_MAX_MAPPING[overrunField];
 
         //If the overrund field is the email, then we need to create a valid email.
-        if ( overrundField === C_CLIENT.REQUIRED_COLUMNS.EMAIL ) {
-            client[overrundField] = emailPrefix.repeat(
+        if ( overrunField === C_CLIENT.REQUIRED_COLUMNS.EMAIL ) {
+            client[overrunField] = emailPrefix.repeat(
                 (C_CLIENT.MAX.EMAIL - (emailDomain.length)) +1
             ).concat(emailDomain);
         } else {
-            client[overrundField] = `t`.repeat(C_CLIENT.MAX[minMaxKey] + 1);
+            client[overrunField] = `t`.repeat(C_CLIENT.MAX[minMaxKey] + 1);
         }
-        console.log(`CREATED Test ${testSuiteName} Object with overrun: `, overrundField,
+        console.log(`CREATED Test ${testSuiteName} Object with overrun: `, overrunField,
             `\nMAX Length: ${C_CLIENT.MAX[minMaxKey]}`,
-            `\nGenerated Length: ${client[overrundField].length}`,
+            `\nGenerated Length: ${client[overrunField].length}`,
             `\nDATA: ${JSON.stringify(client, null, 2)}`)
     }
     return client;

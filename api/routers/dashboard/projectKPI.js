@@ -4,15 +4,15 @@ const router = express.Router();
 const C_PROJECT = require('../../../utils/constants/cProjects');
 
 const asyncHandler = require('../../../utils/helpers/asyncHandler');
-const { verbose } = require('../../validators/queryHandler');
-const {handleValidation} = require("../../validators/queryHandler");
+const { verbose } = require('../../handlers');
+const {validationErrorHandler} = require("../../handlers");
 const { query } = require("../../db");
 
 router.get(
     '/active',
     [verbose],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Active Projects - ');
+        validationErrorHandler(req, 'GET Active Projects - ');
         const { v } = req.query;
         let activeProjects = {
             active: 0,
@@ -39,7 +39,7 @@ router.get(
     '/completed',
     [verbose],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Completed Projects - ');
+        validationErrorHandler(req, 'GET Completed Projects - ');
         const { v } = req.query;
         let completedProjects = {
             completed: 0,
@@ -66,7 +66,7 @@ router.get(
     '/remaining',
     [verbose],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Remaining Projects - ');
+        validationErrorHandler(req, 'GET Remaining Projects - ');
         const { v } = req.query;
         let remainingProjects = {
             remaining: 0,
@@ -93,7 +93,7 @@ router.get(
     '/total',
     [verbose],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'GET Total Projects - ');
+        validationErrorHandler(req, 'GET Total Projects - ');
         const { v } = req.query;
         let totalProjects = {
             total: 0,

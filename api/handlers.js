@@ -1,7 +1,7 @@
 const { query } = require('express-validator');
-require("../../utils/constants/cUsers");
-C_NODE = require('../../utils/constants/cNodeServer');
-C_KPI = require("../../utils/constants/cKPIs");
+require("../utils/constants/cUsers");
+C_NODE = require('../utils/constants/cNodeServer');
+C_KPI = require("../utils/constants/cKPIs");
 
 const paginate = [
     query('page').optional().toInt().isInt({ min: C_NODE.PAGINATE.MIN_PAGE }).withMessage(`page must be >= ${C_NODE.PAGINATE.MIN_PAGE}`),
@@ -18,8 +18,8 @@ function buildPagination({ page = 1, limit = 20 }) {
 }
 
 //Handles validation for Node.js Express requests
-function handleValidation(req, desc) {
-    const C_HTTP = require('../../utils/constants/cHTTP');
+function validationErrorHandler(req, desc) {
+    const C_HTTP = require('../utils/constants/cHTTP');
     const { validationResult } = require('express-validator');
 
     const result = validationResult(req);
@@ -42,4 +42,4 @@ function handleValidation(req, desc) {
     }
 }
 
-module.exports = { paginate, buildPagination, handleValidation,  verbose };
+module.exports = { paginate, buildPagination, validationErrorHandler,  verbose };

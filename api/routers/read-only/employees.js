@@ -3,12 +3,12 @@ const router = express.Router();
 
 const query = require("../../db").query;
 const asyncHandler = require("../../../utils/helpers/asyncHandler");
-const {handleValidation} = require("../../validators/queryHandler")
+const {validationErrorHandler} = require("../../handlers")
 const C_USER = require("../../../utils/constants/cUsers");
 
 router.get('/',
    asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Employees - ');
+        validationErrorHandler(req, 'READ Employees - ');
         const sql = `
         SELECT ${C_USER.SAFE_RETURN}
         FROM users
@@ -23,7 +23,7 @@ router.get('/',
 
 router.get('/:id',
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Employee:id - ');
+        validationErrorHandler(req, 'READ Employee:id - ');
         const {id} = req.params;
         const sql = `
         SELECT ${C_USER.SAFE_RETURN}

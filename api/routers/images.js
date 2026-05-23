@@ -2,7 +2,7 @@ const express = require('express');
 const {param, body } = require('express-validator');
 const router = express.Router();
 
-const {paginate, handleValidation, buildPagination} = require('../validators/queryHandler');
+const {paginate, validationErrorHandler, buildPagination} = require('../handlers');
 const asyncHandler = require('../../utils/helpers/asyncHandler');
 const {query} = require('../db');
 
@@ -40,7 +40,7 @@ router.post(
         body('completed_at').optional({ values: 'null' }).isISO8601().withMessage('Invalid completed time format'),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'CREATE Image - ');
+        validationErrorHandler(req, 'CREATE Image - ');
 
         const fields = [
             ...Object.values(C_IMAGE.REQUIRED_COLUMNS),
@@ -77,7 +77,7 @@ router.get(
         param('id').isUUID().withMessage('Invalid image_id UUID'),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Image - ');
+        validationErrorHandler(req, 'READ Image - ');
         const {id} = req.params;
         const {rows} = await query('SELECT * FROM images WHERE image_id = $1', [id]);
 
@@ -107,7 +107,7 @@ router.get(
     '/',
     [paginate],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Images - ');
+        validationErrorHandler(req, 'READ Images - ');
         const {
             all = C_NODE.PAGINATE.ALL,
             page = C_NODE.PAGINATE.PAGE,
@@ -193,7 +193,7 @@ router.patch(
         body('completed_at').optional({ values: 'null' }).isISO8601().withMessage('Invalid completed time format'),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'UPDATE Image - ');
+        validationErrorHandler(req, 'UPDATE Image - ');
         const { id } = req.params;
         const fields = [
             ...Object.values(C_IMAGE.REQUIRED_COLUMNS),
@@ -239,7 +239,7 @@ router.delete(
         param('id').isUUID().withMessage('Invalid image_id UUID'),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'DELETE Image - ');
+        validationErrorHandler(req, 'DELETE Image - ');
         const {id} = req.params;
         const {rowCount} = await query('DELETE FROM images WHERE image_id = $1 RETURNING *', [id]);
 

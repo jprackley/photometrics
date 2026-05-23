@@ -2,7 +2,7 @@ const express=require("express");
 const router = express.Router();
 
 const asyncHandler = require("../../../utils/helpers/asyncHandler");
-const {handleValidation} = require("../../validators/queryHandler");
+const {validationErrorHandler} = require("../../handlers");
 const {param} = require("express-validator");
 const {query} = require("../../db");
 
@@ -11,7 +11,7 @@ const C_HTTP = require("../../../utils/constants/cHTTP");
 router.post('/:id',
     param('id').isUUID().withMessage('Invalid user_id UUID'),
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'LOGOUT User - ');
+        validationErrorHandler(req, 'LOGOUT User - ');
 
         const sql = `
         UPDATE users SET is_active = false

@@ -7,7 +7,7 @@ const C_HTTP = require("../../utils/constants/cHTTP");
 const C_NODE = require('../../utils/constants/cNodeServer');
 
 const asyncHandler = require('../../utils/helpers/asyncHandler');
-const {handleValidation, buildPagination} = require('../validators/queryHandler');
+const {validationErrorHandler, buildPagination} = require('../handlers');
 const {query} = require("../db");
 
 //----------------------------------------------------------------------------------
@@ -45,7 +45,7 @@ router.post(
         body('assigned_to').optional({ values: 'null' }).isUUID().withMessage('Invalid assigned_to UUID')
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'CREATE Task - ');
+        validationErrorHandler(req, 'CREATE Task - ');
         const columnKeys = [
             ...Object.values(C_TASK.REQUIRED_COLUMNS),
             ...Object.values(C_TASK.MUTABLE_COLUMNS)
@@ -77,7 +77,7 @@ router.post(
 router.get('/:id',
     [param('id').isUUID().withMessage('Invalid Task UUID.')],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Task:id - ');
+        validationErrorHandler(req, 'READ Task:id - ');
         const {id} = req.params;
         const {rows} = await query('SELECT * FROM tasks WHERE task_id = $1', [id]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
@@ -99,7 +99,7 @@ router.get('/:id',
 //----------------------------------------------------------------------------------
 router.get('/',
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'READ Tasks - ');
+        validationErrorHandler(req, 'READ Tasks - ');
         const {
             all = C_NODE.PAGINATE.ALL,
             page = C_NODE.PAGINATE.PAGE,
@@ -188,7 +188,7 @@ router.patch(
         body('assigned_to').optional({ values: 'null' }).isUUID().withMessage('Invalid assigned_to UUID')
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, `UPDATE Task:id - `);
+        validationErrorHandler(req, `UPDATE Task:id - `);
         const {id} = req.params;
         const fields = [
             ...Object.values(C_TASK.REQUIRED_COLUMNS),
@@ -236,7 +236,7 @@ router.delete(
         param('id').isUUID().withMessage('Invalid Task UUID.'),
     ],
     asyncHandler(async (req, res) => {
-        handleValidation(req, 'DELETE Task:id - ');
+        validationErrorHandler(req, 'DELETE Task:id - ');
         const {id} = req.params;
         const {rowCount} = await query('DELETE FROM tasks WHERE task_id = $1 RETURNING *', [id]);
         if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
