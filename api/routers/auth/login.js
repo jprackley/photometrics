@@ -9,8 +9,9 @@ const {handleValidation} = require("../../validators/queryHandler")
 const {compare} = require("bcrypt");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
+const {MESSAGE} = require("../../../utils/constants/cHTTP");
 
-const FALLBACK_DATABASE_USERS = [
+/*const FALLBACK_DATABASE_USERS = [
     {
         user_id: '00000000-0000-4000-8000-000000000001',
         first_name: 'Test',
@@ -31,7 +32,7 @@ const FALLBACK_DATABASE_USERS = [
         account_role: 'Employee',
         is_active: true,
     },
-];
+];*/
 
 function getJwtSecret() {
     return process.env.JWT_SECRET || (process.env.NODE_ENV !== 'production' ? 'photometrics-local-dev-secret' : null);
@@ -57,7 +58,7 @@ function createToken(user) {
         },
         jwtSecret,
         {
-            expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+            expiresIn: process.env.JWT_EXPIRES_IN || '2m',
         }
     );
 }
@@ -77,7 +78,7 @@ async function sendSuccessfulLogin(res, user, authMode = 'database') {
     return res.json({ user: publicUser(user), token, authMode });
 }
 
-async function tryFallbackDatabaseLogin(req, res) {
+/*async function tryFallbackDatabaseLogin(req, res) {
     const { email, password_hash } = req.body;
     const user = FALLBACK_DATABASE_USERS.find((candidate) => candidate.email.toLowerCase() === String(email).trim().toLowerCase());
 
@@ -102,7 +103,7 @@ async function tryFallbackDatabaseLogin(req, res) {
     }
 
     return sendSuccessfulLogin(res, user, 'api-fallback-seed');
-}
+}*/
 
 router.post(
     '/',
@@ -110,8 +111,8 @@ router.post(
         body('email').isEmail().withMessage('Invalid email format'),
         body('password_hash').isString().notEmpty().withMessage('Password is required')
     ],
-    asyncHandler(async (req, res) => {
-        handleValidation(req, 'LOGIN User - ');
+    asyncHandler(async ( req, res ) => {
+        handleValidation( req, 'LOGIN User - ');
 
         const { email, password_hash } = req.body;
 
@@ -126,13 +127,18 @@ router.post(
                 [email]
             );
             rows = result.rows;
-        } catch (dbError) {
-            console.warn('[login:fallback] Database login failed. Using API seed login fallback for preview/local access.', dbError.message);
-            return tryFallbackDatabaseLogin(req, res);
+        } catch ( dbError ) {
+            console.warn( C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR, dbError.message );
+            return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
+                error: {
+                    code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
+                    message: C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR }
+            });
+            //return tryFallbackDatabaseLogin(req, res);
         }
 
         if (rows.length === 0) {
-            return tryFallbackDatabaseLogin(req, res);
+            //return tryFallbackDatabaseLogin(req, res);
         }
 
         const passwordMatches = await compare(
@@ -149,12 +155,21 @@ router.post(
             });
         }
 
-        await query(`
+        try {
+            await query(`
                     UPDATE users
                     SET last_login = now(),
                         is_active = true
                     WHERE user_id = $1
             `,[rows[0].user_id]);
+        } catch (dbError) {
+            console.warn( C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR, dbError.message );
+            return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
+                error: {
+                    code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
+                    message: C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR }
+            });
+        }
 
         return sendSuccessfulLogin(res, rows[0]);
     })

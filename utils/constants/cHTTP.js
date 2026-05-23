@@ -38,11 +38,13 @@ const CODE = {
 
 const MESSAGE = {
     LOGIN: {
-        UNAUTHORIZED: 'Invalid email or password',
+        UNAUTHORIZED: '[LOGIN] Login failed. Invalid email or password',
+        INTERNAL_SERVER_ERROR: '[LOGIN] Database connection failed.'
+
     },
     LOGOUT: {
-        OK: 'Logged out successfully',
-        NOT_FOUND: 'Could not logout, no user found',
+        OK: '[LOGOUT] Logged out successfully',
+        NOT_FOUND: '[LOGOUT] Could not logout, no user found',
     },
     PRODUCTIVITY: {
         OK: 'Productivity updated successfully',
