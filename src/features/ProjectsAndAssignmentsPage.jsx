@@ -51,8 +51,8 @@ import {
     getUseApiDataSetting,
     normalizeBackendUser,
     normalizeProjectRows,
-    normalizeEmployeeRows,
     normalizeAssignmentRows,
+    normalizeEmployeeRows,
     projectToApi,
     saveUseApiDataSetting,
     unwrapApiPayload,
@@ -228,7 +228,16 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        onSave(form);
+        const selectedProject = projectOptions.find((project) => project.id === form.projectId || project.name === form.project);
+        const selectedEmployee = employeeOptions.find((employee) => employee.id === form.assignedToId || employee.name === form.assignedTo);
+
+        onSave({
+            ...form,
+            projectId: selectedProject?.id || form.projectId,
+            project: selectedProject?.name || form.project,
+            assignedToId: selectedEmployee?.id || form.assignedToId,
+            assignedTo: selectedEmployee?.name || form.assignedTo,
+        });
     };
 
     return (
@@ -236,35 +245,52 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="Project">
                     <select
-                        value={form.project}
-                        onChange={(event) => updateField("project", event.target.value)}
+                        value={form.projectId || ""}
+                        onChange={(event) => {
+                            const selectedProject = projectOptions.find((project) => project.id === event.target.value);
+                            updateField("projectId", selectedProject?.id || "");
+                            updateField("project", selectedProject?.name || "");
+                        }}
+                        required
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                     >
-                        {projectOptions.filter((option) => option !== "All Projects").map((project) => (
-                            <option key={project}>{project}</option>
+                        <option value="">Select project</option>
+                        {projectOptions.map((project) => (
+                            <option key={project.id} value={project.id}>{project.name}</option>
                         ))}
                     </select>
                 </FormField>
 
                 <FormField label="Task Type">
-                    <TextInput value={form.taskType} onChange={(value) => updateField("taskType", value)} placeholder="Photo Editing" />
+                    <select
+                        value={form.taskType}
+                        onChange={(event) => updateField("taskType", event.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    >
+                        <option>Import</option>
+                        <option>Cull</option>
+                        <option>Edit</option>
+                        <option>Quality Review</option>
+                        <option>Export</option>
+                        <option>Delivery</option>
+                        <option>Other</option>
+                    </select>
                 </FormField>
 
                 <FormField label="Assigned To">
                     <select
-                        value={form.assignedToId || form.assignedTo || ""}
+                        value={form.assignedToId || ""}
                         onChange={(event) => {
-                            const selectedEmployee = employeeOptions.find((employee) => employee.value === event.target.value);
-                            updateField("assignedToId", selectedEmployee?.value || "");
-                            updateField("assignedTo", selectedEmployee?.label || "");
+                            const selectedEmployee = employeeOptions.find((employee) => employee.id === event.target.value);
+                            updateField("assignedToId", selectedEmployee?.id || "");
+                            updateField("assignedTo", selectedEmployee?.name || "");
                         }}
+                        required
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                     >
                         <option value="">Select employee</option>
                         {employeeOptions.map((employee) => (
-                            <option key={employee.value} value={employee.value}>
-                                {employee.label}
-                            </option>
+                            <option key={employee.id} value={employee.id}>{employee.name}</option>
                         ))}
                     </select>
                 </FormField>
@@ -337,13 +363,12 @@ function ProjectsAndAssignments() {
     const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
         transformPayload: normalizeAssignmentRows,
     });
-    const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
+    const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.usersList, employees, {
         transformPayload: normalizeEmployeeRows,
     });
 
     const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
     const [assignmentRows, setAssignmentRows] = useState(() => localAssignmentFallback);
-    const [employeeRows, setEmployeeRows] = useState(() => (getUseApiDataSetting() ? [] : employees));
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);
@@ -366,26 +391,28 @@ function ProjectsAndAssignments() {
         }
     }, [loadedAssignmentRows]);
 
-    useEffect(() => {
-        if (Array.isArray(loadedEmployeeRows)) {
-            setEmployeeRows(loadedEmployeeRows);
-        }
-    }, [loadedEmployeeRows]);
-
     const projectOptions = useMemo(
-        () => ["All Projects", ...projectRows.map((project) => project.name).filter(Boolean)],
+        () => getUniqueOptions(projectRows, "name", "All Projects"),
         [projectRows]
     );
 
     const employeeOptions = useMemo(
-        () => employeeRows
-            .filter((employee) => employee.status !== "Inactive")
-            .map((employee) => ({
-                value: employee.userId || employee.id || employee.employeeId,
-                label: employee.displayName || employee.name || employee.email || "Unnamed Employee",
-            }))
-            .filter((employee) => employee.value),
-        [employeeRows]
+        () => getUniqueOptions(assignmentRows, "assignedTo", "All Employees"),
+        [assignmentRows]
+    );
+
+    const projectSelectOptions = useMemo(
+        () => projectRows
+            .filter((project) => project.id)
+            .map((project) => ({ id: project.backendId || project.id, name: project.name })),
+        [projectRows]
+    );
+
+    const employeeSelectOptions = useMemo(
+        () => (Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [])
+            .filter((employee) => (employee.userId || employee.id) && (employee.accountRole || employee.role) === "Employee")
+            .map((employee) => ({ id: employee.userId || employee.id, name: employee.name || employee.displayName || employee.email })),
+        [loadedEmployeeRows]
     );
 
     const statusOptions = useMemo(
@@ -447,15 +474,18 @@ function ProjectsAndAssignments() {
     };
 
     const openNewAssignmentModal = () => {
-        const firstProjectName = projectRows[0]?.name || "";
+        const firstProject = projectRows[0];
+        const firstEmployee = employeeSelectOptions[0];
 
         setAssignmentModal({
             mode: "create",
             data: {
                 id: generateNextId("ASG", assignmentRows),
-                project: firstProjectName,
-                taskType: "",
-                assignedTo: "",
+                projectId: firstProject?.backendId || firstProject?.id || "",
+                project: firstProject?.name || "",
+                taskType: "Other",
+                assignedToId: firstEmployee?.id || "",
+                assignedTo: firstEmployee?.name || "",
                 assignedDate: "May 01, 2026",
                 dueDate: "May 30, 2026",
                 priority: "Normal",
@@ -465,77 +495,62 @@ function ProjectsAndAssignments() {
     };
 
     const saveProject = async (project) => {
-        const cleanProject = {
+        let cleanProject = {
             ...project,
             id: project.id || generateNextId("PRJ", projectRows),
             name: String(project.name || "").trim() || "Untitled Project",
             client: String(project.client || "").trim() || "Unassigned Client",
         };
 
-        let savedProject = cleanProject;
-
         if (getUseApiDataSetting()) {
             try {
-                const apiResponse = projectModal.mode === "create"
+                const savedProject = projectModal.mode === "create"
                     ? await apiPlaceholders.createProject(projectToApi(cleanProject))
                     : await apiPlaceholders.updateProject(cleanProject.backendId || cleanProject.id, projectToApi(cleanProject));
-                savedProject = normalizeProjectRows([apiResponse])[0] || cleanProject;
+                cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
             } catch (apiError) {
-                console.warn("Project API save failed. Keeping the local row only for this session.", apiError);
+                console.warn("Project API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
         setProjectRows((currentRows) => {
             if (projectModal.mode === "create") {
-                return [savedProject, ...currentRows];
+                return [cleanProject, ...currentRows];
             }
 
-            return currentRows.map((row) => row.id === cleanProject.id ? savedProject : row);
+            return currentRows.map((row) => (row.backendId || row.id) === (cleanProject.backendId || cleanProject.id) ? cleanProject : row);
         });
         setProjectPage(1);
         setProjectModal(null);
     };
 
     const saveAssignment = async (assignment) => {
-        const selectedProject = projectRows.find((project) => project.name === assignment.project);
-        const selectedEmployee = employeeRows.find((employee) => {
-            const employeeId = employee.userId || employee.id || employee.employeeId;
-            const employeeName = employee.displayName || employee.name;
-            return employeeId === assignment.assignedToId || employeeName === assignment.assignedTo;
-        });
-
-        const cleanAssignment = {
+        let cleanAssignment = {
             ...assignment,
-            id: assignment.id || generateNextId("ASG", assignmentRows),
-            backendId: assignment.backendId || assignment.taskId || assignment.id,
-            projectId: selectedProject?.backendId || selectedProject?.id || assignment.projectId,
-            project: selectedProject?.name || assignment.project || "Unassigned Project",
-            taskName: String(assignment.taskType || "").trim() || "General Task",
-            taskType: String(assignment.taskType || "").trim() || "General Task",
-            category: "Other",
-            assignedToId: selectedEmployee?.userId || selectedEmployee?.id || selectedEmployee?.employeeId || assignment.assignedToId,
-            assignedTo: selectedEmployee?.displayName || selectedEmployee?.name || assignment.assignedTo || "Unassigned",
+            id: assignment.backendId || assignment.taskId || assignment.id || generateNextId("ASG", assignmentRows),
+            taskName: assignment.taskName || assignment.taskType || "General Task",
+            taskType: String(assignment.taskType || "Other").trim() || "Other",
+            category: assignment.category || assignment.taskType || "Other",
+            assignedTo: String(assignment.assignedTo || "").trim() || "Unassigned",
         };
-
-        let savedAssignment = cleanAssignment;
 
         if (getUseApiDataSetting()) {
             try {
-                const apiResponse = assignmentModal.mode === "create"
+                const savedAssignment = assignmentModal.mode === "create"
                     ? await apiPlaceholders.createAssignment(cleanAssignment)
-                    : await apiPlaceholders.updateAssignment(cleanAssignment.backendId || cleanAssignment.id, cleanAssignment);
-                savedAssignment = normalizeAssignmentRows([apiResponse])[0] || cleanAssignment;
+                    : await apiPlaceholders.updateAssignment(cleanAssignment.backendId || cleanAssignment.taskId || cleanAssignment.id, cleanAssignment);
+                cleanAssignment = normalizeAssignmentRows([savedAssignment])[0] || cleanAssignment;
             } catch (apiError) {
-                console.warn("Assignment API save failed. Keeping the local row only for this session.", apiError);
+                console.warn("Assignment API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
         setAssignmentRows((currentRows) => {
             if (assignmentModal.mode === "create") {
-                return [savedAssignment, ...currentRows];
+                return [cleanAssignment, ...currentRows];
             }
 
-            return currentRows.map((row) => row.id === cleanAssignment.id ? savedAssignment : row);
+            return currentRows.map((row) => (row.backendId || row.taskId || row.id) === (cleanAssignment.backendId || cleanAssignment.taskId || cleanAssignment.id) ? cleanAssignment : row);
         });
         setAssignmentPage(1);
         setAssignmentModal(null);
@@ -546,7 +561,7 @@ function ProjectsAndAssignments() {
 
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.deleteProject(project.id);
+                await apiPlaceholders.deleteProject(project.backendId || project.id);
             } catch (apiError) {
                 console.warn("Project delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
@@ -560,7 +575,7 @@ function ProjectsAndAssignments() {
 
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.deleteAssignment(assignment.id);
+                await apiPlaceholders.deleteAssignment(assignment.backendId || assignment.taskId || assignment.id);
             } catch (apiError) {
                 console.warn("Assignment delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
@@ -796,8 +811,8 @@ function ProjectsAndAssignments() {
                 >
                     <AssignmentForm
                         initialAssignment={assignmentModal.data}
-                        projectOptions={["All Projects", ...projectRows.map((project) => project.name)]}
-                        employeeOptions={employeeOptions}
+                        projectOptions={projectSelectOptions}
+                        employeeOptions={employeeSelectOptions}
                         onCancel={() => setAssignmentModal(null)}
                         onSave={saveAssignment}
                     />
@@ -818,13 +833,12 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
     const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
         transformPayload: normalizeAssignmentRows,
     });
-    const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
+    const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.usersList, employees, {
         transformPayload: normalizeEmployeeRows,
     });
 
     const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
     const [assignmentRows, setAssignmentRows] = useState(() => localAssignmentFallback);
-    const [employeeRows, setEmployeeRows] = useState(() => (getUseApiDataSetting() ? [] : employees));
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);
@@ -859,8 +873,8 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
     );
 
     const projectOptions = useMemo(
-        () => getUniqueOptions(accessibleAssignmentRows, "project", "All Projects"),
-        [accessibleAssignmentRows]
+        () => getUniqueOptions(accessibleProjectRows, "name", "All Projects"),
+        [accessibleProjectRows]
     );
 
     const employeeOptions = useMemo(
@@ -868,6 +882,20 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
             ? getUniqueOptions(accessibleAssignmentRows, "assignedTo", "All Employees")
             : ["All Employees", currentUser?.employeeName || currentUser?.name].filter(Boolean),
         [accessibleAssignmentRows, hasManagerAccess, currentUser]
+    );
+
+    const projectSelectOptions = useMemo(
+        () => projectRows
+            .filter((project) => project.id)
+            .map((project) => ({ id: project.backendId || project.id, name: project.name })),
+        [projectRows]
+    );
+
+    const employeeSelectOptions = useMemo(
+        () => (Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [])
+            .filter((employee) => (employee.userId || employee.id) && (employee.accountRole || employee.role) === "Employee")
+            .map((employee) => ({ id: employee.userId || employee.id, name: employee.name || employee.displayName || employee.email })),
+        [loadedEmployeeRows]
     );
 
     const statusOptions = useMemo(
@@ -953,14 +981,17 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
 
     const openNewAssignmentModal = () => {
         if (!hasManagerAccess) return;
-        const firstProjectName = projectRows[0]?.name || "";
+        const firstProject = projectRows[0];
+        const firstEmployee = employeeSelectOptions[0];
         setAssignmentModal({
             mode: "create",
             data: {
                 id: generateNextId("ASG", assignmentRows),
-                project: firstProjectName,
-                taskType: "",
-                assignedTo: "",
+                projectId: firstProject?.backendId || firstProject?.id || "",
+                project: firstProject?.name || "",
+                taskType: "Other",
+                assignedToId: firstEmployee?.id || "",
+                assignedTo: firstEmployee?.name || "",
                 assignedDate: "May 01, 2026",
                 dueDate: "May 30, 2026",
                 priority: "Normal",
@@ -971,58 +1002,64 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
 
     const saveProject = async (project) => {
         if (!hasManagerAccess) return;
-        const cleanProject = {
+        let cleanProject = {
             ...project,
             id: project.id || generateNextId("PRJ", projectRows),
-            name: project.name.trim() || "Untitled Project",
-            client: project.client.trim() || "Unassigned Client",
+            name: String(project.name || "").trim() || "Untitled Project",
+            client: String(project.client || "").trim() || "Unassigned Client",
         };
 
         if (getUseApiDataSetting()) {
             try {
-                if (projectModal.mode === "create") {
-                    await apiPlaceholders.createProject(projectToApi(cleanProject));
-                } else {
-                    await apiPlaceholders.updateProject(cleanProject.id, cleanProject);
-                }
+                const savedProject = projectModal.mode === "create"
+                    ? await apiPlaceholders.createProject(projectToApi(cleanProject))
+                    : await apiPlaceholders.updateProject(cleanProject.backendId || cleanProject.id, projectToApi(cleanProject));
+                cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
             } catch (apiError) {
                 console.warn("Project API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
-        setProjectRows((currentRows) => projectModal.mode === "create"
-            ? [cleanProject, ...currentRows]
-            : currentRows.map((row) => row.id === cleanProject.id ? cleanProject : row)
-        );
+        setProjectRows((currentRows) => {
+            if (projectModal.mode === "create") {
+                return [cleanProject, ...currentRows];
+            }
+
+            return currentRows.map((row) => (row.backendId || row.id) === (cleanProject.backendId || cleanProject.id) ? cleanProject : row);
+        });
         setProjectPage(1);
         setProjectModal(null);
     };
 
     const saveAssignment = async (assignment) => {
         if (!hasManagerAccess) return;
-        const cleanAssignment = {
+        let cleanAssignment = {
             ...assignment,
-            id: assignment.id || generateNextId("ASG", assignmentRows),
-            taskType: assignment.taskType.trim() || "General Task",
-            assignedTo: assignment.assignedTo.trim() || "Unassigned",
+            id: assignment.backendId || assignment.taskId || assignment.id || generateNextId("ASG", assignmentRows),
+            taskName: assignment.taskName || assignment.taskType || "General Task",
+            taskType: String(assignment.taskType || "Other").trim() || "Other",
+            category: assignment.category || assignment.taskType || "Other",
+            assignedTo: String(assignment.assignedTo || "").trim() || "Unassigned",
         };
 
         if (getUseApiDataSetting()) {
             try {
-                if (assignmentModal.mode === "create") {
-                    await apiPlaceholders.createAssignment(cleanAssignment);
-                } else {
-                    await apiPlaceholders.updateAssignment(cleanAssignment.id, cleanAssignment);
-                }
+                const savedAssignment = assignmentModal.mode === "create"
+                    ? await apiPlaceholders.createAssignment(cleanAssignment)
+                    : await apiPlaceholders.updateAssignment(cleanAssignment.backendId || cleanAssignment.taskId || cleanAssignment.id, cleanAssignment);
+                cleanAssignment = normalizeAssignmentRows([savedAssignment])[0] || cleanAssignment;
             } catch (apiError) {
                 console.warn("Assignment API endpoint is not connected yet. Saving locally.", apiError);
             }
         }
 
-        setAssignmentRows((currentRows) => assignmentModal.mode === "create"
-            ? [cleanAssignment, ...currentRows]
-            : currentRows.map((row) => row.id === cleanAssignment.id ? cleanAssignment : row)
-        );
+        setAssignmentRows((currentRows) => {
+            if (assignmentModal.mode === "create") {
+                return [cleanAssignment, ...currentRows];
+            }
+
+            return currentRows.map((row) => (row.backendId || row.taskId || row.id) === (cleanAssignment.backendId || cleanAssignment.taskId || cleanAssignment.id) ? cleanAssignment : row);
+        });
         setAssignmentPage(1);
         setAssignmentModal(null);
     };
@@ -1031,7 +1068,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
         if (!hasManagerAccess || !window.confirm(`Delete ${project.name}?`)) return;
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.deleteProject(project.id);
+                await apiPlaceholders.deleteProject(project.backendId || project.id);
             } catch (apiError) {
                 console.warn("Project delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
@@ -1043,7 +1080,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
         if (!hasManagerAccess || !window.confirm(`Delete ${assignment.id}?`)) return;
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.deleteAssignment(assignment.id);
+                await apiPlaceholders.deleteAssignment(assignment.backendId || assignment.taskId || assignment.id);
             } catch (apiError) {
                 console.warn("Assignment delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
@@ -1212,7 +1249,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
 
             {assignmentModal && (
                 <Modal title={assignmentModal.mode === "create" ? "New Assignment" : "Edit Assignment"} onClose={() => setAssignmentModal(null)}>
-                    <AssignmentForm initialAssignment={assignmentModal.data} projectOptions={["All Projects", ...projectRows.map((project) => project.name)]} employeeOptions={employeeOptions} onCancel={() => setAssignmentModal(null)} onSave={saveAssignment} />
+                    <AssignmentForm initialAssignment={assignmentModal.data} projectOptions={projectSelectOptions} employeeOptions={employeeSelectOptions} onCancel={() => setAssignmentModal(null)} onSave={saveAssignment} />
                 </Modal>
             )}
         </section>
