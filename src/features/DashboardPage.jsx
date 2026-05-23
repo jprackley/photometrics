@@ -51,7 +51,9 @@ import {
     getUseApiDataSetting,
     normalizeBackendUser,
     normalizeDashboardKpis,
+    normalizeProjectRows,
     normalizeProductivityKpiRows,
+    normalizeTaskRows,
     normalizeWorkflowKpiRows,
     normalizeEmployeeActivityKpiRows,
     normalizeProjectProgressKpiRows,
@@ -119,7 +121,6 @@ import {
 import {
     canManageContent,
     filterRowsByAccess,
-    getAssignedProjectNames,
     isAssignedToUser,
     rowMatchesSearch,
 } from "../utils/accessControl";
@@ -286,6 +287,12 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const { data: projectProgressData } = useApiPlaceholder(API_ENDPOINTS.dashboard.projectProgress, projectProgress, {
         transformPayload: normalizeProjectProgressKpiRows,
     });
+    const { data: liveTaskData } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
+        transformPayload: normalizeTaskRows,
+    });
+    const { data: liveProjectData } = useApiPlaceholder(API_ENDPOINTS.projectsList, projects, {
+        transformPayload: normalizeProjectRows,
+    });
     const showDashboardTips = appSettings?.appearance?.showDashboardTips !== false;
     const employeeName = currentUser?.employeeName || currentUser?.name;
     const employeeActivityRows = Array.isArray(employeeActivityData) ? employeeActivityData : [];
@@ -295,12 +302,26 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const visibleEmployeeActivityData = hasManagerAccess
         ? employeeActivityRows
         : employeeActivityRows.filter((row) => row[0] === employeeName);
-    const assignedProjectNames = getAssignedProjectNames(currentUser, assignments, taskItems);
+    const taskRows = Array.isArray(liveTaskData) ? liveTaskData.map(normalizeTaskForTimers) : taskItems.map(normalizeTaskForTimers);
+    const projectRows = Array.isArray(liveProjectData) ? liveProjectData : projects;
+    const assignedTasks = taskRows.filter((task) => isAssignedToUser(task, currentUser));
+    const assignedProjectNames = Array.from(new Set(
+        assignedTasks
+            .map((task) => task.project)
+            .filter(Boolean)
+    ));
     const visibleProjectProgressData = hasManagerAccess
         ? projectProgressRows
         : projectProgressRows.filter((row) => assignedProjectNames.includes(row[0]));
-    const assignedTasks = taskItems.filter((task) => isAssignedToUser(task, currentUser));
-    const assignedAssignments = assignments.filter((assignment) => isAssignedToUser(assignment, currentUser));
+    const assignedAssignments = assignedTasks.map((task) => ({
+        id: task.id,
+        project: task.project,
+        taskType: task.taskName || task.category,
+        assignedTo: task.assignedTo,
+        dueDate: task.dueDate,
+        status: task.status,
+        priority: task.priority,
+    }));
     const managerKpiCards = normalizeDashboardKpis([
         ...(Array.isArray(activeProjectsKpi) ? activeProjectsKpi : []),
         ...(Array.isArray(completedProjectsKpi) ? completedProjectsKpi : []),
