@@ -29,19 +29,32 @@ import {
     Users,
 } from "lucide-react";
 import {
-    LineChart,
-    Line,
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    PieChart,
-    Pie,
-    Cell,
-    ResponsiveContainer,
-} from "recharts";
+    ArcElement,
+    BarElement,
+    CategoryScale,
+    Chart as ChartJS,
+    Filler,
+    Legend,
+    LinearScale,
+    LineElement,
+    PointElement,
+    Title,
+    Tooltip as ChartTooltip,
+} from "chart.js";
+import { Bar as ChartBar, Doughnut, Line as ChartLine } from "react-chartjs-2";
+
+ChartJS.register(
+    ArcElement,
+    BarElement,
+    CategoryScale,
+    Filler,
+    Legend,
+    LinearScale,
+    LineElement,
+    PointElement,
+    Title,
+    ChartTooltip,
+);
 
 import { Logo } from "../components/Layout";
 import {
@@ -299,6 +312,60 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const projectProgressRows = Array.isArray(projectProgressData) ? projectProgressData : [];
     const workflowRows = Array.isArray(workflowData) ? workflowData : [];
     const productivityRows = Array.isArray(productivityData) ? productivityData : [];
+    const productivityChartData = useMemo(() => ({
+        labels: productivityRows.map((row) => row.day || row.label || row.name || "Metric"),
+        datasets: [
+            {
+                label: "Productivity %",
+                data: productivityRows.map((row) => normalizeNumber(row.value ?? row.productivity ?? row.percent)),
+                borderColor: "#7c3aed",
+                backgroundColor: "rgba(124, 58, 237, 0.14)",
+                pointBackgroundColor: productivityRows.map((row) => row.color || "#7c3aed"),
+                pointBorderColor: "#ffffff",
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                fill: true,
+                tension: 0.35,
+            },
+        ],
+    }), [productivityRows]);
+    const productivityChartOptions = useMemo(() => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (context) => `${context.parsed.y}% productivity` } },
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: { stepSize: 25, callback: (value) => `${value}%` },
+                grid: { color: "#e2e8f0", borderDash: [4, 4] },
+            },
+            x: { grid: { display: false } },
+        },
+    }), []);
+    const workflowChartData = useMemo(() => ({
+        labels: workflowRows.map((row) => row.name || "Workflow"),
+        datasets: [
+            {
+                data: workflowRows.map((row) => normalizeNumber(row.value)),
+                backgroundColor: workflowRows.map((row) => row.color || "#7c3aed"),
+                borderColor: "#ffffff",
+                borderWidth: 4,
+            },
+        ],
+    }), [workflowRows]);
+    const workflowChartOptions = useMemo(() => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "58%",
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (context) => `${context.label}: ${context.parsed}%` } },
+        },
+    }), []);
     const visibleEmployeeActivityData = hasManagerAccess
         ? employeeActivityRows
         : employeeActivityRows.filter((row) => row[0] === employeeName);
@@ -389,62 +456,9 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
                         Employee Productivity
                     </h2>
 
-                    <ResponsiveContainer width="100%" height={230}>
-                        <LineChart
-                            data={productivityRows}
-                            margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
-                        >
-                            <CartesianGrid
-                                vertical={false}
-                                strokeDasharray="4 4"
-                                stroke="#d8dde6"
-                            />
-
-                            <XAxis
-                                dataKey="day"
-                                axisLine={false}
-                                tickLine={false}
-                                tickMargin={12}
-                            />
-
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                domain={[0, 100]}
-                                ticks={[0, 25, 50, 75, 100]}
-                            />
-
-                            <Tooltip />
-
-                            {/* Visible trend line with custom colored data points */}
-                            <Line
-                                type="monotone"
-                                dataKey="value"
-                                stroke="#7c3aed"
-                                strokeWidth={4}
-                                activeDot={{ r: 7 }}
-                                label={{
-                                    position: "top",
-                                    fill: "#111827",
-                                    fontSize: 14
-                                }}
-                                dot={(props) => {
-                                    const item = productivityRows[props.index];
-
-                                    return (
-                                        <circle
-                                            cx={props.cx}
-                                            cy={props.cy}
-                                            r={5}
-                                            fill="white"
-                                            stroke={item?.color || "#7c3aed"}
-                                            strokeWidth={3}
-                                        />
-                                    );
-                                }}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    <div className="h-[230px]">
+                        <ChartLine data={productivityChartData} options={productivityChartOptions} />
+                    </div>
                 </div>
 
                 {/* Workflow pie chart */}
@@ -455,30 +469,10 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
 
                     <div className="flex h-[230px] items-center justify-center gap-16">
 
-                        {/* Pie chart */}
-                        <ResponsiveContainer width="40%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={workflowRows}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    cx="50%"
-                                    cy="50%"
-                                    outerRadius={92}
-                                    label={false}
-                                    labelLine={false}
-                                    stroke="white"
-                                    strokeWidth={4}
-                                >
-                                    {workflowRows.map((item) => (
-                                        <Cell
-                                            key={item.name}
-                                            fill={item.color}
-                                        />
-                                    ))}
-                                </Pie>
-                            </PieChart>
-                        </ResponsiveContainer>
+                        {/* Chart.js doughnut chart */}
+                        <div className="h-full w-2/5 min-w-[180px]">
+                            <Doughnut data={workflowChartData} options={workflowChartOptions} />
+                        </div>
 
                         {/* Legend */}
                         <div className="w-64 space-y-5">
@@ -813,11 +807,55 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
  * Displays project completion metrics with progress bars.
  */
 function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
+    const projectChartData = useMemo(() => ({
+        labels: rows.map((row) => row[0]),
+        datasets: [
+            {
+                label: "Completed Tasks",
+                data: rows.map((row) => normalizeNumber(row[2])),
+                backgroundColor: "rgba(34, 197, 94, 0.72)",
+                borderColor: "#16a34a",
+                borderWidth: 1,
+            },
+            {
+                label: "Remaining Tasks",
+                data: rows.map((row) => normalizeNumber(row[3])),
+                backgroundColor: "rgba(124, 58, 237, 0.68)",
+                borderColor: "#7c3aed",
+                borderWidth: 1,
+            },
+        ],
+    }), [rows]);
+    const projectChartOptions = useMemo(() => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: "bottom" },
+            tooltip: {
+                callbacks: {
+                    afterBody: (items) => {
+                        const index = items?.[0]?.dataIndex ?? 0;
+                        const progress = normalizeNumber(rows[index]?.[4]);
+                        return `Progress: ${progress}%`;
+                    },
+                },
+            },
+        },
+        scales: {
+            x: { stacked: true, grid: { display: false } },
+            y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+        },
+    }), [rows]);
+
     return (
         <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
             <h2 className="mb-3 text-lg font-bold sm:text-2xl">
                 Project Progress
             </h2>
+
+            <div className="mb-5 h-[260px]">
+                <ChartBar data={projectChartData} options={projectChartOptions} />
+            </div>
 
             <table className="w-full table-fixed border-collapse text-xs sm:text-sm">
 
