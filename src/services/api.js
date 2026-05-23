@@ -344,7 +344,66 @@ function settingsToApiPayload(settings = {}, currentUser = null) {
     };
 }
 
+const IMAGE_METRICS_NOTE_PREFIX = "[photometrics:image-metrics]";
+
+function getDefaultImageMetrics(project = {}) {
+    const totalImages = toMetricNumber(project.images ?? project.image_count ?? project.totalImages, 0);
+    const completedImages = toMetricNumber(project.completedImages ?? project.completed_images, 0);
+    const rejectedImages = toMetricNumber(project.rejectedImages ?? project.rejected_images, 0);
+    const inProgressImages = toMetricNumber(project.inProgressImages ?? project.in_progress_images, 0);
+    const pendingFallback = Math.max(0, totalImages - completedImages - rejectedImages - inProgressImages);
+
+    return {
+        totalImages,
+        pendingImages: toMetricNumber(project.pendingImages ?? project.pending_images, pendingFallback),
+        inProgressImages,
+        completedImages,
+        rejectedImages,
+        deliveredImages: toMetricNumber(project.deliveredImages ?? project.delivered_images, completedImages),
+        averageEditMinutes: toMetricNumber(project.averageEditMinutes ?? project.average_edit_minutes, 0),
+        reviewNotes: project.reviewNotes || project.review_notes || "",
+    };
+}
+
+function splitProjectNotesAndImageMetrics(notes = "", project = {}) {
+    const defaultMetrics = getDefaultImageMetrics(project);
+    const rawNotes = String(notes || "");
+    const markerIndex = rawNotes.indexOf(IMAGE_METRICS_NOTE_PREFIX);
+
+    if (markerIndex === -1) {
+        return { visibleNotes: rawNotes, imageMetrics: defaultMetrics };
+    }
+
+    const visibleNotes = rawNotes.slice(0, markerIndex).trim();
+    const encoded = rawNotes.slice(markerIndex + IMAGE_METRICS_NOTE_PREFIX.length).trim();
+
+    try {
+        const parsed = JSON.parse(encoded);
+        return {
+            visibleNotes,
+            imageMetrics: { ...defaultMetrics, ...parsed },
+        };
+    } catch {
+        return { visibleNotes, imageMetrics: defaultMetrics };
+    }
+}
+
+function combineProjectNotesAndImageMetrics(notes = "", imageMetrics = {}) {
+    const cleanNotes = String(notes || "").split(IMAGE_METRICS_NOTE_PREFIX)[0].trim();
+    const metrics = getDefaultImageMetrics(imageMetrics);
+    const encodedMetrics = JSON.stringify(metrics);
+
+    return [cleanNotes, `${IMAGE_METRICS_NOTE_PREFIX}${encodedMetrics}`]
+        .filter(Boolean)
+        .join("\n");
+}
+
 function projectFromApi(project) {
+    const { visibleNotes, imageMetrics } = splitProjectNotesAndImageMetrics(project.notes, project);
+    const totalImages = imageMetrics.totalImages || toMetricNumber(project.image_count ?? project.images, 0);
+    const completedImages = imageMetrics.completedImages || toMetricNumber(project.completed_images, 0);
+    const progress = project.progress ?? project.percent_complete ?? (totalImages > 0 ? Math.round((completedImages / totalImages) * 100) : 0);
+
     return {
         id: project.project_id || project.id,
         backendId: project.project_id || project.id,
@@ -359,8 +418,16 @@ function projectFromApi(project) {
         status: project.status || "To-Do",
         priority: project.priority || "Normal",
         description: project.description || "",
-        images: project.image_count ?? project.images ?? "0",
-        progress: Number(project.progress ?? project.percent_complete ?? 0) || 0,
+        notes: visibleNotes,
+        images: String(totalImages),
+        pendingImages: imageMetrics.pendingImages,
+        inProgressImages: imageMetrics.inProgressImages,
+        completedImages: imageMetrics.completedImages,
+        rejectedImages: imageMetrics.rejectedImages,
+        deliveredImages: imageMetrics.deliveredImages,
+        averageEditMinutes: imageMetrics.averageEditMinutes,
+        reviewNotes: imageMetrics.reviewNotes,
+        progress: Number(progress) || 0,
     };
 }
 
@@ -574,7 +641,7 @@ function projectToApi(project) {
         description: project.description || undefined,
         status: project.status || "To-Do",
         priority: project.priority || "Normal",
-        notes: project.notes || undefined,
+        notes: combineProjectNotesAndImageMetrics(project.notes, project),
         start_time: toApiDateTime(project.startDate || project.start_time),
         shoot_time: toApiDateTime(project.shootDate || project.shoot_time),
         due_time: toApiDateTime(project.dueDate || project.due_time),
