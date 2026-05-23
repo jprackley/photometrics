@@ -642,11 +642,9 @@ const API_ENDPOINTS = {
     //----------------------------------------------------------------------------------
     dashboard: {
         kpis: "/dashboard/kpis",
-        // The dashboard user-based widgets should be driven by /users?all=true so
-        // they show the same two live accounts used for login/employee management.
-        productivity: "/users?all=true",
+        productivity: "/dashboard/productivity",
         workflow: "/dashboard/workflow",
-        employeeActivity: "/users?all=true",
+        employeeActivity: "/dashboard/employee-activity",
         projectProgress: "/dashboard/project-progress",
     },
 
