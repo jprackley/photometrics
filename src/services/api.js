@@ -182,10 +182,11 @@ const ACCENT_COLOR_HEX_BY_NAME = {
 
 const TIMEZONE_IANA_BY_LABEL = {
     "Pacific Time": "America/Los_Angeles",
-    "Mountain Time": "America/Denver",
-    "Central Time": "America/Chicago",
     "Eastern Time": "America/New_York",
+    "London Time": "Europe/London",
 };
+
+const BACKEND_ALLOWED_SETTING_TIMEZONES = new Set(Object.values(TIMEZONE_IANA_BY_LABEL));
 
 const TIMEZONE_LABEL_BY_IANA = Object.fromEntries(
     Object.entries(TIMEZONE_IANA_BY_LABEL).map(([label, value]) => [value, label])
@@ -307,7 +308,9 @@ function settingsToApiPayload(settings = {}, currentUser = null) {
     // returns unquoted camelCase columns as lowercase keys such as accentcolor.
     return {
         user_id: backend.userId || currentUser?.userId || currentUser?.id || currentUser?.employeeId,
-        theme: String(appearance.theme || "Light").toLowerCase(),
+        theme: ["light", "dark"].includes(String(appearance.theme || "Light").toLowerCase())
+            ? String(appearance.theme || "Light").toLowerCase()
+            : "light",
         accentColor: ACCENT_COLOR_HEX_BY_NAME[appearance.accentColor] || appearance.accentColor || ACCENT_COLOR_HEX_BY_NAME.Violet,
         compactTables: Boolean(appearance.compactTables),
         showDashboardTips: appearance.showDashboardTips !== false,
@@ -318,7 +321,9 @@ function settingsToApiPayload(settings = {}, currentUser = null) {
         ),
         companyName: company.companyName || "Photometrics",
         language: company.language || settings.language || "en",
-        timezone: TIMEZONE_IANA_BY_LABEL[company.timezone] || company.timezone || "America/Los_Angeles",
+        timezone: BACKEND_ALLOWED_SETTING_TIMEZONES.has(TIMEZONE_IANA_BY_LABEL[company.timezone] || company.timezone)
+            ? (TIMEZONE_IANA_BY_LABEL[company.timezone] || company.timezone)
+            : "America/Los_Angeles",
     };
 }
 
@@ -613,7 +618,26 @@ const API_ENDPOINTS = {
     //-----------------------------------------------------------------------
     kpi: {
         projects: {
-            active: "/kpi/projects/active",
+            active: "/kpi/projects/active?v=true",
+            completed: "/kpi/projects/completed?v=true",
+            remaining: "/kpi/projects/remaining?v=true",
+            total: "/kpi/projects/total?v=true",
+        },
+        tasks: {
+            active: "/kpi/tasks/active?v=true",
+            completed: "/kpi/tasks/completed?v=true",
+            remaining: "/kpi/tasks/remaining?v=true",
+            total: "/kpi/tasks/total?v=true",
+        },
+        images: {
+            active: "/kpi/images/active?v=true",
+            completed: "/kpi/images/completed?v=true",
+            remaining: "/kpi/images/remaining?v=true",
+            total: "/kpi/images/total?v=true",
+        },
+        employees: {
+            active: "/kpi/employees/active?v=true",
+            total: "/kpi/employees/total?v=true",
         },
     },
 
@@ -717,15 +741,26 @@ const API_ENDPOINTS = {
     // - role/permission settings
     // - company settings
     //-------------------------------------------------------------------------
-    settings: "/settings",
+    // Full mounted backend route. buildApiUrl prevents duplicate /api when VITE_API_BASE_URL already ends with /api.
+    settings: "/api/settings",
 };
 
 /**
  * Sends a JSON request to the configured backend API and throws a clear error when the response fails.
  */
 function buildApiUrl(endpoint) {
+    const endpointString = String(endpoint || "");
+    if (/^https?:\/\//i.test(endpointString)) return endpointString;
+
     const baseUrl = String(API_BASE_URL || "").replace(/\/$/, "");
-    const path = String(endpoint || "").startsWith("/") ? endpoint : `/${endpoint}`;
+    let path = endpointString.startsWith("/") ? endpointString : `/${endpointString}`;
+
+    // Settings is documented and mounted as /api/settings. If the API base already
+    // includes /api, do not generate /api/api/settings.
+    if (baseUrl.endsWith("/api") && path.startsWith("/api/")) {
+        path = path.replace(/^\/api/, "");
+    }
+
     return `${baseUrl}${path}`;
 }
 
