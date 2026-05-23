@@ -9,30 +9,6 @@ const {handleValidation} = require("../../validators/queryHandler")
 const {compare} = require("bcrypt");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
-const {MESSAGE} = require("../../../utils/constants/cHTTP");
-
-/*const FALLBACK_DATABASE_USERS = [
-    {
-        user_id: '00000000-0000-4000-8000-000000000001',
-        first_name: 'Test',
-        last_name: 'Manager',
-        display_name: 'Test Manager',
-        email: 'muser@gmail.com',
-        password_hash: '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
-        account_role: 'Manager',
-        is_active: true,
-    },
-    {
-        user_id: '00000000-0000-4000-8000-000000000002',
-        first_name: 'Test',
-        last_name: 'Employee',
-        display_name: 'Test Employee',
-        email: 'euser@gmail.com',
-        password_hash: '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
-        account_role: 'Employee',
-        is_active: true,
-    },
-];*/
 
 function getJwtSecret() {
     return process.env.JWT_SECRET || (process.env.NODE_ENV !== 'production' ? 'photometrics-local-dev-secret' : null);
@@ -78,33 +54,6 @@ async function sendSuccessfulLogin(res, user, authMode = 'database') {
     return res.json({ user: publicUser(user), token, authMode });
 }
 
-/*async function tryFallbackDatabaseLogin(req, res) {
-    const { email, password_hash } = req.body;
-    const user = FALLBACK_DATABASE_USERS.find((candidate) => candidate.email.toLowerCase() === String(email).trim().toLowerCase());
-
-    if (!user) {
-        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
-            error: {
-                code: C_HTTP.CODE.UNAUTHORIZED,
-                message: C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED,
-            },
-        });
-    }
-
-    const passwordMatches = await compare(password_hash, user.password_hash);
-
-    if (!passwordMatches) {
-        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
-            error: {
-                code: C_HTTP.CODE.UNAUTHORIZED,
-                message: C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED,
-            },
-        });
-    }
-
-    return sendSuccessfulLogin(res, user, 'api-fallback-seed');
-}*/
-
 router.post(
     '/',
     [
@@ -134,11 +83,15 @@ router.post(
                     code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
                     message: C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR }
             });
-            //return tryFallbackDatabaseLogin(req, res);
         }
 
         if (rows.length === 0) {
-            //return tryFallbackDatabaseLogin(req, res);
+            console.warn( C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED );
+            return res.status( C_HTTP.STATUS.UNAUTHORIZED ).json({
+                error: {
+                    code: C_HTTP.CODE.UNAUTHORIZED,
+                    message: C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED }
+            });
         }
 
         const passwordMatches = await compare(
