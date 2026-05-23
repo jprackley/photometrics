@@ -528,20 +528,29 @@ function normalizeProjectProgressKpiRows(payload) {
         });
 }
 
+function toApiDate(value) {
+    if (!value) return undefined;
+
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) return undefined;
+
+    return parsedDate.toISOString();
+}
+
 function projectToApi(project) {
     const payload = {
-        project_name: project.name,
-        description: project.description,
-        status: project.status,
-        priority: project.priority || "Normal",
-        start_time: project.startDate,
-        due_time: project.dueDate,
+        project_name: String(project.name || "").trim() || "Untitled Project",
+        description: project.description || undefined,
+        company_name: project.client || undefined,
+        status: project.status || "To-Do",
+        start_time: toApiDate(project.startDate),
+        due_time: toApiDate(project.dueDate),
     };
 
     if (project.clientId) payload.client_id = project.clientId;
     if (project.managedBy) payload.managed_by = project.managedBy;
 
-    return payload;
+    return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
 }
 
 function employeeToApiPayload(employee = {}) {
@@ -574,17 +583,20 @@ function employeeToApiPayload(employee = {}) {
 }
 
 function taskToApiPayload(task = {}) {
-    return {
+    const payload = {
         project_id: task.projectId || task.project_id || undefined,
-        task_name: task.taskName || task.task_name || "Untitled Task",
+        task_name: task.taskName || task.task_name || task.taskType || "Untitled Task",
         category: task.category || "Other",
         priority: task.priority || "Normal",
         description: task.description || undefined,
-        status: task.status || "To-Do",
-        due_time: task.dueDate || task.due_time || undefined,
+        status: task.status || "Assigned",
+        start_time: toApiDate(task.assignedDate || task.start_time || task.startDate),
+        due_time: toApiDate(task.dueDate || task.due_time),
         assigned_to: task.assignedToId || task.assigned_to || undefined,
         assigned_by: task.assignedById || task.assigned_by || undefined,
     };
+
+    return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
 }
 
 // Centralized route map for backend resources. Updating routes here keeps the UI components decoupled from backend path changes.
@@ -686,6 +698,7 @@ const API_ENDPOINTS = {
     // The live backend does not currently expose /assignments reliably.
     // Assignment-style UI rows are derived from task records instead.
     assignments: "/tasks?all=true",
+    assignmentsCrud: "/tasks",
 
     //-----------------------------------------------------------------------
     // This API endpoint will be READ-ONLY. Use "/users" for all user management.
@@ -1315,15 +1328,15 @@ const apiPlaceholders = {
     deleteProject: (projectId) => apiRequest(`${API_ENDPOINTS.projects}/${projectId}`, {
         method: "DELETE",
     }),
-    createAssignment: (assignment) => apiRequest(API_ENDPOINTS.assignments, {
+    createAssignment: (assignment) => apiRequest(API_ENDPOINTS.assignmentsCrud, {
         method: "POST",
-        body: JSON.stringify(assignment),
+        body: JSON.stringify(taskToApiPayload(assignment)),
     }),
-    updateAssignment: (assignmentId, assignment) => apiRequest(`${API_ENDPOINTS.assignments}/${assignmentId}`, {
+    updateAssignment: (assignmentId, assignment) => apiRequest(`${API_ENDPOINTS.assignmentsCrud}/${assignmentId}`, {
         method: "PATCH",
-        body: JSON.stringify(assignment),
+        body: JSON.stringify(taskToApiPayload(assignment)),
     }),
-    deleteAssignment: (assignmentId) => apiRequest(`${API_ENDPOINTS.assignments}/${assignmentId}`, {
+    deleteAssignment: (assignmentId) => apiRequest(`${API_ENDPOINTS.assignmentsCrud}/${assignmentId}`, {
         method: "DELETE",
     }),
     createEmployee: (employee) => apiRequest(API_ENDPOINTS.users, {
