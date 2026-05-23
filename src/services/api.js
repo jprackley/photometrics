@@ -182,10 +182,11 @@ const ACCENT_COLOR_HEX_BY_NAME = {
 
 const TIMEZONE_IANA_BY_LABEL = {
     "Pacific Time": "America/Los_Angeles",
-    "Mountain Time": "America/Denver",
-    "Central Time": "America/Chicago",
     "Eastern Time": "America/New_York",
+    "London Time": "Europe/London",
 };
+
+const BACKEND_ALLOWED_SETTING_TIMEZONES = new Set(Object.values(TIMEZONE_IANA_BY_LABEL));
 
 const TIMEZONE_LABEL_BY_IANA = Object.fromEntries(
     Object.entries(TIMEZONE_IANA_BY_LABEL).map(([label, value]) => [value, label])
@@ -307,7 +308,9 @@ function settingsToApiPayload(settings = {}, currentUser = null) {
     // returns unquoted camelCase columns as lowercase keys such as accentcolor.
     return {
         user_id: backend.userId || currentUser?.userId || currentUser?.id || currentUser?.employeeId,
-        theme: String(appearance.theme || "Light").toLowerCase(),
+        theme: ["light", "dark"].includes(String(appearance.theme || "Light").toLowerCase())
+            ? String(appearance.theme || "Light").toLowerCase()
+            : "light",
         accentColor: ACCENT_COLOR_HEX_BY_NAME[appearance.accentColor] || appearance.accentColor || ACCENT_COLOR_HEX_BY_NAME.Violet,
         compactTables: Boolean(appearance.compactTables),
         showDashboardTips: appearance.showDashboardTips !== false,
@@ -318,7 +321,9 @@ function settingsToApiPayload(settings = {}, currentUser = null) {
         ),
         companyName: company.companyName || "Photometrics",
         language: company.language || settings.language || "en",
-        timezone: TIMEZONE_IANA_BY_LABEL[company.timezone] || company.timezone || "America/Los_Angeles",
+        timezone: BACKEND_ALLOWED_SETTING_TIMEZONES.has(TIMEZONE_IANA_BY_LABEL[company.timezone] || company.timezone)
+            ? (TIMEZONE_IANA_BY_LABEL[company.timezone] || company.timezone)
+            : "America/Los_Angeles",
     };
 }
 
@@ -601,9 +606,11 @@ const API_ENDPOINTS = {
     //----------------------------------------------------------------------------------
     dashboard: {
         kpis: "/dashboard/kpis",
-        productivity: "/dashboard/productivity",
+        // The dashboard user-based widgets should be driven by /users?all=true so
+        // they show the same two live accounts used for login/employee management.
+        productivity: "/users?all=true",
         workflow: "/dashboard/workflow",
-        employeeActivity: "/dashboard/employee-activity",
+        employeeActivity: "/users?all=true",
         projectProgress: "/dashboard/project-progress",
     },
 
@@ -613,7 +620,27 @@ const API_ENDPOINTS = {
     //-----------------------------------------------------------------------
     kpi: {
         projects: {
-            active: "/kpi/projects/active",
+            active: "/kpi/projects/active?v=true",
+            completed: "/kpi/projects/completed?v=true",
+            remaining: "/kpi/projects/remaining?v=true",
+            total: "/kpi/projects/total?v=true",
+        },
+        tasks: {
+            active: "/kpi/tasks/active?v=true",
+            completed: "/kpi/tasks/completed?v=true",
+            remaining: "/kpi/tasks/remaining?v=true",
+            total: "/kpi/tasks/total?v=true",
+        },
+        images: {
+            active: "/kpi/images/active?v=true",
+            completed: "/kpi/images/completed?v=true",
+            remaining: "/kpi/images/remaining?v=true",
+            total: "/kpi/images/total?v=true",
+        },
+        employees: {
+            // Backend collection uses singular employee for active and plural employees for total.
+            active: "/kpi/employee/active?v=true",
+            total: "/kpi/employees/total?v=true",
         },
     },
 
@@ -655,7 +682,9 @@ const API_ENDPOINTS = {
     // Expected relationships:
     // employeeId <-> projectId <-> taskId
     //----------------------------------------------------------------------
-    assignments: "/assignments",
+    // The live backend does not currently expose /assignments reliably.
+    // Assignment-style UI rows are derived from task records instead.
+    assignments: "/tasks?all=true",
 
     //-----------------------------------------------------------------------
     // This API endpoint will be READ-ONLY. Use "/users" for all user management.
@@ -667,7 +696,8 @@ const API_ENDPOINTS = {
     // - availability/status
     // - employee dashboard displays
     //-----------------------------------------------------------------------
-    employees: "/employees",
+    // Employee management should use the users table so both login users are visible.
+    employees: "/users?all=true",
 
     //-----------------------------------------------------------------------
     // Task CRUD tied to projects and employees.
@@ -717,15 +747,26 @@ const API_ENDPOINTS = {
     // - role/permission settings
     // - company settings
     //-------------------------------------------------------------------------
-    settings: "/settings",
+    // Full mounted backend route. buildApiUrl prevents duplicate /api when VITE_API_BASE_URL already ends with /api.
+    settings: "/api/settings",
 };
 
 /**
  * Sends a JSON request to the configured backend API and throws a clear error when the response fails.
  */
 function buildApiUrl(endpoint) {
+    const endpointString = String(endpoint || "");
+    if (/^https?:\/\//i.test(endpointString)) return endpointString;
+
     const baseUrl = String(API_BASE_URL || "").replace(/\/$/, "");
-    const path = String(endpoint || "").startsWith("/") ? endpoint : `/${endpoint}`;
+    let path = endpointString.startsWith("/") ? endpointString : `/${endpointString}`;
+
+    // Settings is documented and mounted as /api/settings. If the API base already
+    // includes /api, do not generate /api/api/settings.
+    if (baseUrl.endsWith("/api") && path.startsWith("/api/")) {
+        path = path.replace(/^\/api/, "");
+    }
+
     return `${baseUrl}${path}`;
 }
 
@@ -1175,7 +1216,9 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
             setError(null);
 
             try {
-                const payload = await apiRequest(endpoint);
+                const payload = await apiRequest(endpoint, {
+                    suppressApiError: Boolean(options.suppressApiError),
+                });
                 const nextData = typeof options.transformPayload === "function"
                     ? options.transformPayload(payload)
                     : options.unwrap === false
@@ -1288,7 +1331,12 @@ const apiPlaceholders = {
             throw error;
         }
 
-        return apiRequest(`${API_ENDPOINTS.settings}/${encodeURIComponent(userId)}`);
+        // Settings load failures should not raise the global API banner because the
+        // settings page already falls back to the last local copy. Saving still uses
+        // POST /api/settings, which is the confirmed backend route.
+        return apiRequest(`${API_ENDPOINTS.settings}/${encodeURIComponent(userId)}`, {
+            suppressApiError: true,
+        });
     },
     saveSettings: async (settings, currentUser) => {
         const payload = settingsToApiPayload(settings, currentUser);
