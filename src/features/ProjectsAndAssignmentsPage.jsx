@@ -51,6 +51,7 @@ import {
     getUseApiDataSetting,
     normalizeBackendUser,
     normalizeProjectRows,
+    normalizeEmployeeRows,
     normalizeAssignmentRows,
     projectToApi,
     saveUseApiDataSetting,
@@ -250,18 +251,22 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
                 </FormField>
 
                 <FormField label="Assigned To">
-                    <input
-                        list="employee-options"
-                        value={form.assignedTo}
-                        onChange={(event) => updateField("assignedTo", event.target.value)}
-                        placeholder="Employee name"
+                    <select
+                        value={form.assignedToId || form.assignedTo || ""}
+                        onChange={(event) => {
+                            const selectedEmployee = employeeOptions.find((employee) => employee.value === event.target.value);
+                            updateField("assignedToId", selectedEmployee?.value || "");
+                            updateField("assignedTo", selectedEmployee?.label || "");
+                        }}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                    />
-                    <datalist id="employee-options">
-                        {employeeOptions.filter((option) => option !== "All Employees").map((employee) => (
-                            <option key={employee} value={employee} />
+                    >
+                        <option value="">Select employee</option>
+                        {employeeOptions.map((employee) => (
+                            <option key={employee.value} value={employee.value}>
+                                {employee.label}
+                            </option>
                         ))}
-                    </datalist>
+                    </select>
                 </FormField>
 
                 <FormField label="Assigned Date">
@@ -332,9 +337,13 @@ function ProjectsAndAssignments() {
     const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
         transformPayload: normalizeAssignmentRows,
     });
+    const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
+        transformPayload: normalizeEmployeeRows,
+    });
 
     const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
     const [assignmentRows, setAssignmentRows] = useState(() => localAssignmentFallback);
+    const [employeeRows, setEmployeeRows] = useState(() => (getUseApiDataSetting() ? [] : employees));
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);
@@ -357,14 +366,26 @@ function ProjectsAndAssignments() {
         }
     }, [loadedAssignmentRows]);
 
+    useEffect(() => {
+        if (Array.isArray(loadedEmployeeRows)) {
+            setEmployeeRows(loadedEmployeeRows);
+        }
+    }, [loadedEmployeeRows]);
+
     const projectOptions = useMemo(
-        () => getUniqueOptions(assignmentRows, "project", "All Projects"),
-        [assignmentRows]
+        () => ["All Projects", ...projectRows.map((project) => project.name).filter(Boolean)],
+        [projectRows]
     );
 
     const employeeOptions = useMemo(
-        () => getUniqueOptions(assignmentRows, "assignedTo", "All Employees"),
-        [assignmentRows]
+        () => employeeRows
+            .filter((employee) => employee.status !== "Inactive")
+            .map((employee) => ({
+                value: employee.userId || employee.id || employee.employeeId,
+                label: employee.displayName || employee.name || employee.email || "Unnamed Employee",
+            }))
+            .filter((employee) => employee.value),
+        [employeeRows]
     );
 
     const statusOptions = useMemo(
@@ -447,59 +468,74 @@ function ProjectsAndAssignments() {
         const cleanProject = {
             ...project,
             id: project.id || generateNextId("PRJ", projectRows),
-            name: project.name.trim() || "Untitled Project",
-            client: project.client.trim() || "Unassigned Client",
+            name: String(project.name || "").trim() || "Untitled Project",
+            client: String(project.client || "").trim() || "Unassigned Client",
         };
+
+        let savedProject = cleanProject;
 
         if (getUseApiDataSetting()) {
             try {
-                if (projectModal.mode === "create") {
-                    await apiPlaceholders.createProject(projectToApi(cleanProject));
-                } else {
-                    await apiPlaceholders.updateProject(cleanProject.id, cleanProject);
-                }
+                const apiResponse = projectModal.mode === "create"
+                    ? await apiPlaceholders.createProject(projectToApi(cleanProject))
+                    : await apiPlaceholders.updateProject(cleanProject.backendId || cleanProject.id, projectToApi(cleanProject));
+                savedProject = normalizeProjectRows([apiResponse])[0] || cleanProject;
             } catch (apiError) {
-                console.warn("Project API endpoint is not connected yet. Saving locally.", apiError);
+                console.warn("Project API save failed. Keeping the local row only for this session.", apiError);
             }
         }
 
         setProjectRows((currentRows) => {
             if (projectModal.mode === "create") {
-                return [cleanProject, ...currentRows];
+                return [savedProject, ...currentRows];
             }
 
-            return currentRows.map((row) => row.id === cleanProject.id ? cleanProject : row);
+            return currentRows.map((row) => row.id === cleanProject.id ? savedProject : row);
         });
         setProjectPage(1);
         setProjectModal(null);
     };
 
     const saveAssignment = async (assignment) => {
+        const selectedProject = projectRows.find((project) => project.name === assignment.project);
+        const selectedEmployee = employeeRows.find((employee) => {
+            const employeeId = employee.userId || employee.id || employee.employeeId;
+            const employeeName = employee.displayName || employee.name;
+            return employeeId === assignment.assignedToId || employeeName === assignment.assignedTo;
+        });
+
         const cleanAssignment = {
             ...assignment,
             id: assignment.id || generateNextId("ASG", assignmentRows),
-            taskType: assignment.taskType.trim() || "General Task",
-            assignedTo: assignment.assignedTo.trim() || "Unassigned",
+            backendId: assignment.backendId || assignment.taskId || assignment.id,
+            projectId: selectedProject?.backendId || selectedProject?.id || assignment.projectId,
+            project: selectedProject?.name || assignment.project || "Unassigned Project",
+            taskName: String(assignment.taskType || "").trim() || "General Task",
+            taskType: String(assignment.taskType || "").trim() || "General Task",
+            category: "Other",
+            assignedToId: selectedEmployee?.userId || selectedEmployee?.id || selectedEmployee?.employeeId || assignment.assignedToId,
+            assignedTo: selectedEmployee?.displayName || selectedEmployee?.name || assignment.assignedTo || "Unassigned",
         };
+
+        let savedAssignment = cleanAssignment;
 
         if (getUseApiDataSetting()) {
             try {
-                if (assignmentModal.mode === "create") {
-                    await apiPlaceholders.createAssignment(cleanAssignment);
-                } else {
-                    await apiPlaceholders.updateAssignment(cleanAssignment.id, cleanAssignment);
-                }
+                const apiResponse = assignmentModal.mode === "create"
+                    ? await apiPlaceholders.createAssignment(cleanAssignment)
+                    : await apiPlaceholders.updateAssignment(cleanAssignment.backendId || cleanAssignment.id, cleanAssignment);
+                savedAssignment = normalizeAssignmentRows([apiResponse])[0] || cleanAssignment;
             } catch (apiError) {
-                console.warn("Assignment API endpoint is not connected yet. Saving locally.", apiError);
+                console.warn("Assignment API save failed. Keeping the local row only for this session.", apiError);
             }
         }
 
         setAssignmentRows((currentRows) => {
             if (assignmentModal.mode === "create") {
-                return [cleanAssignment, ...currentRows];
+                return [savedAssignment, ...currentRows];
             }
 
-            return currentRows.map((row) => row.id === cleanAssignment.id ? cleanAssignment : row);
+            return currentRows.map((row) => row.id === cleanAssignment.id ? savedAssignment : row);
         });
         setAssignmentPage(1);
         setAssignmentModal(null);
@@ -782,9 +818,13 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
     const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
         transformPayload: normalizeAssignmentRows,
     });
+    const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
+        transformPayload: normalizeEmployeeRows,
+    });
 
     const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
     const [assignmentRows, setAssignmentRows] = useState(() => localAssignmentFallback);
+    const [employeeRows, setEmployeeRows] = useState(() => (getUseApiDataSetting() ? [] : employees));
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);
