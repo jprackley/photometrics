@@ -50,7 +50,7 @@ async function sendSuccessfulLogin(res, user, authMode = 'database') {
             },
         });
     }
-
+    res.cookie('token', token, { maxAge: 1000 * 120, httpOnly: true, secure: true });
     return res.json({ user: publicUser(user), token, authMode });
 }
 
