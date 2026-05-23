@@ -435,7 +435,7 @@ function SettingsPage({ currentUser }) {
                             <SettingsSelect
                                 value={settings.company.timezone}
                                 onChange={(value) => updateSection("company", "timezone", value)}
-                                options={["Pacific Time", "Mountain Time", "Central Time", "Eastern Time"]}
+                                options={["Pacific Time", "Eastern Time", "London Time"]}
                             />
                         </FormField>
                         <div className="sm:col-span-2">
@@ -596,7 +596,7 @@ function SettingsPage({ currentUser }) {
                             <SettingsSelect
                                 value={settings.appearance.theme}
                                 onChange={(value) => updateSection("appearance", "theme", value)}
-                                options={["Light", "Dark", "System"]}
+                                options={["Light", "Dark"]}
                             />
                         </FormField>
                         <FormField label="Accent Color">
@@ -866,7 +866,7 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
                             <SettingsSelect
                                 value={appearance.theme}
                                 onChange={(value) => updateAppearance("theme", value)}
-                                options={["Light", "Dark", "System"]}
+                                options={["Light", "Dark"]}
                             />
                         </FormField>
                         <FormField label="Accent Color">

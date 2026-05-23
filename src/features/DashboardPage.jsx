@@ -155,6 +155,34 @@ function unwrapKpiPayload(payload) {
     return payload;
 }
 
+
+function summaryKpiFromApi(payload, template, valueKeys = []) {
+    const source = unwrapKpiPayload(payload);
+    const keys = [...valueKeys, "active", "completed", "remaining", "total", "count", "value"];
+
+    if (typeof source === "number" || typeof source === "string") {
+        return [{ ...template, value: Number(source) || 0 }];
+    }
+
+    if (source && typeof source === "object" && !Array.isArray(source)) {
+        const valueKey = keys.find((key) => source[key] !== undefined);
+        const detailKey = ["projects", "tasks", "images", "employees", "objects", "items", "data"].find((key) => source[key] !== undefined);
+        const details = Array.isArray(source[detailKey]) ? source[detailKey] : [];
+        const rawValue = valueKey ? source[valueKey] : template.value;
+
+        return [{
+            ...template,
+            key: source.key || template.key,
+            label: source.label || source.name || source.title || template.label,
+            value: Number(rawValue) || 0,
+            rawValue,
+            objects: details,
+        }];
+    }
+
+    return [template];
+}
+
 function activeProjectsKpiFromApi(payload) {
     const source = unwrapKpiPayload(payload);
 
@@ -214,23 +242,50 @@ function ColoredLineSegment({ data, segment, index }) {
  * Main dashboard view. Managers see team metrics; employees see only their own work queue and progress.
  */
 function Dashboard({ onPageChange, currentUser, appSettings }) {
-    const { data: dashboardKpiPayload } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.active, kpis, {
+    const hasManagerAccess = canManageContent(currentUser);
+    const currentUserId = currentUser?.userId || currentUser?.user_id || currentUser?.id || currentUser?.employeeId;
+    const currentUserPathId = currentUserId ? encodeURIComponent(currentUserId) : "";
+    const workflowEndpoint = currentUserPathId ? `${API_ENDPOINTS.dashboard.workflow}/${currentUserPathId}` : null;
+    const employeeActivityEndpoint = !hasManagerAccess && currentUserPathId
+        ? `${API_ENDPOINTS.dashboard.employeeActivity}/${currentUserPathId}`
+        : API_ENDPOINTS.dashboard.employeeActivity;
+
+    const { data: activeProjectsKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.active, kpis.slice(0, 1), {
         unwrap: false,
-        transformPayload: activeProjectsKpiFromApi,
+        transformPayload: (payload) => summaryKpiFromApi(payload, { key: "activeProjects", label: "Active Projects", value: 0, objects: [] }, ["active"]),
+    });
+    const { data: completedProjectsKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.completed, [], {
+        unwrap: false,
+        transformPayload: (payload) => summaryKpiFromApi(payload, { key: "completedProjects", label: "Completed Projects", value: 0, objects: [] }, ["completed"]),
+    });
+    const { data: remainingTasksKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.tasks.remaining, [], {
+        unwrap: false,
+        transformPayload: (payload) => summaryKpiFromApi(payload, { key: "remainingTasks", label: "Remaining Tasks", value: 0, objects: [] }, ["remaining"]),
+    });
+    const { data: completedImagesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.images.completed, [], {
+        unwrap: false,
+        transformPayload: (payload) => summaryKpiFromApi(payload, { key: "completedImages", label: "Completed Images", value: 0, objects: [] }, ["completed"]),
+    });
+    const { data: totalEmployeesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.employees.total, [], {
+        unwrap: false,
+        transformPayload: (payload) => summaryKpiFromApi(payload, { key: "totalEmployees", label: "Total Employees", value: 0, objects: [] }, ["total"]),
+    });
+    const { data: activeEmployeesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.employees.active, [], {
+        unwrap: false,
+        transformPayload: (payload) => summaryKpiFromApi(payload, { key: "activeEmployees", label: "Active Employees", value: 0, objects: [] }, ["active"]),
     });
     const { data: productivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.productivity, productivity, {
         transformPayload: normalizeProductivityKpiRows,
     });
-    const { data: workflowData } = useApiPlaceholder(API_ENDPOINTS.dashboard.workflow, workflow, {
+    const { data: workflowData } = useApiPlaceholder(workflowEndpoint, workflow, {
         transformPayload: normalizeWorkflowKpiRows,
     });
-    const { data: employeeActivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.employeeActivity, employeeActivity, {
+    const { data: employeeActivityData } = useApiPlaceholder(employeeActivityEndpoint, employeeActivity, {
         transformPayload: normalizeEmployeeActivityKpiRows,
     });
     const { data: projectProgressData } = useApiPlaceholder(API_ENDPOINTS.dashboard.projectProgress, projectProgress, {
         transformPayload: normalizeProjectProgressKpiRows,
     });
-    const hasManagerAccess = canManageContent(currentUser);
     const showDashboardTips = appSettings?.appearance?.showDashboardTips !== false;
     const employeeName = currentUser?.employeeName || currentUser?.name;
     const employeeActivityRows = Array.isArray(employeeActivityData) ? employeeActivityData : [];
@@ -246,7 +301,14 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
         : projectProgressRows.filter((row) => assignedProjectNames.includes(row[0]));
     const assignedTasks = taskItems.filter((task) => isAssignedToUser(task, currentUser));
     const assignedAssignments = assignments.filter((assignment) => isAssignedToUser(assignment, currentUser));
-    const managerKpiCards = normalizeDashboardKpis(dashboardKpiPayload, kpis);
+    const managerKpiCards = normalizeDashboardKpis([
+        ...(Array.isArray(activeProjectsKpi) ? activeProjectsKpi : []),
+        ...(Array.isArray(completedProjectsKpi) ? completedProjectsKpi : []),
+        ...(Array.isArray(remainingTasksKpi) ? remainingTasksKpi : []),
+        ...(Array.isArray(completedImagesKpi) ? completedImagesKpi : []),
+        ...(Array.isArray(totalEmployeesKpi) ? totalEmployeesKpi : []),
+        ...(Array.isArray(activeEmployeesKpi) ? activeEmployeesKpi : []),
+    ], kpis);
     const employeeKpiCards = normalizeDashboardKpis([
         { key: "myAssignedTasks", label: "My Assigned Tasks", value: assignedTasks.length, objects: assignedTasks },
         { key: "myOpenTasks", label: "My Open Tasks", value: assignedTasks.filter((task) => task.status !== "Completed").length, objects: assignedTasks.filter((task) => task.status !== "Completed") },
