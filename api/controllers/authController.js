@@ -144,6 +144,7 @@ async function logout(req, res) {
                 }
             });
         }
+        console.log(`[LOGOUT] User ${user.email} has logged out.`);
         res.clearCookie('token');
         res.clearCookie('refresh_token');
         return res.status(C_HTTP.STATUS.OK).json({ user: rows[0] });
