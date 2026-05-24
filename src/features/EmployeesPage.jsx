@@ -135,6 +135,48 @@ import {
 /**
  * Displays employee availability/status with role-appropriate colors.
  */
+
+const DEFAULT_JOB_TITLE_OPTIONS = [
+    "Photo Editor",
+    "Senior Photo Editor",
+    "Photographer",
+    "Lead Photographer",
+    "Photography Assistant",
+    "Image Retoucher",
+    "Senior Retoucher",
+    "Quality Control Specialist",
+    "Production Coordinator",
+    "Project Coordinator",
+    "Project Manager",
+    "Studio Manager",
+    "Operations Manager",
+    "Client Services Representative",
+    "Account Manager",
+    "Sales Representative",
+    "Administrator",
+    "Manager",
+    "Employee",
+];
+
+function formatPhoneNumber(value = "") {
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 10);
+
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+function getEmployeeJobTitle(employee = {}) {
+    const title = String(employee.title || "").trim();
+    const role = String(employee.role || "").trim();
+    const accountRole = String(employee.accountRole || employee.account_role || "").trim();
+
+    if (title) return title;
+    if (role && role !== accountRole) return role;
+    return "Photo Editor";
+}
+
 function EmployeeStatusBadge({ value }) {
     const style =
         value === "Active"
@@ -185,7 +227,8 @@ function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
             ...initialEmployee,
             ...nameParts,
             accountRole,
-            role: initialEmployee.role || accountRole,
+            role: getEmployeeJobTitle(initialEmployee),
+            title: getEmployeeJobTitle(initialEmployee),
             password: initialEmployee.password || "",
         };
     });
@@ -202,7 +245,7 @@ function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
             ...form,
             name: displayName,
             displayName,
-            role: form.accountRole || form.role || "Employee",
+            role: form.title || form.role || "Photo Editor",
             activeTasks: normalizeNumber(form.activeTasks),
             completedToday: normalizeNumber(form.completedToday),
             hoursToday: normalizeNumber(form.hoursToday),
@@ -237,21 +280,18 @@ function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
                 </FormField>
 
                 <FormField label="Job Title">
-                    <input
-                        list="employee-role-options"
-                        value={form.title || form.role || ""}
+                    <select
+                        value={form.title || form.role || "Photo Editor"}
                         onChange={(event) => {
                             updateField("title", event.target.value);
                             updateField("role", event.target.value);
                         }}
-                        placeholder="Photo Editor"
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                    />
-                    <datalist id="employee-role-options">
+                    >
                         {roleOptions.map((role) => (
-                            <option key={role} value={role} />
+                            <option key={role} value={role}>{role}</option>
                         ))}
-                    </datalist>
+                    </select>
                 </FormField>
 
                 <FormField label="Email">
@@ -263,7 +303,12 @@ function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
                 </FormField>
 
                 <FormField label="Phone">
-                    <TextInput value={form.phone} onChange={(value) => updateField("phone", value)} placeholder="(555) 210-1000" />
+                    <TextInput
+                        value={form.phone}
+                        onChange={(value) => updateField("phone", formatPhoneNumber(value))}
+                        placeholder="(555) 210-1000"
+                        inputMode="tel"
+                    />
                 </FormField>
 
                 <FormField label="Status">
@@ -345,9 +390,17 @@ function EmployeesPage({ globalSearch = "" }) {
         }
     }, [loadedEmployeeRows]);
 
-    const roleOptions = useMemo(
-        () => getUniqueOptions(employeeRows, "role", "All Roles"),
-        [employeeRows]
+    const roleOptions = useMemo(() => {
+        const existingTitles = employeeRows
+            .map((employee) => getEmployeeJobTitle(employee))
+            .filter(Boolean);
+
+        return Array.from(new Set([...DEFAULT_JOB_TITLE_OPTIONS, ...existingTitles])).sort((left, right) => left.localeCompare(right));
+    }, [employeeRows]);
+
+    const roleFilterOptions = useMemo(
+        () => ["All Roles", ...roleOptions],
+        [roleOptions]
     );
 
     const statusOptions = useMemo(
@@ -359,12 +412,13 @@ function EmployeesPage({ globalSearch = "" }) {
         const searchText = [globalSearch, employeeSearch].filter(Boolean).join(" " ).trim().toLowerCase();
 
         return employeeRows.filter((employee) => {
-            const matchesRole = roleFilter === "All Roles" || employee.role === roleFilter;
+            const employeeTitle = getEmployeeJobTitle(employee);
+            const matchesRole = roleFilter === "All Roles" || employeeTitle === roleFilter;
             const matchesStatus = statusFilter === "All Status" || employee.status === statusFilter;
             const matchesSearch = !searchText || [
                 employee.name,
                 employee.id,
-                employee.role,
+                getEmployeeJobTitle(employee),
                 employee.email,
                 employee.currentTask,
                 employee.availability,
@@ -437,11 +491,11 @@ function EmployeesPage({ globalSearch = "" }) {
             name: displayName,
             displayName,
             accountRole: employee.accountRole || "Employee",
-            role: employee.accountRole || employee.role || "Employee",
-            title: employee.title || (employee.role !== employee.accountRole ? employee.role : ""),
+            role: employee.title || employee.role || "Photo Editor",
+            title: employee.title || employee.role || "Photo Editor",
             email: String(employee.email || "").trim(),
             password: employeeModal.mode === "create" ? (employee.password || "password") : employee.password,
-            phone: String(employee.phone || "").trim(),
+            phone: formatPhoneNumber(employee.phone || ""),
             currentTask: String(employee.currentTask || "").trim() || "No active task",
             availability: String(employee.availability || "").trim() || employee.status,
         };
@@ -614,7 +668,7 @@ function EmployeesPage({ globalSearch = "" }) {
                                     <div className="text-xs text-slate-500">{employee.id}</div>
                                     <div className="text-xs text-slate-500">{employee.email}</div>
                                 </td>
-                                <td className="border border-slate-300 px-4 py-3 font-medium">{employee.role}</td>
+                                <td className="border border-slate-300 px-4 py-3 font-medium">{getEmployeeJobTitle(employee)}</td>
                                 <td className="border border-slate-300 px-4 py-3">
                                     <div className="font-medium text-slate-800">{employee.currentTask}</div>
                                     <div className="mt-1 text-xs text-slate-500">{employee.availability}</div>
@@ -690,7 +744,7 @@ function EmployeesPage({ globalSearch = "" }) {
                 >
                     <EmployeeForm
                         initialEmployee={employeeModal.data}
-                        roleOptions={roleOptions.filter((option) => option !== "All Roles")}
+                        roleOptions={roleOptions}
                         onCancel={() => setEmployeeModal(null)}
                         onSave={saveEmployee}
                     />

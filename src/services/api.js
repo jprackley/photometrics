@@ -6,7 +6,7 @@
 // reusable data-loading hook used by page components.
 // -----------------------------------------------------------------------------
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // -----------------------------------------------------------------------------
 // API CONFIGURATION
@@ -92,6 +92,23 @@ function formatApiDateTimeForDisplay(value) {
         hour: "2-digit",
         minute: "2-digit",
     });
+}
+
+
+function toApiDateTime(value) {
+    if (!value) return undefined;
+
+    const stringValue = String(value).trim();
+    if (!stringValue) return undefined;
+
+    const parsedDate = new Date(stringValue);
+    if (Number.isNaN(parsedDate.getTime())) return undefined;
+
+    return parsedDate.toISOString();
+}
+
+function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
 }
 
 function toMetricNumber(value, fallback = 0) {
@@ -327,7 +344,66 @@ function settingsToApiPayload(settings = {}, currentUser = null) {
     };
 }
 
+const IMAGE_METRICS_NOTE_PREFIX = "[photometrics:image-metrics]";
+
+function getDefaultImageMetrics(project = {}) {
+    const totalImages = toMetricNumber(project.images ?? project.image_count ?? project.totalImages, 0);
+    const completedImages = toMetricNumber(project.completedImages ?? project.completed_images, 0);
+    const rejectedImages = toMetricNumber(project.rejectedImages ?? project.rejected_images, 0);
+    const inProgressImages = toMetricNumber(project.inProgressImages ?? project.in_progress_images, 0);
+    const pendingFallback = Math.max(0, totalImages - completedImages - rejectedImages - inProgressImages);
+
+    return {
+        totalImages,
+        pendingImages: toMetricNumber(project.pendingImages ?? project.pending_images, pendingFallback),
+        inProgressImages,
+        completedImages,
+        rejectedImages,
+        deliveredImages: toMetricNumber(project.deliveredImages ?? project.delivered_images, completedImages),
+        averageEditMinutes: toMetricNumber(project.averageEditMinutes ?? project.average_edit_minutes, 0),
+        reviewNotes: project.reviewNotes || project.review_notes || "",
+    };
+}
+
+function splitProjectNotesAndImageMetrics(notes = "", project = {}) {
+    const defaultMetrics = getDefaultImageMetrics(project);
+    const rawNotes = String(notes || "");
+    const markerIndex = rawNotes.indexOf(IMAGE_METRICS_NOTE_PREFIX);
+
+    if (markerIndex === -1) {
+        return { visibleNotes: rawNotes, imageMetrics: defaultMetrics };
+    }
+
+    const visibleNotes = rawNotes.slice(0, markerIndex).trim();
+    const encoded = rawNotes.slice(markerIndex + IMAGE_METRICS_NOTE_PREFIX.length).trim();
+
+    try {
+        const parsed = JSON.parse(encoded);
+        return {
+            visibleNotes,
+            imageMetrics: { ...defaultMetrics, ...parsed },
+        };
+    } catch {
+        return { visibleNotes, imageMetrics: defaultMetrics };
+    }
+}
+
+function combineProjectNotesAndImageMetrics(notes = "", imageMetrics = {}) {
+    const cleanNotes = String(notes || "").split(IMAGE_METRICS_NOTE_PREFIX)[0].trim();
+    const metrics = getDefaultImageMetrics(imageMetrics);
+    const encodedMetrics = JSON.stringify(metrics);
+
+    return [cleanNotes, `${IMAGE_METRICS_NOTE_PREFIX}${encodedMetrics}`]
+        .filter(Boolean)
+        .join("\n");
+}
+
 function projectFromApi(project) {
+    const { visibleNotes, imageMetrics } = splitProjectNotesAndImageMetrics(project.notes, project);
+    const totalImages = imageMetrics.totalImages || toMetricNumber(project.image_count ?? project.images, 0);
+    const completedImages = imageMetrics.completedImages || toMetricNumber(project.completed_images, 0);
+    const progress = project.progress ?? project.percent_complete ?? (totalImages > 0 ? Math.round((completedImages / totalImages) * 100) : 0);
+
     return {
         id: project.project_id || project.id,
         backendId: project.project_id || project.id,
@@ -342,8 +418,16 @@ function projectFromApi(project) {
         status: project.status || "To-Do",
         priority: project.priority || "Normal",
         description: project.description || "",
-        images: project.image_count ?? project.images ?? "0",
-        progress: Number(project.progress ?? project.percent_complete ?? 0) || 0,
+        notes: visibleNotes,
+        images: String(totalImages),
+        pendingImages: imageMetrics.pendingImages,
+        inProgressImages: imageMetrics.inProgressImages,
+        completedImages: imageMetrics.completedImages,
+        rejectedImages: imageMetrics.rejectedImages,
+        deliveredImages: imageMetrics.deliveredImages,
+        averageEditMinutes: imageMetrics.averageEditMinutes,
+        reviewNotes: imageMetrics.reviewNotes,
+        progress: Number(progress) || 0,
     };
 }
 
@@ -382,6 +466,7 @@ function employeeFromApi(employee) {
         displayName,
         name: displayName,
         role,
+        title: employee.title || (employee.role && employee.role !== employee.account_role ? employee.role : ""),
         accountRole: employee.account_role || employee.role || "Employee",
         email: employee.email || "",
         phone: employee.phone_number || employee.phone || "",
@@ -438,7 +523,30 @@ function assignmentFromApi(assignment) {
 function normalizeAssignmentRows(payload) {
     return toArrayPayload(payload)
         .filter((assignment) => !isSeedRecord(assignment))
+        .filter((assignment) => assignment && (assignment.task_id || assignment.id || assignment.taskId))
         .map(assignmentFromApi);
+}
+
+function timeEntryFromApi(entry) {
+    const totalHours = Number(entry.total_time ?? entry.totalTime ?? entry.hours ?? 0) || 0;
+
+    return {
+        id: entry.time_entry_id || entry.id,
+        backendId: entry.time_entry_id || entry.id,
+        taskId: entry.task_id || entry.taskId || null,
+        employeeId: entry.employee_id || entry.employeeId || null,
+        startTime: entry.start_time || entry.startTime || null,
+        endTime: entry.end_time || entry.endTime || null,
+        totalHours,
+        totalSeconds: totalHours * 3600,
+        createdAt: entry.created_at || entry.createdAt || null,
+    };
+}
+
+function normalizeTimeEntryRows(payload) {
+    return toArrayPayload(payload)
+        .filter((entry) => !isSeedRecord(entry))
+        .map(timeEntryFromApi);
 }
 
 const DASHBOARD_COLORS = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444", "#14b8a6", "#8b5cf6", "#64748b"];
@@ -529,18 +637,23 @@ function normalizeProjectProgressKpiRows(payload) {
 
 function projectToApi(project) {
     const payload = {
-        project_name: project.name,
-        description: project.description,
-        status: project.status,
+        project_name: String(project.name || project.project_name || "Untitled Project").trim(),
+        description: project.description || undefined,
+        status: project.status || "To-Do",
         priority: project.priority || "Normal",
-        start_time: project.startDate,
-        due_time: project.dueDate,
+        notes: combineProjectNotesAndImageMetrics(project.notes, project),
+        start_time: toApiDateTime(project.startDate || project.start_time),
+        shoot_time: toApiDateTime(project.shootDate || project.shoot_time),
+        due_time: toApiDateTime(project.dueDate || project.due_time),
+        completed_at: toApiDateTime(project.completedAt || project.completed_at),
     };
 
-    if (project.clientId) payload.client_id = project.clientId;
-    if (project.managedBy) payload.managed_by = project.managedBy;
+    const clientId = project.clientId || project.client_id;
+    const managerId = project.managedBy || project.managed_by || project.managerId;
+    if (isUuid(clientId)) payload.client_id = clientId;
+    if (isUuid(managerId)) payload.managed_by = managerId;
 
-    return payload;
+    return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""));
 }
 
 function employeeToApiPayload(employee = {}) {
@@ -573,17 +686,30 @@ function employeeToApiPayload(employee = {}) {
 }
 
 function taskToApiPayload(task = {}) {
-    return {
-        project_id: task.projectId || task.project_id || undefined,
-        task_name: task.taskName || task.task_name || "Untitled Task",
-        category: task.category || "Other",
+    const projectId = task.projectId || task.project_id;
+    const assignedTo = task.assignedToId || task.assigned_to || task.employeeId;
+    const assignedBy = task.assignedById || task.assigned_by;
+
+    const payload = {
+        project_id: isUuid(projectId) ? projectId : undefined,
+        task_name: String(task.taskName || task.task_name || task.taskType || "Untitled Task").trim(),
+        category: task.category || task.taskCategory || task.taskType || "Other",
         priority: task.priority || "Normal",
         description: task.description || undefined,
-        status: task.status || "To-Do",
-        due_time: task.dueDate || task.due_time || undefined,
-        assigned_to: task.assignedToId || task.assigned_to || undefined,
-        assigned_by: task.assignedById || task.assigned_by || undefined,
+        status: task.status || "Assigned",
+        progress: task.progress ?? undefined,
+        start_time: toApiDateTime(task.startDate || task.assignedDate || task.start_time),
+        due_time: toApiDateTime(task.dueDate || task.due_time),
+        completed_at: toApiDateTime(task.completedAt || task.completed_at),
+        assigned_to: isUuid(assignedTo) ? assignedTo : undefined,
+        assigned_by: isUuid(assignedBy) ? assignedBy : undefined,
     };
+
+    if (!["Import", "Cull", "Edit", "Quality Review", "Export", "Delivery", "Other"].includes(payload.category)) {
+        payload.category = "Other";
+    }
+
+    return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""));
 }
 
 // Centralized route map for backend resources. Updating routes here keeps the UI components decoupled from backend path changes.
@@ -606,11 +732,9 @@ const API_ENDPOINTS = {
     //----------------------------------------------------------------------------------
     dashboard: {
         kpis: "/dashboard/kpis",
-        // The dashboard user-based widgets should be driven by /users?all=true so
-        // they show the same two live accounts used for login/employee management.
-        productivity: "/users?all=true",
+        productivity: "/dashboard/productivity",
         workflow: "/dashboard/workflow",
-        employeeActivity: "/users?all=true",
+        employeeActivity: "/dashboard/employee-activity",
         projectProgress: "/dashboard/project-progress",
     },
 
@@ -639,7 +763,7 @@ const API_ENDPOINTS = {
         },
         employees: {
             // Backend collection uses singular employee for active and plural employees for total.
-            active: "/kpi/employee/active?v=true",
+            active: "/kpi/employees/active?v=true",
             total: "/kpi/employees/total?v=true",
         },
     },
@@ -684,7 +808,7 @@ const API_ENDPOINTS = {
     //----------------------------------------------------------------------
     // The live backend does not currently expose /assignments reliably.
     // Assignment-style UI rows are derived from task records instead.
-    assignments: "/tasks?all=true",
+    assignments: "/assignments",
 
     //-----------------------------------------------------------------------
     // This API endpoint will be READ-ONLY. Use "/users" for all user management.
@@ -718,6 +842,7 @@ const API_ENDPOINTS = {
     // employeeId, taskId, startTime, endTime, duration
     //-----------------------------------------------------------------------
     timeEntries: "/time-entries",
+    timeEntriesList: "/time-entries?all=true",
 
     //-----------------------------------------------------------------------
     // Generated reports endpoint.
@@ -1187,6 +1312,11 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
     const [data, setData] = useState(() => (getUseApiDataSetting() ? getEmptyDataForFallback(fallbackData) : fallbackData));
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const fallbackRef = useRef(fallbackData);
+    const optionsRef = useRef(options);
+
+    fallbackRef.current = fallbackData;
+    optionsRef.current = options;
 
     useEffect(() => {
         const syncApiDataSetting = () => setUseApiData(getUseApiDataSetting());
@@ -1205,23 +1335,24 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
 
         if (!useApiData || !endpoint) {
             setError(null);
-            setData(fallbackData);
+            setData(fallbackRef.current);
             return undefined;
         }
 
-        setData(getEmptyDataForFallback(fallbackData));
+        setData(getEmptyDataForFallback(fallbackRef.current));
 
         async function loadData() {
             setIsLoading(true);
             setError(null);
 
             try {
+                const currentOptions = optionsRef.current || {};
                 const payload = await apiRequest(endpoint, {
-                    suppressApiError: Boolean(options.suppressApiError),
+                    suppressApiError: Boolean(currentOptions.suppressApiError),
                 });
-                const nextData = typeof options.transformPayload === "function"
-                    ? options.transformPayload(payload)
-                    : options.unwrap === false
+                const nextData = typeof currentOptions.transformPayload === "function"
+                    ? currentOptions.transformPayload(payload)
+                    : currentOptions.unwrap === false
                         ? payload
                         : unwrapApiPayload(payload);
 
@@ -1231,7 +1362,7 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
             } catch (apiError) {
                 if (isMounted) {
                     setError(apiError.message);
-                    setData(getEmptyDataForFallback(fallbackData));
+                    setData(getEmptyDataForFallback(fallbackRef.current));
                 }
 
                 console.warn(`API data failed for ${endpoint}. Mock data is disabled while database mode is on.`, apiError);
@@ -1247,7 +1378,7 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
         return () => {
             isMounted = false;
         };
-    }, [endpoint, fallbackData, options.transformPayload, options.unwrap, useApiData]);
+    }, [endpoint, useApiData]);
 
     return { data, isLoading, error };
 }
@@ -1301,17 +1432,9 @@ const apiPlaceholders = {
     deleteProject: (projectId) => apiRequest(`${API_ENDPOINTS.projects}/${projectId}`, {
         method: "DELETE",
     }),
-    createAssignment: (assignment) => apiRequest(API_ENDPOINTS.assignments, {
-        method: "POST",
-        body: JSON.stringify(assignment),
-    }),
-    updateAssignment: (assignmentId, assignment) => apiRequest(`${API_ENDPOINTS.assignments}/${assignmentId}`, {
-        method: "PATCH",
-        body: JSON.stringify(assignment),
-    }),
-    deleteAssignment: (assignmentId) => apiRequest(`${API_ENDPOINTS.assignments}/${assignmentId}`, {
-        method: "DELETE",
-    }),
+    createAssignment: (assignment) => apiPlaceholders.createTask(assignment),
+    updateAssignment: (assignmentId, assignment) => apiPlaceholders.updateTask(assignmentId, assignment),
+    deleteAssignment: (assignmentId) => apiPlaceholders.deleteTask(assignmentId),
     createEmployee: (employee) => apiRequest(API_ENDPOINTS.users, {
         method: "POST",
         body: JSON.stringify(employeeToApiPayload(employee)),
@@ -1374,18 +1497,38 @@ const apiPlaceholders = {
         throw lastError || new Error("Settings update failed.");
     },
     updateSettings: (settings, currentUser) => apiPlaceholders.saveSettings(settings, currentUser),
-    updateUserProfile: (userId, profile) => apiRequest(`/users/${userId}/profile`, {
+    // User settings/profile actions must use the real backend routes. The backend
+    // exposes PATCH /users/:id and PATCH/POST /settings, not nested
+    // /users/:id/profile, /password, or /preferences routes.
+    updateUserProfile: (userId, profile = {}) => {
+        const cleanName = String(profile.preferredName || profile.name || "").trim();
+        const nameParts = splitFullName(cleanName);
+        const payload = {
+            first_name: nameParts.firstName || "Employee",
+            middle_name: nameParts.middleName || undefined,
+            last_name: nameParts.lastName || nameParts.firstName || "Employee",
+            display_name: cleanName || profile.email || "Employee",
+            email: String(profile.email || "").trim(),
+            phone_number: profile.phone || undefined,
+            account_role: ["Manager", "Employee"].includes(profile.role) ? profile.role : undefined,
+            title: profile.title || undefined,
+        };
+
+        return apiRequest(`${API_ENDPOINTS.users}/${encodeURIComponent(userId)}`, {
+            method: "PATCH",
+            body: JSON.stringify(Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""))),
+        });
+    },
+    changeUserPassword: (userId, passwordData = {}) => apiRequest(`${API_ENDPOINTS.users}/${encodeURIComponent(userId)}`, {
         method: "PATCH",
-        body: JSON.stringify(profile),
+        body: JSON.stringify({ password_hash: passwordData.newPassword || passwordData.password || "" }),
     }),
-    changeUserPassword: (userId, passwordData) => apiRequest(`/users/${userId}/password`, {
-        method: "PATCH",
-        body: JSON.stringify(passwordData),
-    }),
-    updateUserPreferences: (userId, preferences) => apiRequest(`/users/${userId}/preferences`, {
-        method: "PATCH",
-        body: JSON.stringify(preferences),
-    }),
+    updateUserPreferences: (userId, preferences = {}) => apiPlaceholders.saveSettings({
+        appearance: preferences,
+        company: {},
+        notifications: {},
+        backend: { userId },
+    }, { userId, id: userId }),
     createTask: (task) => apiRequest(API_ENDPOINTS.tasks, {
         method: "POST",
         body: JSON.stringify(taskToApiPayload(task)),
@@ -1434,6 +1577,7 @@ export {
     normalizeTaskRows,
     normalizeEmployeeRows,
     normalizeAssignmentRows,
+    normalizeTimeEntryRows,
     normalizeProductivityKpiRows,
     normalizeWorkflowKpiRows,
     normalizeEmployeeActivityKpiRows,

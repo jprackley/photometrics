@@ -13,6 +13,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
     "bcrypt": "^6.0.0",
+    "chart.js": "^4.5.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -22,6 +23,7 @@
     "lucide-react": "^0.468.0",
     "pg": "^8.20.0",
     "react": "^19.0.0",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.15.0",
     "recharts": "^2.15.0"

@@ -7,7 +7,7 @@
 // state/action handlers from the application shell.
 // -----------------------------------------------------------------------------
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
     Bell,
     ChevronLeft,
@@ -18,6 +18,14 @@ import {
     Users,
 } from "lucide-react";
 import { getAllowedNavItems, canManageContent } from "../utils/accessControl";
+import {
+    API_ENDPOINTS,
+    getUseApiDataSetting,
+    normalizeAssignmentRows,
+    normalizeProjectRows,
+    useApiPlaceholder,
+} from "../services/api";
+import { assignments, projects } from "../data/mockData";
 
 // Company logo component
 /**
@@ -85,6 +93,46 @@ function Sidebar({ isCollapsed, activePage, onPageChange, onLogout, currentUser 
     );
 }
 
+function parseNotificationDate(value) {
+    if (!value) return null;
+
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        return value;
+    }
+
+    const textValue = String(value).trim();
+    if (!textValue) return null;
+
+    const directDate = new Date(textValue);
+    if (!Number.isNaN(directDate.getTime())) {
+        return directDate;
+    }
+
+    const withCurrentYear = new Date(`${textValue}, ${new Date().getFullYear()}`);
+    return Number.isNaN(withCurrentYear.getTime()) ? null : withCurrentYear;
+}
+
+function isDateThisWeek(value) {
+    const dueDate = parseNotificationDate(value);
+    if (!dueDate) return false;
+
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfWeek = new Date(startOfToday);
+    endOfWeek.setDate(startOfToday.getDate() + 7);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    return dueDate >= startOfToday && dueDate <= endOfWeek;
+}
+
+function isReviewReadyStatus(status) {
+    return /review/i.test(String(status || ""));
+}
+
+function pluralize(count, singular, plural = `${singular}s`) {
+    return count === 1 ? singular : plural;
+}
+
 // Top header bar
 /**
  * Renders the application header, global search input, notification menu, and user menu.
@@ -93,11 +141,48 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [isManagerMenuOpen, setIsManagerMenuOpen] = useState(false);
 
-    const notifications = [
-        "3 projects are due this week",
-        "2 assignments are ready for review",
-        "Project export is available from the Projects tab",
-    ];
+    const localProjectFallback = getUseApiDataSetting() ? [] : projects;
+    const localAssignmentFallback = getUseApiDataSetting() ? [] : assignments;
+
+    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projectsList, localProjectFallback, {
+        transformPayload: normalizeProjectRows,
+    });
+    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
+        transformPayload: normalizeAssignmentRows,
+    });
+
+    const notifications = useMemo(() => {
+        const projectRows = Array.isArray(loadedProjectRows) ? loadedProjectRows : [];
+        const assignmentRows = Array.isArray(loadedAssignmentRows) ? loadedAssignmentRows : [];
+        const projectsDueThisWeek = projectRows.filter((project) => isDateThisWeek(project.dueDate)).length;
+        const assignmentsReadyForReview = assignmentRows.filter((assignment) => isReviewReadyStatus(assignment.status)).length;
+
+        const nextNotifications = [];
+
+        if (projectsDueThisWeek > 0) {
+            nextNotifications.push({
+                key: "projects-due",
+                page: "projects",
+                message: `${projectsDueThisWeek} ${pluralize(projectsDueThisWeek, "project")} ${projectsDueThisWeek === 1 ? "is" : "are"} due this week`,
+            });
+        }
+
+        if (assignmentsReadyForReview > 0) {
+            nextNotifications.push({
+                key: "assignments-review",
+                page: "projects",
+                message: `${assignmentsReadyForReview} ${pluralize(assignmentsReadyForReview, "assignment")} ${assignmentsReadyForReview === 1 ? "is" : "are"} ready for review`,
+            });
+        }
+
+        nextNotifications.push({
+            key: "project-export",
+            page: "projects",
+            message: "Project export is available from the Projects tab",
+        });
+
+        return nextNotifications;
+    }, [loadedProjectRows, loadedAssignmentRows]);
 
     const closeMenus = () => {
         setIsNotificationsOpen(false);
@@ -156,7 +241,9 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
                         title="Notifications"
                     >
                         <Bell size={24} />
-                        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-violet-600" />
+                        {notifications.length > 0 && (
+                            <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-violet-600" />
+                        )}
                     </button>
 
                     {isNotificationsOpen && (
@@ -166,16 +253,20 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
                             </div>
 
                             <div className="divide-y divide-slate-100">
-                                {notifications.map((notification) => (
+                                {notifications.length > 0 ? notifications.map((notification) => (
                                     <button
-                                        key={notification}
+                                        key={notification.key}
                                         type="button"
-                                        onClick={() => goToPage("projects")}
+                                        onClick={() => goToPage(notification.page)}
                                         className="block w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
                                     >
-                                        {notification}
+                                        {notification.message}
                                     </button>
-                                ))}
+                                )) : (
+                                    <div className="px-4 py-3 text-sm text-slate-500">
+                                        No notifications right now
+                                    </div>
+                                )}
                             </div>
 
                             <button

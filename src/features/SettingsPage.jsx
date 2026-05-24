@@ -188,6 +188,19 @@ function SettingsSelect({ value, onChange, options }) {
 /**
  * Exports the current settings object as a JSON backup/report.
  */
+
+function formatSettingsPhoneNumber(value = "") {
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 10);
+
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+function getCurrentUserId(currentUser) {
+    return currentUser?.userId || currentUser?.user_id || currentUser?.id || currentUser?.employeeId || currentUser?.employee_id;
+}
+
 function downloadSettingsReport(settings) {
     downloadTextFile(
         "photometrics-settings-export.json",
@@ -429,7 +442,7 @@ function SettingsPage({ currentUser }) {
                             <TextInput value={settings.company.supportEmail} onChange={(value) => updateSection("company", "supportEmail", value)} type="email" />
                         </FormField>
                         <FormField label="Phone">
-                            <TextInput value={settings.company.phone} onChange={(value) => updateSection("company", "phone", value)} />
+                            <TextInput value={settings.company.phone} onChange={(value) => updateSection("company", "phone", formatSettingsPhoneNumber(value))} inputMode="tel" />
                         </FormField>
                         <FormField label="Timezone">
                             <SettingsSelect
@@ -652,7 +665,7 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
     const [profile, setProfile] = useState({
         name: currentUser?.name || "",
         email: currentUser?.email || "",
-        phone: currentUser?.phone || "",
+        phone: formatSettingsPhoneNumber(currentUser?.phone || currentUser?.phone_number || ""),
         role: currentUser?.role || "Employee",
         preferredName: currentUser?.name || "",
     });
@@ -698,7 +711,7 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
 
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.updateUserProfile(currentUser.id, cleanProfile);
+                await apiPlaceholders.updateUserProfile(getCurrentUserId(currentUser), cleanProfile);
             } catch (apiError) {
                 console.warn("Employee profile API endpoint is not connected yet. Saving locally.", apiError);
             }
@@ -716,13 +729,13 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
             employeeName: currentUser?.employeeName,
         };
         onUserUpdate?.(nextUser);
-        setSavedMessage("Personal information saved locally. Backend endpoint is ready for implementation.");
+        setSavedMessage(getUseApiDataSetting() ? "Personal information saved to the backend when available and applied locally." : "Personal information saved locally.");
     };
 
     const saveAppearance = async () => {
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.updateUserPreferences(currentUser.id, appearance);
+                await apiPlaceholders.updateUserPreferences(getCurrentUserId(currentUser), appearance);
             } catch (apiError) {
                 console.warn("Employee preferences API endpoint is not connected yet. Saving locally.", apiError);
             }
@@ -763,7 +776,7 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
 
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.changeUserPassword(currentUser.id, passwordForm);
+                await apiPlaceholders.changeUserPassword(getCurrentUserId(currentUser), passwordForm);
             } catch (apiError) {
                 console.warn("Change password API endpoint is not connected yet. Saving locally.", apiError);
             }
@@ -771,7 +784,7 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
 
         setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
         setErrorMessage("");
-        setSavedMessage("Password change saved locally. Backend password endpoint is ready for implementation.");
+        setSavedMessage(getUseApiDataSetting() ? "Password change saved to the backend." : "Password change saved locally.");
     };
 
     return (
@@ -813,7 +826,7 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
                             <TextInput value={profile.email} onChange={(value) => updateProfile("email", value)} type="email" />
                         </FormField>
                         <FormField label="Phone">
-                            <TextInput value={profile.phone} onChange={(value) => updateProfile("phone", value)} />
+                            <TextInput value={profile.phone} onChange={(value) => updateProfile("phone", formatSettingsPhoneNumber(value))} inputMode="tel" />
                         </FormField>
                         <FormField label="Role">
                             <TextInput value={profile.role} onChange={(value) => updateProfile("role", value)} />

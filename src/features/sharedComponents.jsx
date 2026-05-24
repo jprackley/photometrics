@@ -325,13 +325,14 @@ function FormField({ label, children }) {
 /**
  * Reusable styled text input component.
  */
-function TextInput({ value, onChange, placeholder, type = "text" }) {
+function TextInput({ value, onChange, placeholder, type = "text", ...inputProps }) {
     return (
         <input
             type={type}
             value={value}
             onChange={(event) => onChange(event.target.value)}
             placeholder={placeholder}
+            {...inputProps}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
         />
     );

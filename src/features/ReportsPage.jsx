@@ -54,6 +54,7 @@ import {
     normalizeTaskRows,
     normalizeProjectRows,
     normalizeAssignmentRows,
+    normalizeTimeEntryRows,
     saveUseApiDataSetting,
     unwrapApiPayload,
     useApiPlaceholder,
@@ -213,19 +214,44 @@ function ReportsPage({ globalSearch = "" }) {
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
         transformPayload: normalizeEmployeeRows,
     });
+    const { data: loadedTimeEntryRows } = useApiPlaceholder(API_ENDPOINTS.timeEntriesList, [], {
+        transformPayload: normalizeTimeEntryRows,
+        suppressApiError: true,
+    });
 
     const projectRows = Array.isArray(loadedProjectRows) ? loadedProjectRows : [];
-    const assignmentRows = Array.isArray(loadedAssignmentRows) ? loadedAssignmentRows : [];
-    const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
+    const rawAssignmentRows = Array.isArray(loadedAssignmentRows) ? loadedAssignmentRows : [];
+    const rawTaskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
     const employeeRows = Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [];
+    const timeEntryRows = Array.isArray(loadedTimeEntryRows) ? loadedTimeEntryRows : [];
+
+    const projectNameById = useMemo(() => new Map(projectRows.map((project) => [project.id, project.name])), [projectRows]);
+    const employeeNameById = useMemo(() => new Map(employeeRows.flatMap((employee) => ([
+        [employee.id, employee.name],
+        [employee.userId, employee.name],
+        [employee.backendId, employee.name],
+        [employee.employeeId, employee.name],
+    ]))), [employeeRows]);
+
+    const taskRows = useMemo(() => rawTaskRows.map((task) => ({
+        ...task,
+        project: projectNameById.get(task.projectId) || task.project,
+        assignedTo: employeeNameById.get(task.assignedToId) || task.assignedTo,
+    })), [rawTaskRows, projectNameById, employeeNameById]);
+
+    const assignmentRows = useMemo(() => rawAssignmentRows.map((assignment) => ({
+        ...assignment,
+        project: projectNameById.get(assignment.projectId) || assignment.project,
+        assignedTo: employeeNameById.get(assignment.employeeId || assignment.assignedToId) || assignment.assignedTo,
+    })), [rawAssignmentRows, projectNameById, employeeNameById]);
 
     const [reportType, setReportType] = useState("Project Delivery");
     const [statusFilter, setStatusFilter] = useState("All Status");
     const [employeeFilter, setEmployeeFilter] = useState("All Employees");
 
     const reportData = useMemo(
-        () => buildOperationsReportData(projectRows, assignmentRows, taskRows, employeeRows),
-        [projectRows, assignmentRows, taskRows, employeeRows]
+        () => buildOperationsReportData(projectRows, assignmentRows, taskRows, employeeRows, timeEntryRows),
+        [projectRows, assignmentRows, taskRows, employeeRows, timeEntryRows]
     );
 
     const employeeOptions = useMemo(() => {
