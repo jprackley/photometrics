@@ -325,11 +325,6 @@ router.delete(
         validationErrorHandler(req, 'DELETE User - ');
         const { id } = req.params;
 
-/*        const sqlSettings = `DELETE FROM settings WHERE user_id = $1 RETURNING *`;
-        const { rows: settingsRows } = await query(sqlSettings, [id]);
-        if (settingsRows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND}});*/
-
         const { rowCount } = await query('DELETE FROM users WHERE user_id = $1 RETURNING *', [id]);
         if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
             error: {

@@ -6,53 +6,11 @@ const jwt = require('jsonwebtoken');
 const query = require("../../db").query;
 const asyncHandler = require("../../../utils/helpers/asyncHandler");
 const {validationErrorHandler} = require("../../handlers")
+
+const {login} = require("../../controllers/authController")
 const {compare} = require("bcrypt");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
-
-function getJwtSecret() {
-    return process.env.JWT_SECRET || (process.env.NODE_ENV !== 'production' ? 'photometrics-local-dev-secret' : null);
-}
-
-function publicUser(user) {
-    const result = {};
-    for (const key in user) {
-        if (key !== 'password_hash') result[key] = user[key];
-    }
-    return result;
-}
-
-function createToken(user) {
-    const jwtSecret = getJwtSecret();
-    if (!jwtSecret) return null;
-
-    return jwt.sign(
-        {
-            user_id: user.user_id,
-            email: user.email,
-            account_role: user.account_role,
-        },
-        jwtSecret,
-        {
-            expiresIn: process.env.JWT_EXPIRES_IN || '2m',
-        }
-    );
-}
-
-async function sendSuccessfulLogin(res, user, authMode = 'database') {
-    const token = createToken(user);
-
-    if (!token && process.env.NODE_ENV === 'production') {
-        return res.status(C_HTTP.STATUS.INTERNAL_SERVER_ERROR).json({
-            error: {
-                code: C_HTTP.CODE.INTERNAL_SERVER_ERROR || 500,
-                message: 'Login is not configured. Set JWT_SECRET in the server environment.',
-            },
-        });
-    }
-    res.cookie('token', token, { maxAge: 1000 * 120, httpOnly: true, secure: true });
-    return res.json({ user: publicUser(user), token, authMode });
-}
 
 router.post(
     '/',
@@ -64,9 +22,9 @@ router.post(
         validationErrorHandler( req, 'LOGIN User - ');
 
         const { email, password_hash } = req.body;
-
         let rows;
-        try {
+
+        try { //Attempt to retieve the user from the database.
             const result = await query(
                 `
                 SELECT *
@@ -76,7 +34,7 @@ router.post(
                 [email]
             );
             rows = result.rows;
-        } catch ( dbError ) {
+        } catch ( dbError ) { //Catches an error passed from the database or the pool connection.
             console.warn( C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR, dbError.message );
             return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
                 error: {
@@ -84,8 +42,7 @@ router.post(
                     message: C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR }
             });
         }
-
-        if (rows.length === 0) {
+        if (rows.length === 0) { //Verifys if the database responded with a matched user.
             console.warn( C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED );
             return res.status( C_HTTP.STATUS.UNAUTHORIZED ).json({
                 error: {
@@ -93,7 +50,7 @@ router.post(
                     message: C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED }
             });
         }
-
+        //Verifies the password provided by the user.
         const passwordMatches = await compare(
             password_hash,
             rows[0].password_hash
@@ -108,23 +65,7 @@ router.post(
             });
         }
 
-        try {
-            await query(`
-                    UPDATE users
-                    SET last_login = now(),
-                        is_active = true
-                    WHERE user_id = $1
-            `,[rows[0].user_id]);
-        } catch (dbError) {
-            console.warn( C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR, dbError.message );
-            return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
-                error: {
-                    code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
-                    message: C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR }
-            });
-        }
-
-        return sendSuccessfulLogin(res, rows[0]);
+        return login(res, rows[0]);
     })
 );
 

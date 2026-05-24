@@ -124,6 +124,16 @@ CREATE TABLE users
         CHECK (password_expires_at IS NULL OR password_updated_at IS NULL OR password_expires_at >= password_updated_at)
 );
 
+CREATE TABLE user_refresh_tokens
+(
+    refresh_token_id UUID PRIMARY KEY     DEFAULT gen_random_uuid(),
+    user_id          UUID        NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
+    token_hash       TEXT        NOT NULL UNIQUE,
+    expires_at       TIMESTAMPTZ NOT NULL,
+    revoked_at       TIMESTAMPTZ          DEFAULT NULL,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 
 CREATE TABLE settings
 (
