@@ -2,10 +2,8 @@ const express = require('express');
 const router = express.Router();
 
 const asyncHandler = require('../../utils/helpers/asyncHandler');
-const {validationErrorHandler} = require("../handlers");
+const {validationErrorHandler} = require("../expressHandlers");
 const { query } = require("../db");
-const {param} = require("express-validator");
-const C_HTTP = require("../../utils/constants/cHTTP");
 
 router.get(
     '/',

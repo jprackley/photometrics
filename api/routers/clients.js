@@ -12,7 +12,7 @@ const {
     paginate,
     buildPagination,
     validationErrorHandler
-} = require('../handlers');
+} = require('../expressHandlers');
 
 //----------------------------------------------------------------------------------
 // CREATE Client

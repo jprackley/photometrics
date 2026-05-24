@@ -10,7 +10,7 @@ const C_HTTP = require('../../utils/constants/cHTTP');
 const C_NODE = require('../../utils/constants/cNodeServer');
 
 const asyncHandler = require('../../utils/helpers/asyncHandler');
-const {validationErrorHandler, paginate, buildPagination} = require("../handlers");
+const {validationErrorHandler, paginate, buildPagination} = require("../expressHandlers");
 const { query } = require('../db');
 const {MESSAGE} = require("../../utils/constants/cHTTP");
 

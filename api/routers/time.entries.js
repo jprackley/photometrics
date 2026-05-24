@@ -1,5 +1,5 @@
 const express = require('express');
-const {paginate, validationErrorHandler, buildPagination} = require("../handlers");
+const {paginate, validationErrorHandler, buildPagination} = require("../expressHandlers");
 const {param, body} = require("express-validator");
 const asyncHandler = require('../../utils/helpers/asyncHandler');
 const {query} = require("../db");

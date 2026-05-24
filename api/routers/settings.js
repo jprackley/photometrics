@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const asyncHandler = require('../../utils/helpers/asyncHandler');
-const {validationErrorHandler} = require("../handlers");
+const {validationErrorHandler} = require("../expressHandlers");
 const { query } = require("../db");
 const {param, body} = require("express-validator");
 const C_HTTP = require("../../utils/constants/cHTTP");
@@ -41,7 +41,6 @@ router.post(
             }
         });
 
-        const { user_id } = req.body;
         const sql = `
             INSERT INTO settings (${columns.join(', ')})
             VALUES (${values.join(', ')})

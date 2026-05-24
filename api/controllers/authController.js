@@ -104,9 +104,44 @@ async function login(res, user, authMode = 'database') {
 
     res.cookie('token', accessToken, accessCookieOptions);
     res.cookie('refresh_token', refreshToken, refreshCookieOptions);
-    return res.json({ user: publicUser(user), token: accessToken, authMode });
+    return res.json({ user: publicUser(user), authMode });
+}
+
+async function logout(req, res) {
+    const { id } = req.params;
+
+    try {
+        const sql = `
+        UPDATE users SET is_active = false
+        WHERE user_id = $1
+        RETURNING *;
+        `
+        const {rows} = await query(sql, id);
+
+        if (rows.length === 0) {
+            return res.status(C_HTTP.STATUS.NOT_FOUND).json({
+                error: {
+                    code: C_HTTP.CODE.NOT_FOUND,
+                    message: C_HTTP.MESSAGE.LOGOUT.NOT_FOUND
+                }
+            });
+        }
+
+        res.cookie.remove('token');
+        res.cookie.remove('refresh_token');
+        return res.status(C_HTTP.STATUS.OK).json({ user: publicUser(rows[0]) })
+
+    } catch {
+        console.warn( C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR, dbError.message );
+        return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
+            error: {
+                code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
+                message: C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR }
+        });
+    }
 }
 
 module.exports = {
-    login
+    login,
+    logout,
 }

@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const {body} = require("express-validator");
-const jwt = require('jsonwebtoken');
 
 const query = require("../../db").query;
 const asyncHandler = require("../../../utils/helpers/asyncHandler");
-const {validationErrorHandler} = require("../../handlers")
+const {validationErrorHandler} = require("../../expressHandlers")
 
 const {login} = require("../../controllers/authController")
 const {compare} = require("bcrypt");

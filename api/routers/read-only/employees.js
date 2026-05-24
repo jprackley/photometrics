@@ -3,7 +3,7 @@ const router = express.Router();
 
 const query = require("../../db").query;
 const asyncHandler = require("../../../utils/helpers/asyncHandler");
-const {validationErrorHandler} = require("../../handlers")
+const {validationErrorHandler} = require("../../expressHandlers")
 const C_USER = require("../../../utils/constants/cUsers");
 
 router.get('/',
