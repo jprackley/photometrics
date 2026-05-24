@@ -92,7 +92,7 @@ async function login(res, user, authMode = 'database') {
                     SET last_login = now(),
                         is_active = true
                     WHERE user_id = $1
-            `,[user[0].user_id]);
+            `,[user.user_id]);
     } catch (dbError) {
         console.warn( C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR, dbError.message );
         return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
