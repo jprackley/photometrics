@@ -149,7 +149,7 @@ async function logout(req, res) {
         return res.status(C_HTTP.STATUS.OK).json({ user: rows[0] });
 
     } catch {
-        console.warn( C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR, dbError, );
+        console.warn( C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR );
         return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
             error: {
                 code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,

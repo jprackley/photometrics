@@ -6,13 +6,13 @@ const C_NODE = require("../../utils/constants/cNodeServer");
 const C_HTTP = require('../../utils/constants/cHTTP');
 const C_CLIENT = require('../../utils/constants/cClients');
 
-const asyncHandler = require('../../utils/helpers/asyncHandler');
+const asyncHandler = require('../../api/handlers/asyncHandler');
 const { query } = require('../db');
 const {
     paginate,
     buildPagination,
     validationErrorHandler
-} = require('../handlers');
+} = require('../../api/handlers/expressHandlers');
 
 //----------------------------------------------------------------------------------
 // CREATE Client

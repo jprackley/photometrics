@@ -6,8 +6,8 @@ const {
     paginate,
     validationErrorHandler,
     buildPagination,
-} = require("../handlers");
-const asyncHandler = require("../../utils/helpers/asyncHandler");
+} = require("../../api/handlers/expressHandlers");
+const asyncHandler = require("../../api/handlers/asyncHandler");
 const {query} = require("../db");
 
 const C_HTTP = require("../../utils/constants/cHTTP");
