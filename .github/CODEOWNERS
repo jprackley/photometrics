@@ -1,0 +1,9 @@
+# Sensitive backend/auth/database areas
+
+/database/ @jprackley
+/api/ @jprackley
+/.github/CODEOWNERS @jprackley
+/.github/workflows/API.Tests.yml @jprackley
+
+/public/ @colyma
+/src/ @colyma
