@@ -6,7 +6,7 @@ const {
     paginate,
     validationErrorHandler,
     buildPagination,
-} = require("../handlers");
+} = require("../expressHandlers");
 const asyncHandler = require("../../utils/helpers/asyncHandler");
 const {query} = require("../db");
 
