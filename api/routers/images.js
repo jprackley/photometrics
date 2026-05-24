@@ -2,8 +2,8 @@ const express = require('express');
 const {param, body } = require('express-validator');
 const router = express.Router();
 
-const {paginate, validationErrorHandler, buildPagination} = require('../expressHandlers');
-const asyncHandler = require('../../utils/helpers/asyncHandler');
+const {paginate, validationErrorHandler, buildPagination} = require('../handlers/expressHandlers');
+const asyncHandler = require('../handlers/asyncHandler');
 const {query} = require('../db');
 
 const C_HTTP = require('../../utils/constants/cHTTP');

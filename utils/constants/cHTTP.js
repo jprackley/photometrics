@@ -46,6 +46,9 @@ const MESSAGE = {
         OK: '[LOGOUT] Logged out successfully',
         NOT_FOUND: '[LOGOUT] Could not logout, no user found',
     },
+    AUTH: {
+        UNAUTHORIZED: '[AUTH] Unauthorized access. Invalid or missing token',
+    },
     PRODUCTIVITY: {
         OK: 'Productivity updated successfully',
         NOT_FOUND: 'Could not fetch productivity, no user found',

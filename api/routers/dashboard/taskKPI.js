@@ -3,9 +3,9 @@ const router = express.Router();
 
 const C_TASK = require('../../../utils/constants/cTasks');
 
-const asyncHandler = require('../../../utils/helpers/asyncHandler');
-const { verbose } = require('../../expressHandlers');
-const {validationErrorHandler} = require("../../expressHandlers");
+const asyncHandler = require('../../handlers/asyncHandler');
+const { verbose } = require('../../handlers/expressHandlers');
+const {validationErrorHandler} = require("../../handlers/expressHandlers");
 const { query } = require("../../db");
 
 router.get(
