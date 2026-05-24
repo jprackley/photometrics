@@ -322,7 +322,7 @@ router.patch(
         body('address_line2').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.ADDRESS_LINE,
             max: C_CLIENT.MAX.ADDRESS_LINE
-        }).withMessage(`Address line 2 must be lbetween ${C_CLIENT.MIN.ADDRESS_LINE} and ${C_CLIENT.MAX.ADDRESS_LINE} characters.`),
+        }).withMessage(`Address line 2 must be between ${C_CLIENT.MIN.ADDRESS_LINE} and ${C_CLIENT.MAX.ADDRESS_LINE} characters.`),
 
         body('city').optional({ values: 'falsy' }).isString().isLength({
             min: C_CLIENT.MIN.CITY,
