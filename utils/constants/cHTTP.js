@@ -39,7 +39,7 @@ const CODE = {
 const MESSAGE = {
     LOGIN: {
         UNAUTHORIZED: '[LOGIN] Login failed. Invalid email or password',
-        INTERNAL_SERVER_ERROR: '[LOGIN] Database connection failed.'
+        INTERNAL_SERVER_ERROR: '[LOGIN] Login failed.'
 
     },
     LOGOUT: {
