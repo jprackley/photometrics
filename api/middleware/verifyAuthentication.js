@@ -4,8 +4,6 @@ const jwt = require("jsonwebtoken");
 const isTokenRequired = process.env.JWT_TOKEN_ENABLED === 'true';
 const isProduction = process.env.NODE_ENV === 'production';
 
-
-
 async function verifyAuthentication(req, res, next) {
     if ( !isTokenRequired && !isProduction ) {
         console.warn(`[AUTH] Server authentication requires the .env file to be correctly configured. 

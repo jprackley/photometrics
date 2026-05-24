@@ -113,13 +113,6 @@ describe('Testing /api/projects', () => {
             }
             console.log('[CLIENTS] Deleted Clients');
         }
-
-        /*for (const id of projects) {
-            const response = await request(app).delete(`/api/projects/${id}`);
-            if (response.statusCode === C_HTTP.STATUS.NO_CONTENT) {
-                projects.splice(projects.indexOf(id), 1);
-            }
-        }*/
     });
     /**
      * Tests the project creation endpoint.
