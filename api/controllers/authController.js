@@ -113,7 +113,7 @@ async function login(res, user, authMode = 'database') {
                 message: C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR }
         });
     }
-
+    console.log(`[LOGIN] User ${user.email} has logged in.`);
     res.cookie('token', accessToken, accessCookieOptions);
     res.cookie('refresh_token', refreshToken, refreshCookieOptions);
     return res.json({ user, authMode });

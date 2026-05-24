@@ -13,7 +13,6 @@ const {query} = require("../db");
 const C_HTTP = require("../../utils/constants/cHTTP");
 const C_NODE = require("../../utils/constants/cNodeServer");
 const C_PROJECT = require("../../utils/constants/cProjects");
-const {values} = require("pg/lib/native/query");
 
 
 //----------------------------------------------------------------------------------
