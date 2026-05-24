@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const C_HTTP = require("../../utils/constants/cHTTP");
 const C_AUTH = require("../../utils/constants/cAuth");
-const {query} = require("../db");
+const { query } = require("../db");
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -65,7 +65,6 @@ async function login(res, user, authMode = 'database') {
     const refreshToken = createRefreshToken();
     const refreshTokenHash = hashRefreshToken(refreshToken);
 
-    //A catch to ensure the production enviroment is generating tokens.
     if (!accessToken && !refreshTokenHash && process.env.NODE_ENV === 'production') {
         return res.status(C_HTTP.STATUS.INTERNAL_SERVER_ERROR).json({
             error: {
@@ -76,17 +75,18 @@ async function login(res, user, authMode = 'database') {
     }
 
     try {
-        //Attempts to put the refresh token in the database.
         await query(`
-                    INSERT INTO user_refresh_tokens (
-                        user_id,
-                        token_hash,
-                        expires_at
-                    )
-                    VALUES ($1, $2, $3)
-        `, [user.user_id, refreshTokenHash, new Date(Date.now() + C_AUTH.REFRESH_TOKEN_MAX_AGE_MS)]
-        )
-        //Attempts to update the user as logged in.
+            INSERT INTO user_refresh_tokens (
+                user_id,
+                token_hash,
+                expires_at
+            )
+            VALUES ($1, $2, $3)
+        `, [
+            user.user_id,
+            refreshTokenHash,
+            new Date(Date.now() + C_AUTH.REFRESH_TOKEN_MAX_AGE_MS)
+        ]);
 
         const { rows } = await query(`
             UPDATE users
@@ -106,16 +106,18 @@ async function login(res, user, authMode = 'database') {
         user = rows[0];
 
     } catch (dbError) {
-        console.warn( C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR, dbError.message );
-        return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
+        console.warn(C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR, dbError.message);
+        return res.status(C_HTTP.STATUS.INTERNAL_SERVER_ERROR).json({
             error: {
                 code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
-                message: C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR }
+                message: C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR
+            }
         });
     }
 
     res.cookie('token', accessToken, accessCookieOptions);
     res.cookie('refresh_token', refreshToken, refreshCookieOptions);
+
     return res.json({ user, authMode });
 }
 
@@ -123,8 +125,9 @@ async function logout(req, res) {
     const { id } = req.params;
 
     try {
-        const {rows} = await query(`
-            UPDATE users SET is_active = false
+        const { rows } = await query(`
+            UPDATE users
+            SET is_active = false
             WHERE user_id = $1
             RETURNING
                 user_id,
@@ -134,7 +137,7 @@ async function logout(req, res) {
                 account_role,
                 is_active,
                 last_login;
-            `, [id]);
+        `, [id]);
 
         if (rows.length === 0) {
             return res.status(C_HTTP.STATUS.NOT_FOUND).json({
@@ -147,14 +150,19 @@ async function logout(req, res) {
 
         res.clearCookie('token');
         res.clearCookie('refresh_token');
-        return res.status(C_HTTP.STATUS.OK).json({ user: rows[0] });
 
-    } catch {
-        console.warn( C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR, dbError, );
-        return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
+        return res.status(C_HTTP.STATUS.OK).json({
+            user: rows[0]
+        });
+
+    } catch (dbError) {
+        console.warn(C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR, dbError.message);
+
+        return res.status(C_HTTP.STATUS.INTERNAL_SERVER_ERROR).json({
             error: {
                 code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
-                message: C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR }
+                message: C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR
+            }
         });
     }
 }
@@ -162,4 +170,4 @@ async function logout(req, res) {
 module.exports = {
     login,
     logout
-}
+};
