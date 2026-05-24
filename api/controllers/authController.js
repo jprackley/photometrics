@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const C_HTTP = require("../../utils/constants/cHTTP");
 const C_AUTH = require("../../utils/constants/cAuth");
 const {query} = require("../db");
