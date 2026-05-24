@@ -123,12 +123,18 @@ async function logout(req, res) {
     const { id } = req.params;
 
     try {
-        const sql = `
-        UPDATE users SET is_active = false
-        WHERE user_id = $1
-        RETURNING *;
-        `
-        const {rows} = await query(sql, id);
+        const {rows} = await query(`
+            UPDATE users SET is_active = false
+            WHERE user_id = $1
+            RETURNING
+                user_id,
+                first_name,
+                last_name,
+                email,
+                account_role,
+                is_active,
+                last_login;
+            `, [id]);
 
         if (rows.length === 0) {
             return res.status(C_HTTP.STATUS.NOT_FOUND).json({
@@ -139,12 +145,12 @@ async function logout(req, res) {
             });
         }
 
-        res.cookie.remove('token');
-        res.cookie.remove('refresh_token');
-        return res.status(C_HTTP.STATUS.OK).json({ user: publicUser(rows[0]) })
+        res.clearCookie('token');
+        res.clearCookie('refresh_token');
+        return res.status(C_HTTP.STATUS.OK).json({ user: rows[0] });
 
     } catch {
-        console.warn( C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR, dbError.message );
+        console.warn( C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR, dbError, );
         return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
             error: {
                 code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
@@ -155,6 +161,5 @@ async function logout(req, res) {
 
 module.exports = {
     login,
-    logout,
-    publicUser
+    logout
 }

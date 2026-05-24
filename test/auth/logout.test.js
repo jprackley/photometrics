@@ -1,9 +1,13 @@
 const request = require('supertest');
-const app = require('../../api');
 const { describe, test, before, after } = require('node:test');
+
+const app = require('../../api');
 const {query} = require("../../api/db");
+const { assertEqual } = require('../helpers/assertTests')
+
 const C_USER = require("../../utils/constants/cUsers");
-const assert = require("node:assert");
+const C_HTTP = require("../../utils/constants/cHttp");
+
 
 describe('Testing /api/logout', () => {
 
@@ -44,13 +48,8 @@ describe('Testing /api/logout', () => {
     })
     describe('[API]: LOGOUT user', () => {
         test(`[TEST] valid logout [EXPECTED] return status code 200`, async () => {
-            console.log(users[0]);
             const response = await request(app).post(`/api/logout/${users[0]}`);
-            assert.equal(response.statusCode, 200,
-                `Expected status code 200, got ${response.statusCode} \n 
-                ${JSON.stringify(response.body, null, 2)}
-                ${JSON.stringify(response.body.message, null, 2)}
-                ${JSON.stringify(response.body.error, null, 2)}`)
+            assertEqual(response, C_HTTP.STATUS.OK)
         })
     })
 })
