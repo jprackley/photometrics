@@ -13,6 +13,7 @@ const {query} = require("../db");
 const C_HTTP = require("../../utils/constants/cHTTP");
 const C_NODE = require("../../utils/constants/cNodeServer");
 const C_PROJECT = require("../../utils/constants/cProjects");
+const {values} = require("pg/lib/native/query");
 
 
 //----------------------------------------------------------------------------------
@@ -144,7 +145,12 @@ router.get(
 
         // if all is true, return all users, otherwise paginate
         if (all === 'true') {
-            const sql = `SELECT * FROM projects`;
+            const sql = `
+                SELECT p.*, c.company_name AS client_name, c.first_name AS client_first_name, c.last_name AS client_last_name
+                FROM projects p
+                LEFT JOIN clients c ON c.client_id = p.client_id
+                ORDER BY p.due_time DESC
+            `;
             const { rows } = await query(sql);
             return res.json(rows);
         }
@@ -164,17 +170,19 @@ router.get(
         let where = '';
         if (q) {
             params.push(`%${q}%`);
-            where = `WHERE project_name ILIKE $${params.length} 
-                OR description ILIKE $${params.length}
-                OR status::TEXT ILIKE $${params.length}
-                OR priority::TEXT ILIKE $${params.length}
-                OR notes ILIKE $${params.length}
+            where = `WHERE p.project_name ILIKE $${params.length} 
+                OR p.description ILIKE $${params.length}
+                OR p.status::TEXT ILIKE $${params.length}
+                OR p.priority::TEXT ILIKE $${params.length}
+                OR p.notes ILIKE $${params.length}
             `;
         }
         const sql = `
-            SELECT * FROM projects
+            SELECT p.*, c.company_name AS client_name, c.first_name AS client_first_name, c.last_name AS client_last_name
+            FROM projects p
+            LEFT JOIN clients c ON c.client_id = p.client_id
             ${where}
-            ORDER BY ${sortField} ${sortDir}
+            ORDER BY p.${sortField} ${sortDir}
             LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
 
         params.push(limit, offset);
@@ -182,7 +190,7 @@ router.get(
         const { rows } = await query(sql, params);
 
         // total count for pagination UI
-        const countSql = `SELECT count(*)::int AS total FROM projects ${where}`;
+        const countSql = `SELECT count(*)::int AS total FROM projects p ${where}`;
         const { rows: countRows } = await query(countSql, q ? [params[0]] : []);
 
         res.json({ data: rows, page: Number(page), limit: Number(limit), total: countRows[0].total });
