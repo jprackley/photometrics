@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 
-const asyncHandler = require('../../handlers/asyncHandler');
-const {validationErrorHandler} = require("../../handlers/expressHandlers");
+const asyncHandler = require('../../../utils/helpers/asyncHandler');
+const {validationErrorHandler} = require("../../handlers");
 const { query } = require("../../db");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
@@ -39,8 +39,8 @@ router.get(
             ORDER BY t.updated_at DESC;
          `;
         const { rows } = await query(sql, [param]);
-        //if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-        //    .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.EMPLOYEE_ACTIVITY.NOT_FOUND}});
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.EMPLOYEE_ACTIVITY.NOT_FOUND}});
         res.json(rows);
     })
 )
@@ -73,8 +73,8 @@ router.get(
             ORDER BY t.updated_at DESC;
          `;
         const { rows } = await query(sql);
-        //if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-        //    .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.EMPLOYEE_ACTIVITY.NOT_FOUND}});
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.EMPLOYEE_ACTIVITY.NOT_FOUND}});
         res.json(rows);
     })
 )

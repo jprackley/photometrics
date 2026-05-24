@@ -1,29 +1,12 @@
 const express = require('express');
 const router = express.Router();
 
-const asyncHandler = require('../../handlers/asyncHandler');
-const {validationErrorHandler} = require("../../handlers/expressHandlers");
+const asyncHandler = require('../../../utils/helpers/asyncHandler');
+const {validationErrorHandler} = require("../../handlers");
 const { query } = require("../../db");
 const {param} = require("express-validator");
 const C_HTTP = require("../../../utils/constants/cHTTP");
 
-// Added for testing
-router.get(
-    '/',
-    asyncHandler(async (req, res) => {
-        validationErrorHandler(req, 'GET Workflow KPI - ');
-        const sql = `
-            SELECT COALESCE(t.category::text, 'Other') AS status,
-                   COUNT(t.task_id) AS count
-            FROM tasks t
-            GROUP BY COALESCE(t.category::text, 'Other')
-            ORDER BY status;
-        `;
-        const {rows} = await query(sql);
-        res.json(rows);
-    })
-)
-//End of test
 router.get(
     '/:id',
     param('id').isUUID().withMessage('Invalid User UUID'),
@@ -52,8 +35,8 @@ router.get(
 
         const {rows} = await query(sql, [param]);
 
-        //if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-        //    .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.WORKFLOW.NOT_FOUND}});
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
+            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.WORKFLOW.NOT_FOUND}});
         res.json(rows);
     })
 )
