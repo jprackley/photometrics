@@ -78,21 +78,33 @@ async function login(res, user, authMode = 'database') {
     try {
         //Attempts to put the refresh token in the database.
         await query(`
-                    INSERT INTO user_refresh_tokens (user_id,
-                                                     token_hash,
-                                                     expires_at)
-                    VALUES ($1, 
-                            $2, 
-                            $3)
-        `, [user.user_id, refreshTokenHash, new Date(Date.now() + C_AUTH.REFRESH_TOKEN_MAX_AGE_MS)]
+                    INSERT INTO user_refresh_tokens (
+                        user_id,
+                        token_hash,
+                        expires_at
+                    )
+                    VALUES ($1, $2, $3)
+            `, [user.user_id, refreshTokenHash, new Date(Date.now() + C_AUTH.REFRESH_TOKEN_MAX_AGE_MS)]
         )
         //Attempts to update the user as logged in.
-        await query(`
-                    UPDATE users
-                    SET last_login = now(),
-                        is_active = true
-                    WHERE user_id = $1
-            `,[user.user_id]);
+
+        const { rows } = await query(`
+            UPDATE users
+            SET last_login = now(),
+                is_active = true
+            WHERE user_id = $1
+            RETURNING
+                user_id,
+                first_name,
+                last_name,
+                email,
+                account_role,
+                is_active,
+                last_login
+        `, [user.user_id]);
+
+        user = rows[0];
+
     } catch (dbError) {
         console.warn( C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR, dbError.message );
         return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
@@ -104,9 +116,49 @@ async function login(res, user, authMode = 'database') {
 
     res.cookie('token', accessToken, accessCookieOptions);
     res.cookie('refresh_token', refreshToken, refreshCookieOptions);
-    return res.json({ user: publicUser(user), token: accessToken, authMode });
+    return res.json({ user, authMode });
+}
+
+async function logout(req, res) {
+    const { id } = req.params;
+
+    try {
+        const {rows} = await query(`
+            UPDATE users SET is_active = false
+            WHERE user_id = $1
+            RETURNING
+                user_id,
+                first_name,
+                last_name,
+                email,
+                account_role,
+                is_active,
+                last_login;
+            `, [id]);
+
+        if (rows.length === 0) {
+            return res.status(C_HTTP.STATUS.NOT_FOUND).json({
+                error: {
+                    code: C_HTTP.CODE.NOT_FOUND,
+                    message: C_HTTP.MESSAGE.LOGOUT.NOT_FOUND
+                }
+            });
+        }
+        res.clearCookie('token');
+        res.clearCookie('refresh_token');
+        return res.status(C_HTTP.STATUS.OK).json({ user: rows[0] });
+
+    } catch {
+        console.warn( C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR, dbError, );
+        return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
+            error: {
+                code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
+                message: C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR }
+        });
+    }
 }
 
 module.exports = {
-    login
-}
+    login,
+    logout
+    }
