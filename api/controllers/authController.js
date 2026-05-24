@@ -77,7 +77,7 @@ async function login(res, user, authMode = 'database') {
 
     try {
         //Attempts to put the refresh token in the database.
-       /* await query(`
+        await query(`
                     INSERT INTO user_refresh_tokens (user_id,
                                                      token_hash,
                                                      expires_at)
@@ -85,7 +85,7 @@ async function login(res, user, authMode = 'database') {
                             $2, 
                             $3)
         `, [user.user_id, refreshTokenHash, new Date(Date.now() + C_AUTH.REFRESH_TOKEN_MAX_AGE_MS)]
-        )*/
+        )
         //Attempts to update the user as logged in.
         await query(`
                     UPDATE users
