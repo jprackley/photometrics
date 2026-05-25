@@ -243,7 +243,7 @@ router.patch('/:id/timer/start',
         `;
         const {rows} = await query(
             sql,
-            [new Date(Date.now()).toISOString, id]
+            [Date.now(), id]
         ); //new Date(Date.now()).toISOString
         return res.status(C_HTTP.STATUS.OK).json({task: rows[0]});
     })
