@@ -28,7 +28,7 @@ describe('Testing /api/logout', () => {
         if (rows.length === 0) {
             throw new Error('Failed to insert test user');
         }
-
+        console.log(`[BEFORE] Successfully created user ${rows[0].user_id}`)
         users.push(rows[0].user_id);
     })
 
@@ -43,7 +43,9 @@ describe('Testing /api/logout', () => {
             const { rows } = await query(sql, [id]);
             if (rows.length === 0) {
                 throw new Error('Failed to delete test user');
-            } users.splice(users.indexOf(id), 1);
+            }
+            users.splice(users.indexOf(id), 1);
+            console.log(`[AFTER] Successfully delete user ${id}`)
         }
     })
     describe('[API]: LOGOUT user', () => {

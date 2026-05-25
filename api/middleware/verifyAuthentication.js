@@ -10,6 +10,7 @@ async function verifyAuthentication(req, res, next) {
         Verify JWT_TOKEN_ENABLED=true and NODE_ENV=production`);
         return next();
     }
+    console.log('[AUTH] Verifying JWT_TOKEN_ENABLED');
     const token = req.cookies?.token;
     const refreshToken = req.cookies?.refresh_token;
 
@@ -23,15 +24,15 @@ async function verifyAuthentication(req, res, next) {
     }
     try {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(decodedToken);
-        console.log(`[AUTH] User ${req.body.user.email} authenticated.`);
+        console.log(JSON.stringify(decodedToken));
         return next();
 
     } catch (err) {
         return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
             error: {
                 code: C_HTTP.CODE.UNAUTHORIZED,
-                message: C_HTTP.MESSAGE.AUTH.UNAUTHORIZED
+                message: err.message,
+                details: err.details,
             }
         });
     }

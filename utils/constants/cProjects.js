@@ -4,14 +4,14 @@ const REQUIRED_COLUMNS = {
 const MUTABLE_COLUMNS = {
     DESCRIPTION: 'description',
     STATUS: 'status',
-    PRIORITY: 'title',
-    NOTES: 'company_name',
+    PRIORITY: 'priority',
+    NOTES: 'notes',
     START: 'start_time',
     SHOOT: 'shoot_time',
     DUE: 'due_time',
     COMPLETED: 'completed_at',
     CLIENT_ID: "client_id",
-    MANAGER_ID: "manager_by",
+    MANAGED_BY: "managed_by",
     UPDATED_AT: "updated_at"
 }
 const IMMUTABLE_COLUMNS = {

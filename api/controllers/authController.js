@@ -121,6 +121,7 @@ async function login(res, user, authMode = 'database') {
 
 async function logout(req, res) {
     const { id } = req.params;
+    console.log(`[LOGOUT] User ${id} has requested logged out.`);
 
     try {
         const {rows} = await query(`
@@ -137,6 +138,7 @@ async function logout(req, res) {
             `, [id]);
 
         if (rows.length === 0) {
+            console.warn(`[LOGOUT] User ${id} logout query failed to return row.`);
             return res.status(C_HTTP.STATUS.NOT_FOUND).json({
                 error: {
                     code: C_HTTP.CODE.NOT_FOUND,
@@ -144,17 +146,18 @@ async function logout(req, res) {
                 }
             });
         }
-        console.log(`[LOGOUT] User ${user.email} has logged out.`);
+        console.log(`[LOGOUT] User ${rows[0].email} has logged out.`);
         res.clearCookie('token');
         res.clearCookie('refresh_token');
         return res.status(C_HTTP.STATUS.OK).json({ user: rows[0] });
 
-    } catch {
-        console.warn( C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR );
+    } catch (error) {
+        console.warn(`[LOGOUT] User ${id} logout query failed. Error: ${error.message}`);
         return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
             error: {
                 code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
-                message: C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR }
+                message: C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR,
+                details: error.message }
         });
     }
 }

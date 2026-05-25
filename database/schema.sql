@@ -223,6 +223,7 @@ CREATE TABLE tasks
     status       task_status            DEFAULT 'Assigned',
     progress     DECIMAL                DEFAULT 0,
     start_time   TIMESTAMPTZ            DEFAULT now(),
+    total_time   DECIMAL                DEFAULT 0,
     due_time     TIMESTAMPTZ            DEFAULT NULL,
     completed_at TIMESTAMPTZ            DEFAULT NULL,
     assigned_by  UUID                   DEFAULT NULL REFERENCES users (user_id) ON DELETE SET NULL,
