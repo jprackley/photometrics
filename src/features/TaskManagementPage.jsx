@@ -472,7 +472,9 @@ function TaskManagementPage() {
             try {
                 await apiPlaceholders.startTaskTimer(task.id, new Date(startedAt).toISOString());
             } catch (apiError) {
-                console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
+                console.warn("Start timer API request failed.", apiError);
+                window.alert(apiError.message || "Timer start failed.");
+                return;
             }
         }
 
@@ -507,7 +509,9 @@ function TaskManagementPage() {
                     totalTrackedSeconds: nextTrackedSeconds,
                 });
             } catch (apiError) {
-                console.warn("Stop timer API endpoint is not connected yet. Stopping locally.", apiError);
+                console.warn("Stop timer API request failed.", apiError);
+                window.alert(apiError.message || "Timer stop failed.");
+                return;
             }
         }
 
@@ -997,7 +1001,9 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             try {
                 await apiPlaceholders.startTaskTimer(task.id, new Date(startedAt).toISOString(), currentUser);
             } catch (apiError) {
-                console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
+                console.warn("Start timer API request failed.", apiError);
+                window.alert(apiError.message || "Timer start failed.");
+                return;
             }
         }
 
@@ -1048,7 +1054,9 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                     userTrackedSeconds: nextTrackedSeconds,
                 });
             } catch (apiError) {
-                console.warn("Stop timer API endpoint is not connected yet. Stopping locally.", apiError);
+                console.warn("Stop timer API request failed.", apiError);
+                window.alert(apiError.message || "Timer stop failed.");
+                return;
             }
         }
 
