@@ -237,8 +237,9 @@ router.patch('/:id/timer/start',
         const { id } = req.params;
         const sql = `
             UPDATE tasks
-            SET start_time = now()
-            WHERE task_id = $2
+            SET start_time = now(),
+                updated_at = now()
+            WHERE task_id = $1
             RETURNING *;
         `;
         const {rows} = await query(
@@ -260,14 +261,15 @@ router.patch('/:id/timer/stop',
         const sql = `
             UPDATE tasks
             SET 
-                stop_time = $1::TIMESTAMPTZ,
-                total_time = $1::TIMESTAMPTZ - start_time
-            WHERE task_id = $2
+                stop_time = now(),
+                total_time = now() - start_time,
+                updated_at = now()
+            WHERE task_id = $1
             RETURNING *;
         `;
         const {rows} = await query(
             sql,
-            [new Date(Date.now()).toISOString, id]
+            [id]
         );
         return res.status(C_HTTP.STATUS.OK).json({tasks: rows[0]});
     })
