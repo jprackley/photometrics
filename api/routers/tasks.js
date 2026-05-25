@@ -237,14 +237,14 @@ router.patch('/:id/timer/start',
         const { id } = req.params;
         const sql = `
             UPDATE tasks
-            SET start_time = $1::TIMESTAMPTZ
+            SET start_time = now()
             WHERE task_id = $2
             RETURNING *;
         `;
         const {rows} = await query(
             sql,
-            [Date.now(), id]
-        ); //new Date(Date.now()).toISOString
+            [id]
+        );
         return res.status(C_HTTP.STATUS.OK).json({task: rows[0]});
     })
 )
