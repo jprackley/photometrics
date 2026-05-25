@@ -272,7 +272,7 @@ router.patch('/:id/timer/stop',
             UPDATE tasks
             SET 
                 stop_time = now(),
-                total_time = EXTRACT(EPOCH FROM (now() - start_time)) / 60,
+                total_time = EXTRACT(EPOCH FROM (now() - start_time)) / 60, --Time in Minutes
                 updated_at = now(),
                 completed_at = now()
             WHERE task_id = $1
