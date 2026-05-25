@@ -258,7 +258,7 @@ router.patch('/:id/timer/start',
         } else {
             return res.status(C_HTTP.STATUS.BAD_REQUEST).json({
                 task: `completed_at: ${isComplete[0].completed_at}`,
-                message: 'This task is already in completed.',
+                message: 'This task is already completed.',
             });
         }
     })
@@ -272,7 +272,15 @@ router.patch('/:id/timer/stop',
         validationErrorHandler(req, 'Stop Task Timer - ');
 
         const { id } = req.params;
-        const sql = `
+
+        const sql = `SELECT completed_at FROM tasks WHERE task_id = $1;`;
+        const {rows: isComplete} = await query(
+            sql,
+            [id]
+        );
+
+        if (!isComplete[0].completed_at) {
+            const sql = `
             UPDATE tasks
             SET 
                 stop_time = now(),
@@ -282,11 +290,17 @@ router.patch('/:id/timer/stop',
             WHERE task_id = $1
             RETURNING *;
         `;
-        const {rows} = await query(
-            sql,
-            [id]
-        );
-        return res.status(C_HTTP.STATUS.OK).json({tasks: rows[0]});
+            const {rows} = await query(
+                sql,
+                [id]
+            );
+            return res.status(C_HTTP.STATUS.OK).json({tasks: rows[0]});
+        } else {
+            return res.status(C_HTTP.STATUS.BAD_REQUEST).json({
+                task: `completed_at: ${isComplete[0].completed_at}`,
+                message: 'This task is already completed.',
+            })
+        }
     })
 )
 //----------------------------------------------------------------------------------
