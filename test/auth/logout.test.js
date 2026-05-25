@@ -6,7 +6,7 @@ const {query} = require("../../api/db");
 const { assertEqual } = require('../helpers/assertTests')
 
 const C_USER = require("../../utils/constants/cUsers");
-const C_HTTP = require("../../utils/constants/cHttp");
+const C_HTTP = require("../../utils/constants/cHTTP");
 
 
 describe('Testing /api/logout', () => {

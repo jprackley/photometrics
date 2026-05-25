@@ -133,7 +133,7 @@ function buildTestClient( testSuiteName,  missingField = null, overrunField = nu
             console.log(`CREATED Test ${testSuiteName} Object with overrun: `, overrunField,
                 `\nMAX Length: ${C_CLIENT.MAX[minMaxKey]}`,
                 `\nGenerated Length: ${client[overrunField].length}`,
-                `\nDATA: ${JSON.stringify(client, null, 2)}
+                `\nClient: ${JSON.stringify(client, null, 2)}
             `);
         }
     } return client;
