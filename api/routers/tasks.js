@@ -226,7 +226,9 @@ router.patch(
         res.status(C_HTTP.STATUS.OK).json({tasks: rows[0]});
     })
 )
-
+//----------------------------------------------------------------------------------
+// PATCH Task:id Start Timer
+//----------------------------------------------------------------------------------
 router.patch('/:id/timer/start',
     [param('id').isUUID().withMessage('Invalid task UUID')],
     asyncHandler(async (req, res) => {
@@ -241,12 +243,14 @@ router.patch('/:id/timer/start',
         `;
         const {rows} = await query(
             sql,
-            [new Date(Date.now()).toISOString, id]
-        );
+            [now(), id]
+        ); //new Date(Date.now()).toISOString
         return res.status(C_HTTP.STATUS.OK).json({task: rows[0]});
     })
 )
-
+//----------------------------------------------------------------------------------
+// PATCH Task:id Stop Timer
+//----------------------------------------------------------------------------------
 router.patch('/:id/timer/stop',
     [param('id').isUUID().withMessage('Invalid task UUID')],
     asyncHandler(async (req, res) => {
