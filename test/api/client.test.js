@@ -28,6 +28,8 @@ const {assertEqualReturn, assertEqual} = require("../helpers/assertTests");
  */
 const clients = []
 
+const testSuiteName = 'clientTestSuite';
+
 /**
  * Test suite for the `/api/clients` route group.
  *
@@ -41,14 +43,12 @@ describe('Testing /api/clients', () => {
      * @returns {Promise<void>}
      */
     before(async () => {
-
         console.log('[PRE] Creating Test Data...');
+
         const rows = await createTestClient(
             C_CLIENT.REQUIRED_COLUMNS,
-            'client'
+            testSuiteName
         );
-
-        console.log(`Created test client with ID: ${rows.client_id}`);
         clients.push(rows.client_id);
     })
 

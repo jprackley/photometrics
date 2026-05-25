@@ -325,7 +325,7 @@ router.delete(
         validationErrorHandler(req, 'DELETE User - ');
         const { id } = req.params;
 
-        const { rows } = await query('DELETE FROM users WHERE user_id = $1 RETURNING ${C_USER.SAFE_RETURN}', [id]);
+        const { rows } = await query(`DELETE FROM users WHERE user_id = $1 RETURNING ${C_USER.SAFE_RETURN}`, [id]);
         if (rows === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
