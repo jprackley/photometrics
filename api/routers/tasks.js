@@ -235,18 +235,25 @@ router.patch('/:id/timer/start',
         validationErrorHandler(req, 'Start Task Timer - ');
 
         const { id } = req.params;
-        const sql = `
+
+        const isComplete = `SELECT completed_at FROM tasks WHERE task_id = $1;`;
+
+        if (!isComplete[0]) {
+            const sql = `
             UPDATE tasks
             SET start_time = now(),
                 updated_at = now()
             WHERE task_id = $1
             RETURNING *;
         `;
-        const {rows} = await query(
-            sql,
-            [id]
-        );
-        return res.status(C_HTTP.STATUS.OK).json({task: rows[0]});
+            const {rows} = await query(
+                sql,
+                [id]
+            );
+            return res.status(C_HTTP.STATUS.OK).json({task: rows[0]});
+        } else {
+            return res.status(C_HTTP.STATUS.BAD_REQUEST).json({task: isComplete[0]});
+        }
     })
 )
 //----------------------------------------------------------------------------------
@@ -263,7 +270,8 @@ router.patch('/:id/timer/stop',
             SET 
                 stop_time = now(),
                 total_time = now() - start_time,
-                updated_at = now()
+                updated_at = now(),
+                completed_at = now()
             WHERE task_id = $1
             RETURNING *;
         `;
