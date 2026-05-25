@@ -95,39 +95,48 @@ function buildTestClient( testSuiteName,  missingField = null, overrunField = nu
 
         throw new Error(`Build Test ${testSuiteName}: Missing and Overrund Fields cannot be used together.`);
 
-    } //Catch to prevent sending an empty string to updated_at.
-    else if ( missingField === C_CLIENT.MUTABLE_COLUMNS.UPDATED_AT ) {
-        console.log(`CREATED Test ${testSuiteName} \nDATA: ${JSON.stringify(client, null, 2)}`)
-        return client;
-    } //Verify the missing field is in the required or mutable columns.
-    else if ( Object.values(C_CLIENT.REQUIRED_COLUMNS).includes(missingField)
-        || Object.values(C_CLIENT.MUTABLE_COLUMNS).includes(missingField) ) {
-
-        client[missingField] = "";
-        console.log(`CREATED Test ${testSuiteName} Object with missing field: `, missingField,
-            `\nDATA: ${JSON.stringify(client, null, 2)}`)
-
-    } //Verify the overrund field is in the required or mutable columns.
-    else if ( Object.values(C_CLIENT.REQUIRED_COLUMNS).includes(overrunField)
-        || Object.values(C_CLIENT.MUTABLE_COLUMNS).includes(overrunField) ) {
-
-        // Maps the field name to the min/max length property name in the constant file.
-        minMaxKey = C_CLIENT.MIN_MAX_MAPPING[overrunField];
-
-        //If the overrund field is the email, then we need to create a valid email.
-        if ( overrunField === C_CLIENT.REQUIRED_COLUMNS.EMAIL ) {
-            client[overrunField] = emailPrefix.repeat(
-                (C_CLIENT.MAX.EMAIL - (emailDomain.length)) +1
-            ).concat(emailDomain);
-        } else {
-            client[overrunField] = `t`.repeat(C_CLIENT.MAX[minMaxKey] + 1);
-        }
-        console.log(`CREATED Test ${testSuiteName} Object with overrun: `, overrunField,
-            `\nMAX Length: ${C_CLIENT.MAX[minMaxKey]}`,
-            `\nGenerated Length: ${client[overrunField].length}`,
-            `\nDATA: ${JSON.stringify(client, null, 2)}`)
     }
-    return client;
+    //Logic for building Client with a missing field.
+    if ( missingField !== null ) {
+        //Catch to prevent sending an empty string to updated_at.
+        if ( missingField === C_CLIENT.MUTABLE_COLUMNS.UPDATED_AT ) {
+            console.log(`CREATED Test ${testSuiteName} \nClient: ${JSON.stringify(client, null, 2)}`)
+            return client;
+        }
+        //Verify the missing field is in the required or mutable columns.
+        else if ( Object.values(C_CLIENT.REQUIRED_COLUMNS).includes(missingField)
+            || Object.values(C_CLIENT.MUTABLE_COLUMNS).includes(missingField) ) {
+
+            client[missingField] = "";
+            console.log(`CREATED Test ${testSuiteName} Object with missing field: `, missingField,
+                `\nClient: ${JSON.stringify(client, null, 2)}
+            `);
+        }
+        return client;
+    }
+    else if ( overrunField !== null ) {
+        //Verify the overrund field is in the required or mutable columns.
+        if (Object.values(C_CLIENT.REQUIRED_COLUMNS).includes(overrunField)
+            || Object.values(C_CLIENT.MUTABLE_COLUMNS).includes(overrunField)) {
+
+            // Maps the field name to the min/max length property name in the constant file.
+            minMaxKey = C_CLIENT.MIN_MAX_MAPPING[overrunField];
+
+            //If the overrund field is the email, then we need to create a valid email.
+            if (overrunField === C_CLIENT.REQUIRED_COLUMNS.EMAIL) {
+                client[overrunField] = emailPrefix.repeat(
+                    (C_CLIENT.MAX.EMAIL - (emailDomain.length)) + 1
+                ).concat(emailDomain);
+            } else {
+                client[overrunField] = `t`.repeat(C_CLIENT.MAX[minMaxKey] + 1);
+            }
+            console.log(`CREATED Test ${testSuiteName} Object with overrun: `, overrunField,
+                `\nMAX Length: ${C_CLIENT.MAX[minMaxKey]}`,
+                `\nGenerated Length: ${client[overrunField].length}`,
+                `\nDATA: ${JSON.stringify(client, null, 2)}
+            `);
+        }
+    } return client;
 }
 
 function buildTestProject( testSuiteName, manager, client) {

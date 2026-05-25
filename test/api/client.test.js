@@ -45,11 +45,8 @@ describe('Testing /api/clients', () => {
     before(async () => {
         console.log('[PRE] Creating Test Data...');
 
-        const rows = await createTestClient(
-            C_CLIENT.REQUIRED_COLUMNS,
-            testSuiteName
-        );
-        clients.push(rows.client_id);
+        const client = await createTestClient( testSuiteName );
+        if ( client ) { clients.push(client); }
     })
 
     /**
@@ -60,7 +57,7 @@ describe('Testing /api/clients', () => {
     after(async () => {
 
         console.log('[POST] Destroying Test Data...');
-        clients.length = await deleteTestClients(clients, 'clients');
+        clients.length = await deleteTestClients(clients, testSuiteName);
     });
     //-------------------------------------------------------------------------------------------------------------
     //         CREATE CLIENT TESTS
@@ -77,14 +74,13 @@ describe('Testing /api/clients', () => {
          * @returns {Promise<void>}
          */
         test(`[TEST]: CREATE valid entry [EXPECTED] status code ${C_HTTP.STATUS.CREATED}`, async () => {
+            console.log(`Starting test CREATE valid entry...`);
             const response = await request(app).post('/api/clients')
-                .send( buildTestClient( 'client' ) );
+                .send( buildTestClient( testSuiteName ) );
 
-
-            const body = await assertEqualReturn(response, C_HTTP.STATUS.CREATED)
-            if (body.client_id !== undefined) {
-                clients.push(body.client_id);
-                console.log(`Created Client with ID: ${response.body.client_id}`);
+            await assertEqualReturn(response, C_HTTP.STATUS.CREATED)
+            if (response.body.clients) {
+                clients.push(response.body.clients);
             }
         });
 
@@ -95,14 +91,14 @@ describe('Testing /api/clients', () => {
          */
         test(`[TEST]: CREATE Client with missing required fields [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`,
             async () => {
+                console.log(`Starting test CREATE Clients with missing required fields...`);
                 for (const field of Object.values(C_CLIENT.REQUIRED_COLUMNS)) {
                     const response = await request(app).post('/api/clients')
-                        .send( buildTestClient( 'client', field ) );
+                        .send( buildTestClient( testSuiteName, field ) );
 
-                    const body = await assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-                    if (body.client_id !== undefined) {
-                        console.log(`Created Client with ID: ${response.body.client_id}`);
-                        clients.push(body.client_id);
+                    await assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
+                    if (response.body.clients) {
+                        clients.push(response.body.clients);
                     }
                 }
             }
@@ -113,16 +109,16 @@ describe('Testing /api/clients', () => {
          *
          * @returns {Promise<void>}
          */
-        test(`[TEST]: CREATE Client with missing optional fields [EXPECTED] status code ${C_HTTP.STATUS.CREATED}`,
+        test(`[TEST]: CREATE Clients with missing optional fields [EXPECTED] status code ${C_HTTP.STATUS.CREATED}`,
             async () => {
+                console.log(`Starting test CREATE Client with missing optional fields...`);
                 for (const field of Object.values(C_CLIENT.MUTABLE_COLUMNS)) {
                     const response = await request(app).post('/api/clients')
                         .send( buildTestClient( 'client', field ) );
 
-                    const body = await assertEqualReturn(response, C_HTTP.STATUS.CREATED);
-                    if (body.client_id !== undefined) {
-                        console.log(`Created Client with ID: ${response.body.client_id}`);
-                        clients.push(body.client_id);
+                    await assertEqualReturn(response, C_HTTP.STATUS.CREATED);
+                    if (response.body.clients) {
+                        clients.push(response.body.clients);
                     }
                 }
             }
@@ -135,13 +131,14 @@ describe('Testing /api/clients', () => {
          */
         test(`[TEST]: CREATE Client with overrun required fields [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`,
             async () => {
+                console.log(`Starting test CREATE Client with overrun reqquired fields...`);
                 for (const field of Object.values(C_CLIENT.REQUIRED_COLUMNS)) {
                     const response = await request(app).post('/api/clients')
                         .send( buildTestClient( 'client', null, field ) );
 
-                    const body = await assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-                    if (body.client_id !== undefined) {
-                        clients.push(body.client_id);
+                    assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
+                    if (response.body.clients) {
+                        clients.push(response.body.clients);
                     }
                 }
             });
@@ -153,13 +150,14 @@ describe('Testing /api/clients', () => {
          */
         test(`[TEST]: CREATE Client with overrun optional fields [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`,
             async () => {
+                console.log(`Starting test CREATE Client with overrun optional fields...`);
                 for (const field of Object.values(C_CLIENT.MUTABLE_COLUMNS)) {
                     const response = await request(app).post('/api/clients')
                         .send( buildTestClient( 'client', null, field ) );
 
-                    const body = await assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-                    if (body.client_id !== undefined) {
-                        clients.push(body.client_id);
+                    await assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
+                    if (response.body.clients) {
+                        clients.push(response.body.clients);
                     }
                 }
             });
@@ -179,6 +177,7 @@ describe('Testing /api/clients', () => {
          * @returns {Promise<void>}
          */
         test(`[TEST]: READ by default pagination [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
+            console.log(`Starting test READ by default pagination...`);
             const response = await request(app).get('/api/clients');
             await assertEqualReturn(response, C_HTTP.STATUS.OK);
         });
@@ -189,7 +188,8 @@ describe('Testing /api/clients', () => {
          * @returns {Promise<void>}
          */
         test(`[TEST] READ by ID [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
-            const response = await request(app).get(`/api/clients/${clients[0]}`);
+            console.log(`Starting test READ by ID...`);
+            const response = await request(app).get(`/api/clients/${clients[0].client_id}`);
             await assertEqual( response, C_HTTP.STATUS.OK, );
         });
 
@@ -198,7 +198,8 @@ describe('Testing /api/clients', () => {
          *
          * @returns {Promise<void>}
          */
-        test(`[TEST] READ all clients [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST] READ all Clients [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
+            console.log(`Starting test READ all Clients...`);
             const response = await request(app).get(`/api/clients?all=true`);
             await assertEqual( response, C_HTTP.STATUS.OK, );
         })
@@ -208,7 +209,8 @@ describe('Testing /api/clients', () => {
          *
          * @returns {Promise<void>}
          */
-        test(`[TEST] READ invalid ID [EXPECTED] status code ${C_HTTP.STATUS.NOT_FOUND} or ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+        test(`[TEST] READ by invalid ID [EXPECTED] status code ${C_HTTP.STATUS.NOT_FOUND} or ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            console.log(`Starting test READ by invalid ID...`);
             const response = await request(app).get(`/api/clients/00000000-0000-0000-0000-000000`);
             assert.equal(response.statusCode, C_HTTP.STATUS.BAD_REQUEST,
                 `Expected status code ${C_HTTP.STATUS.BAD_REQUEST}, got ${response.statusCode}`);
@@ -220,12 +222,16 @@ describe('Testing /api/clients', () => {
          * @returns {Promise<void>}
          */
         test(`[TEST]: READ search string [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
-            const response1 = await request(app).get(`/api/clients/${clients[0]}`);
-            const response2 = await request(app).get(`/api/clients?q=${response1.body.first_name}`);
+            console.log(`Starting test READ search string...`);
+            const client = await createTestClient(testSuiteName);
+            if ( client ) { clients.push(client); }
 
-            assert.equal(response2.statusCode, C_HTTP.STATUS.OK,)
-            assert.ok(response2.body.data.length > 0, true,
-                `Expected data to be non-empty, got ${response2.body.data.length} entries`);
+            const response = await request(app).get(`/api/clients?q=${client.first_name}`);
+
+            assert.equal(response.statusCode, C_HTTP.STATUS.OK,)
+            assert.equal(response.body.clients[0].first_name, client.first_name,
+                `Should return the created Client ${client.first_name}, 
+                the first returned client is ${JSON.stringify(response.body.clients[0].first_name)}`);
         });
 
         /**
@@ -234,11 +240,12 @@ describe('Testing /api/clients', () => {
          * @returns {Promise<void>}
          */
         test(`[TEST]: READ empty search [EXPECTED] status code ${C_HTTP.STATUS.OK} and data is empty`, async () => {
-                const response = await request(app).get('/api/clients?q=spiderman');
+            console.log(`Starting test READ empty search...`);
+            const response = await request(app).get('/api/clients?q=spiderman');
 
                 await assertEqual( response, C_HTTP.STATUS.OK,)
-                assert.ok(response.body.data.length === 0, true,
-                    `Expected data to be empty, got ${response.body.data.length} entries`);
+                assert.ok(response.body.clients.length === 0, 'Search for spiderman returned RESULTS?!?!?',
+                    `Expected data to be empty, got ${response.body.clients.length} entries`);
             }
         );
     });
@@ -256,7 +263,8 @@ describe('Testing /api/clients', () => {
          *
          * @returns {Promise<void>}
          */
-        test(`[TEST]: update client fields [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
+        test(`[TEST]: UPDATE Client fields [EXPECTED] status code ${C_HTTP.STATUS.OK}`, async () => {
+            console.log(`Starting test UPDATE Client fields...`);
             const testcases = [
                 {first_name: "TestClientUpdated"},
                 {middle_name: "Updated"},
@@ -281,7 +289,7 @@ describe('Testing /api/clients', () => {
                 {billing_country: "Updated"}
             ];
             for (const testcase of testcases) {
-                const response = await request(app).patch(`/api/clients/${clients[0]}`).send(testcase);
+                const response = await request(app).patch(`/api/clients/${clients[0].client_id}`).send(testcase);
                 assertEqual(response, C_HTTP.STATUS.OK,);
             }
         });
@@ -292,6 +300,7 @@ describe('Testing /api/clients', () => {
          * @returns {Promise<void>}
          */
         test(`[TEST]: Update with overrun data [EXPECTED]: status code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
+            console.log(`Starting test UPDATE with overrun data...`);
             const testcases = {
                 first_name: "C".repeat(C_CLIENT.MAX.FIRST_NAME + 1),
                 middle_name: "T".repeat(C_CLIENT.MAX.MIDDLE_NAME + 1),
@@ -321,7 +330,7 @@ describe('Testing /api/clients', () => {
                 console.log(`MAX Length: ${C_CLIENT.MAX[minMaxMap]}`);
                 console.log(`Sending length: ${testcases[testcase].length} for ${testcase}`);
 
-                const response = await request(app).patch(`/api/clients/${clients[0]}`)
+                const response = await request(app).patch(`/api/clients/${clients[0].client_id}`)
                     .send(
                         {
                             [testcase]: testcases[testcase]
@@ -346,9 +355,12 @@ describe('Testing /api/clients', () => {
          * @returns {Promise<void>}
          */
         test(`[TEST]: DELETE by ID [EXPECTED]: status code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
-            const response = await request(app).delete(`/api/clients/${clients[0]}`);
+            console.log(`Starting test DELETE by ID...`);
+
+            const response = await request(app).delete(`/api/clients/${clients[0].client_id}`);
+
             await assertEqual( response, C_HTTP.STATUS.NO_CONTENT );
-            console.log(`Deleted Client with ID: ${clients[0]}`);
+            console.log(`Deleted Client with ID: ${clients[0].client_id}`);
             clients.splice(0, 1);
         });
     });

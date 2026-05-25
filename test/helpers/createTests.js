@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const C_AUTH = require("../../utils/constants/cAuth");
+const C_CLIENT = require("../../utils/constants/cClients");
 const {query} = require("../../api/db");
 const {
     buildTestUser,
@@ -47,12 +48,12 @@ async function createTestUser( role, testSuiteName, missingField, overrunField )
     }
 }
 
-async function createTestClient( requiredColumns, testSuiteName, missingField, overrun ) {
+async function createTestClient( testSuiteName, missingField, overrun ) {
     const client = buildTestClient( testSuiteName, missingField, overrun );
-    console.log(`Test Client Object has been created`);
+    console.log(`Test Client Object has been created ${JSON.stringify(client, null, 2)}`);
 
     try {
-        const fields = [...Object.values(requiredColumns)];
+        const fields = [...Object.values(C_CLIENT.REQUIRED_COLUMNS)];
         const values = [];
         const params = [];
 

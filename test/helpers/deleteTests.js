@@ -36,7 +36,9 @@ async function deleteTestUsers( users, testSuiteName ) {
  */
 async function deleteTestClients( clients, testSuiteName ) {
     if ( clients.length > 0 ) {
+
         for ( const client of clients ) {
+            console.log( `DELETING client_id; ${JSON.stringify(client.client_id)}` );
             const sql = `
                 DELETE
                 FROM clients
@@ -45,6 +47,7 @@ async function deleteTestClients( clients, testSuiteName ) {
             `;
 
             const { rows } = await query(sql, [client.client_id]);
+            console.log( `RETURNING client_id; ${JSON.stringify(rows)}`);
             if ( rows.length === 0 ) {
                 throw new Error(`Failed to DELETE ${testSuiteName} Test Client ${client}`);
             }
