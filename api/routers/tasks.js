@@ -236,16 +236,20 @@ router.patch('/:id/timer/start',
 
         const { id } = req.params;
 
-        const isComplete = `SELECT completed_at FROM tasks WHERE task_id = $1;`;
+        const sql = `SELECT completed_at FROM tasks WHERE task_id = $1;`;
+        const {rows: isComplete} = await query(
+            sql,
+            [id]
+        );
 
         if (!isComplete[0]) {
-            const sql = `
-            UPDATE tasks
-            SET start_time = now(),
-                updated_at = now()
-            WHERE task_id = $1
-            RETURNING *;
-        `;
+                const sql = `
+                UPDATE tasks
+                SET start_time = now(),
+                    updated_at = now()
+                WHERE task_id = $1
+                RETURNING *;
+            `;
             const {rows} = await query(
                 sql,
                 [id]
@@ -253,7 +257,7 @@ router.patch('/:id/timer/start',
             return res.status(C_HTTP.STATUS.OK).json({task: rows[0]});
         } else {
             return res.status(C_HTTP.STATUS.BAD_REQUEST).json({
-                task: isComplete[0],
+                task: `completed_at: ${isComplete[0]}`,
                 message: 'This task is already in completed.',
             });
         }
