@@ -242,7 +242,7 @@ router.patch('/:id/timer/start',
             [id]
         );
 
-        if (!isComplete[0]) {
+        if (!isComplete[0].completed_at) {
                 const sql = `
                 UPDATE tasks
                 SET start_time = now(),
@@ -257,7 +257,7 @@ router.patch('/:id/timer/start',
             return res.status(C_HTTP.STATUS.OK).json({task: rows[0]});
         } else {
             return res.status(C_HTTP.STATUS.BAD_REQUEST).json({
-                task: `completed_at: ${isComplete[0]}`,
+                task: `completed_at: ${isComplete[0].completed_at}`,
                 message: 'This task is already in completed.',
             });
         }
