@@ -432,6 +432,11 @@ function projectFromApi(project) {
 }
 
 function taskFromApi(task) {
+    const totalTimeMinutes = Number(task.total_time ?? task.totalTime ?? 0) || 0;
+    const startTime = task.start_time || task.startTime || task.timerStartedAt;
+    const stopTime = task.stop_time || task.stopTime || task.last_stopped_at || task.lastStoppedAt;
+    const completedAt = task.completed_at || task.completedAt;
+
     return {
         id: task.task_id || task.id,
         backendId: task.task_id || task.id,
@@ -444,10 +449,10 @@ function taskFromApi(task) {
         dueDate: formatApiDateForDisplay(task.due_time || task.dueDate),
         priority: task.priority || "Normal",
         estimatedHours: Number(task.estimated_hours ?? task.estimatedHours ?? 0) || 0,
-        trackedSeconds: Number(task.tracked_seconds ?? task.trackedSeconds ?? task.totalTrackedSeconds ?? 0) || 0,
+        trackedSeconds: Number(task.tracked_seconds ?? task.trackedSeconds ?? task.totalTrackedSeconds ?? totalTimeMinutes * 60) || 0,
         status: task.status || "To-Do",
-        timerStartedAt: task.timerStartedAt || null,
-        lastStoppedAt: formatApiDateForDisplay(task.last_stopped_at || task.lastStoppedAt),
+        timerStartedAt: startTime && !stopTime && !completedAt ? new Date(startTime).getTime() : null,
+        lastStoppedAt: formatApiDateTimeForDisplay(stopTime || completedAt),
     };
 }
 
@@ -993,9 +998,32 @@ async function apiRequest(endpoint, options = {}) {
  */
 function unwrapApiPayload(payload) {
     if (Array.isArray(payload)) return payload;
-    if (payload?.data !== undefined) return payload.data;
-    if (payload?.items !== undefined) return payload.items;
-    return payload ?? [];
+    if (!payload || typeof payload !== "object") return payload ?? [];
+
+    if (payload.data !== undefined) return payload.data;
+    if (payload.items !== undefined) return payload.items;
+
+    const namedKeys = [
+        "projects",
+        "tasks",
+        "users",
+        "clients",
+        "images",
+        "assignments",
+        "employees",
+        "time_entries",
+        "timeEntries",
+        "task",
+        "project",
+        "user",
+        "client",
+    ];
+
+    for (const key of namedKeys) {
+        if (payload[key] !== undefined) return payload[key];
+    }
+
+    return payload;
 }
 
 const KPI_VALUE_KEYS = ["displayValue", "value", "count", "total", "result", "metricValue", "kpi", "data"];
@@ -1541,7 +1569,7 @@ const apiPlaceholders = {
         method: "DELETE",
     }),
     startTaskTimer: (taskId, startedAt, user) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}/timer/start`, {
-        method: "POST",
+        method: "PATCH",
         body: JSON.stringify({
             startedAt,
             userId: user?.id,
@@ -1550,7 +1578,7 @@ const apiPlaceholders = {
         }),
     }),
     stopTaskTimer: (taskId, timeEntry) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}/timer/stop`, {
-        method: "POST",
+        method: "PATCH",
         body: JSON.stringify(timeEntry),
     }),
 };
