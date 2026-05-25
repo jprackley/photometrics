@@ -106,9 +106,58 @@ async function deleteTestTasks( tasks, testSuiteName ) {
     }
 }
 
+async function deleteTestImages( images, testSuiteName ) {
+    if ( images.length > 0 ) {
+        for ( const image of images ) {
+            const sql = `
+                DELETE
+                FROM images
+                WHERE image_id = $1
+                RETURNING image_id;
+            `;
+
+            const { rows } = await query(sql, [image.image_id]);
+            if ( rows.length === 0 ) {
+                throw new Error(`Failed to DELETE ${testSuiteName} Test Image ${image}`);
+            }
+            console.log(`Test Image ID ${image} DELETED.`);
+        }
+        return 0;
+    } else {
+        console.log('No Test Image DELETED.');
+        return 0;
+    }
+}
+
+async function deleteTestTimeEntries( timeEntries, testSuiteName ) {
+    if (timeEntries.length > 0) {
+        for (const timeEntry of timeEntries) {
+            const sql = `
+                DELETE
+                FROM time_entries
+                WHERE time_entry_id = $1
+                RETURNING time_entry_id;
+            `;
+
+            const {rows} = await query(sql, [timeEntry.time_entry_id]);
+            if (rows.length === 0) {
+                throw new Error(`Failed to DELETE ${testSuiteName} Test Time Entry ${timeEntry}`);
+            }
+            console.log(`Test Time Entry ID ${timeEntry} DELETED.`);
+        }
+        return 0;
+    } else {
+        console.log('No Test Time Entry DELETED.');
+        return 0;
+    }
+}
+
+
 module.exports = {
     deleteTestUsers,
     deleteTestClients,
     deleteTestProjects,
     deleteTestTasks,
+    deleteTestImages,
+    deleteTestTimeEntries,
 };

@@ -22,7 +22,16 @@ function assertEqual(res, expected ) {
     )
 }
 
+function assertEqualQuery(resQuery, expectedQuery) {
+    assert.equal(
+        resQuery, expectedQuery,
+        `[EXPECTED] Query: ${expectedQuery}\n[ACTUAL] Query result: ${resQuery} \n 
+            ${JSON.stringify(resQuery, null, 2)}`
+    )
+}
+
 module.exports = {
     assertEqualReturn,
+    assertEqualQuery,
     assertEqual,
 };

@@ -2,6 +2,7 @@ const C_USER = require("../../utils/constants/cUsers");
 const C_CLIENT = require("../../utils/constants/cClients");
 const C_PROJECT = require("../../utils/constants/cProjects");
 const C_TASK = require("../../utils/constants/cTasks");
+const C_IMAGE = require("../../utils/constants/cImages");
 
 /**
  * Builds a User for test suites. Can define field to overrun or leave as an empty string.
@@ -160,7 +161,7 @@ function buildTestProject( testSuiteName, manager, client) {
     }
 }
 
-function buildTestTask (testSuiteName, project, manager, employee) {
+function buildTestTask( testSuiteName, project, manager, employee ) {
     try {
         return {
             project_id: project.project_id,
@@ -183,10 +184,39 @@ function buildTestTask (testSuiteName, project, manager, employee) {
         throw error;
     }
 }
+function buildTestImage( testSuiteName, project, task = null ) {
+    try {
+        return {
+            project_id: project.project_id,
+            task_id: task? task.task_id : null,
+            name: testSuiteName,
+            description: testSuiteName,
+            url: `www.example.${project.project_id}.com`,
+            status: C_IMAGE.STATUS.IN_PROGRESS,
+        }
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+}
+
+function buildTestTimeEntry( testSuiteName, task, employee ) {
+    try {
+        return {
+            task_id: task? task.task_id : null,
+            employee_id: employee ? employee.task_id : null,
+        }
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+}
 
 module.exports = {
     buildTestUser,
     buildTestClient,
     buildTestProject,
     buildTestTask,
+    buildTestImage,
+    buildTestTimeEntry,
 };
