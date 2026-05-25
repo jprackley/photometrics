@@ -95,7 +95,7 @@ router.post(
         `;
 
         const {rows} = await query(sql, params);
-        res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
+        res.status(C_HTTP.STATUS.CREATED).json({projects: rows[0]});
     })
 )
 //----------------------------------------------------------------------------------
@@ -146,7 +146,7 @@ router.get(
         if (all === 'true') {
             const sql = `SELECT * FROM projects`;
             const { rows } = await query(sql);
-            return res.json(rows);
+            return res.status(C_HTTP.STATUS.OK).json({projects: rows});
         }
 
         // Basic whitelist for sort fields to avoid SQL injection
@@ -185,7 +185,7 @@ router.get(
         const countSql = `SELECT count(*)::int AS total FROM projects ${where}`;
         const { rows: countRows } = await query(countSql, q ? [params[0]] : []);
 
-        res.json({ data: rows, page: Number(page), limit: Number(limit), total: countRows[0].total });
+        res.status(C_HTTP.STATUS.OK).json({ projects: rows, page: Number(page), limit: Number(limit), total: countRows[0].total });
     })
 );
 //----------------------------------------------------------------------------------
@@ -226,7 +226,7 @@ router.get(
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.NOT_FOUND } });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({projects: rows[0]});
     })
 );
 //----------------------------------------------------------------------------------
@@ -336,7 +336,7 @@ router.patch(
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.NOT_FOUND } });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({projects: rows[0]});
     })
 )
 //----------------------------------------------------------------------------------
@@ -373,7 +373,7 @@ router.delete(
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.NOT_FOUND } });
-        res.status(C_HTTP.STATUS.NO_CONTENT).send();
+        res.status(C_HTTP.STATUS.NO_CONTENT).json({projects: rows[0]});
     })
 )
 

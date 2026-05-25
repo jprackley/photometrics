@@ -153,7 +153,7 @@ router.post(
             VALUES (${values.join(', ')}) RETURNING *
         `;
         const {rows} = await query(sql, params);
-        res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
+        res.status(C_HTTP.STATUS.CREATED).json({clients: rows[0]});
     })
 );
 //----------------------------------------------------------------------------------
@@ -183,7 +183,7 @@ router.get(
         // If all is true, return all clients, Else return paginated results
         if (all === true) {
             const { rows } = await query('SELECT * FROM clients');
-            return res.json(rows);
+            res.status(C_HTTP.STATUS.OK).json({clients: rows});
         }
 
         // Basic whitelist for sort fields to avoid SQL injection
@@ -241,7 +241,7 @@ router.get(
         const countSql = `SELECT count(*)::int AS total FROM clients ${where}`;
         const { rows: countRows } = await query(countSql, q ? [params[0]] : []);
 
-        res.json({ data: rows, page: Number(page), limit: Number(limit), total: countRows[0].total });
+        res.status(C_HTTP.STATUS.OK).json({ clients: rows, page: Number(page), limit: Number(limit), total: countRows[0].total });
     })
 );
 //----------------------------------------------------------------------------------
@@ -258,7 +258,7 @@ router.get(
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.NOT_FOUND  } });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({clients: rows[0]});
     })
 );
 
@@ -405,7 +405,7 @@ router.patch(
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.NOT_FOUND  } });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({clients: rows[0]});
     })
 );
 
@@ -418,9 +418,9 @@ router.delete(
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE Client:id - ');
         const { id } = req.params;
-        const { rowCount } = await query('DELETE FROM clients WHERE client_id = $1 RETURNING *', [id]);
-        if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Client not found' } });
-        res.status(C_HTTP.STATUS.NO_CONTENT).send();
+        const { rows } = await query('DELETE FROM clients WHERE client_id = $1 RETURNING *', [id]);
+        if (rows === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({ error: { code: C_HTTP.MESSAGE.NOT_FOUND, message: 'Client not found' } });
+        res.status(C_HTTP.STATUS.NOT_FOUND).json({clients: rows[0]});
     })
 );
 module.exports = router;

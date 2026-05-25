@@ -7,6 +7,7 @@ const asyncHandler = require('../../handlers/asyncHandler');
 const { verbose } = require('../../handlers/expressHandlers');
 const {validationErrorHandler} = require("../../handlers/expressHandlers");
 const { query } = require("../../db");
+const C_HTTP = require("../../../utils/constants/cHTTP");
 
 router.get(
     '/active',
@@ -32,7 +33,7 @@ router.get(
             activeTasks.tasks = rows;
         }
 
-        res.json(activeTasks);
+        res.status(C_HTTP.STATUS.OK).json(activeTasks);
     })
 )
 router.get(

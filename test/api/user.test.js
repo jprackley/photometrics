@@ -41,9 +41,9 @@ describe('Testing /api/users', () => {
         console.log('[PRE] Creating Test Data...');
 
         const employee = await createTestUser(C_USER.ROLES.EMPLOYEE, 'users');
-        users.push( employee.user_id );
+        users.push( employee );
         const manager = await createTestUser(C_USER.ROLES.MANAGER, 'users');
-        users.push( manager.user_id );
+        users.push( manager );
     })
     /**
      * Removes users after the test suite runs.
@@ -64,7 +64,7 @@ describe('Testing /api/users', () => {
             const response = await request(app).post('/api/users').send( validUser );
             const body = assertEqualReturn(response, C_HTTP.STATUS.CREATED);
             if (body.user_id !== undefined) {
-                users.push(body.user_id);
+                users.push(body);
             }
         });
 
@@ -72,7 +72,7 @@ describe('Testing /api/users', () => {
 
             const response = await request(app).post('/api/users').send( validUser );
             const body = assertEqualReturn(response, C_HTTP.STATUS.INTERNAL_SERVER_ERROR);
-            if ( body.user_id !== undefined ) {users.push(body.user_id);}
+            if ( body.user_id !== undefined ) {users.push(body);}
         });
 
         test(`[TEST]: CREATE first name missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
@@ -81,7 +81,7 @@ describe('Testing /api/users', () => {
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.FIRST_NAME));
 
             const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-            if ( body.user_id !== undefined ) {users.push(body.user_id);}
+            if ( body.user_id !== undefined ) {users.push(body);}
         });
 
         test(`[TEST]: CREATE last name missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
@@ -90,7 +90,7 @@ describe('Testing /api/users', () => {
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.LAST_NAME,));
 
             const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-            if ( body.user_id !== undefined ) {users.push(body.user_id);}
+            if ( body.user_id !== undefined ) {users.push(body);}
         });
 
         test(`[TEST]: CREATE email missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
@@ -99,7 +99,7 @@ describe('Testing /api/users', () => {
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.EMAIL,));
 
             const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-            if ( body.user_id !== undefined ) {users.push(body.user_id);}
+            if ( body.user_id !== undefined ) {users.push(body);}
         });
 
         test(`[TEST]: CREATE password missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
@@ -108,7 +108,7 @@ describe('Testing /api/users', () => {
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.SECURE_COLUMNS.PASSWORD,));
 
             const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-            if ( body.user_id !== undefined ) {users.push(body.user_id);}
+            if ( body.user_id !== undefined ) {users.push(body);}
         });
 
         test(`[TEST]: CREATE role missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
@@ -117,7 +117,7 @@ describe('Testing /api/users', () => {
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.ROLE,));
 
             const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-            if ( body.user_id !== undefined ) {users.push(body.user_id);}
+            if ( body.user_id !== undefined ) {users.push(body);}
         });
         
     })
@@ -134,7 +134,7 @@ describe('Testing /api/users', () => {
 
         test(`[TEST]: valid id [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
 
-            const response = await request(app).get(`/api/users/${users[0]}`);
+            const response = await request(app).get(`/api/users/${users[0].user_id}`);
             assertEqual(response, C_HTTP.STATUS.OK);
         })
     })
@@ -143,31 +143,31 @@ describe('Testing /api/users', () => {
      */
     describe('[API]: UPDATE User', () => {
         test(`[TEST]: UPDATE first name [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
-            const response = await request(app).patch(`/api/users/${users[0]}`).send({
+            const response = await request(app).patch(`/api/users/${users[0].user_id}`).send({
                 first_name: "TestUserUpdated"
             });
             assertEqual(response, C_HTTP.STATUS.OK);
         })
         test(`[TEST]: UPDATE last name [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
-            const response = await request(app).patch(`/api/users/${users[0]}`).send({
+            const response = await request(app).patch(`/api/users/${users[0].user_id}`).send({
                 last_name: "UserUpdated"
             })
             assertEqual(response, C_HTTP.STATUS.OK);
         })
         test(`[TEST]: UPDATE email [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
-            const response = await request(app).patch(`/api/users/${users[0]}`).send({
+            const response = await request(app).patch(`/api/users/${users[0].user_id}`).send({
                 email: "whoops@update.com",
             })
             assertEqual(response, C_HTTP.STATUS.OK);
         })
         test(`[TEST]: UPDATE password [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
-            const response = await request(app).patch(`/api/users/${users[0]}`).send({
+            const response = await request(app).patch(`/api/users/${users[0].user_id}`).send({
                 password_hash: "new password"
             })
             assertEqual(response, C_HTTP.STATUS.OK);
         })
         test(`[TEST]: UPDATE role [EXPECTED]: Status Code ${C_HTTP.STATUS.OK}`, async () => {
-            const response = await request(app).patch(`/api/users/${users[0]}`).send({
+            const response = await request(app).patch(`/api/users/${users[0].user_id}`).send({
                 account_role: "Employee"
             })
             assertEqual(response, C_HTTP.STATUS.OK);
@@ -178,7 +178,7 @@ describe('Testing /api/users', () => {
      */
     describe('[API]: DELETE User', () => {
         test(`[TEST]: DELETE user [EXPECTED]: Status Code ${C_HTTP.STATUS.NO_CONTENT}`, async () => {
-            const response = await request(app).delete(`/api/users/${users[0]}`);
+            const response = await request(app).delete(`/api/users/${users[0].user_id}`);
             assertEqual(response, C_HTTP.STATUS.NO_CONTENT);
             users.splice(0, 1);
         })

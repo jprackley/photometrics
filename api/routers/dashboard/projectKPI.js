@@ -7,6 +7,7 @@ const asyncHandler = require('../../handlers/asyncHandler');
 const { verbose } = require('../../handlers/expressHandlers');
 const {validationErrorHandler} = require("../../handlers/expressHandlers");
 const { query } = require("../../db");
+const C_HTTP = require("../../../utils/constants/cHTTP");
 
 router.get(
     '/active',
@@ -32,7 +33,7 @@ router.get(
             activeProjects.projects = rows;
         }
 
-        res.json(activeProjects);
+        res.status(C_HTTP.STATUS.OK).json(activeProjects);
     })
 )
 router.get(
@@ -59,7 +60,7 @@ router.get(
             completedProjects.projects = rows;
         }
 
-        res.json(completedProjects);
+        res.status(C_HTTP.STATUS.OK).json(completedProjects);
     })
 )
 router.get(
@@ -86,7 +87,7 @@ router.get(
             remainingProjects.projects = rows;
         }
 
-        res.json(remainingProjects);
+        res.status(C_HTTP.STATUS.OK).json(remainingProjects);
     })
 )
 router.get(
@@ -110,7 +111,7 @@ router.get(
             totalProjects.projects = rows;
         }
 
-        res.json(totalProjects);
+        res.status(C_HTTP.STATUS.OK).json(totalProjects);
     })
 )
 

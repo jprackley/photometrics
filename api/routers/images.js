@@ -65,7 +65,7 @@ router.post(
         `;
 
         const {rows} = await query(sql, params);
-        res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
+        res.status(C_HTTP.STATUS.CREATED).json({images: rows[0]});
     })
 );
 //----------------------------------------------------------------------------------
@@ -90,7 +90,7 @@ router.get(
             });
         }
 
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({images: rows[0]});
     })
 );
 //----------------------------------------------------------------------------------
@@ -120,7 +120,7 @@ router.get(
         if (all === 'true') {
             const {rows} = await query(`SELECT *
                                         FROM tasks`);
-            return res.json(rows);
+            res.status(C_HTTP.STATUS.OK).json({images: rows});
         }
         const {offset} = buildPagination({page: Number(page), limit: Number(C_NODE.PAGINATE.LIMIT)});
 
@@ -159,7 +159,7 @@ router.get(
                           FROM images ${where}`;
         const {rows: countRows} = await query(countSql, q ? [params[0]] : []);
 
-        res.json({data: rows, page: Number(page), limit: Number(limit), total: countRows[0].total});
+        res.status(C_HTTP.STATUS.OK).json({images: rows, page: Number(page), limit: Number(limit), total: countRows[0].total});
     })
 );
 //----------------------------------------------------------------------------------
@@ -227,7 +227,7 @@ router.patch(
                     message: C_HTTP.MESSAGE.NOT_FOUND
                 }
         });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({images: rows[0]});
     })
 );
 //----------------------------------------------------------------------------------
@@ -241,9 +241,9 @@ router.delete(
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE Image - ');
         const {id} = req.params;
-        const {rowCount} = await query('DELETE FROM images WHERE image_id = $1 RETURNING *', [id]);
+        const {rows} = await query('DELETE FROM images WHERE image_id = $1 RETURNING *', [id]);
 
-        if (rowCount === 0) {
+        if (rows === 0) {
             return res.status(C_HTTP.STATUS.NOT_FOUND).json({
                 error: {
                     code: C_HTTP.CODE.NOT_FOUND,
@@ -251,7 +251,7 @@ router.delete(
                 },
             });
         }
-        res.status(C_HTTP.STATUS.NO_CONTENT).send();
+        res.status(C_HTTP.STATUS.NO_CONTENT).json({images: rows[0]});
     })
 );
 

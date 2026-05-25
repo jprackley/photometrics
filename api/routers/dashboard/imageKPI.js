@@ -7,6 +7,7 @@ const asyncHandler = require('../../handlers/asyncHandler');
 const { verbose } = require('../../handlers/expressHandlers');
 const {validationErrorHandler} = require("../../handlers/expressHandlers");
 const { query } = require("../../db");
+const C_HTTP = require("../../../utils/constants/cHTTP");
 
 router.get(
     '/active',
@@ -32,7 +33,7 @@ router.get(
             activeImages.images = rows;
         }
 
-        res.json(activeImages);
+        res.status(C_HTTP.STATUS.OK).json(activeImages);
     })
 )
 router.get(
@@ -59,7 +60,7 @@ router.get(
             completedImages.images = rows;
         }
 
-        res.json(completedImages);
+        res.status(C_HTTP.STATUS.OK).json(completedImages);
     })
 )
 router.get(
@@ -86,7 +87,7 @@ router.get(
             remainingImages.images = rows;
         }
 
-        res.json(remainingImages);
+        res.status(C_HTTP.STATUS.OK).json(remainingImages);
     })
 )
 router.get(
@@ -110,7 +111,7 @@ router.get(
             totalImages.images = rows;
         }
 
-        res.json(totalImages);
+        res.status(C_HTTP.STATUS.OK).json(totalImages);
     })
 )
 

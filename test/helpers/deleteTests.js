@@ -9,14 +9,14 @@ const {query} = require("../../api/db");
 async function deleteTestUsers( users, testSuiteName ) {
     if ( users.length > 0 ) {
        for ( const user of users ) {
-           const userSQL = `
+           const sql = `
                DELETE
                FROM users
                WHERE user_id = $1
                RETURNING user_id;
            `;
-           const userParam = [user];
-           const { rows } = await query(userSQL, userParam);
+
+           const { rows } = await query(sql, [user.user_id]);
            if ( rows.length === 0 ) {
                throw new Error(`Failed to DELETE ${testSuiteName} Test User ${user}`);
            }
@@ -37,14 +37,14 @@ async function deleteTestUsers( users, testSuiteName ) {
 async function deleteTestClients( clients, testSuiteName ) {
     if ( clients.length > 0 ) {
         for ( const client of clients ) {
-            const clientSQL = `
+            const sql = `
                 DELETE
                 FROM clients
                 WHERE client_id = $1
                 RETURNING client_id;
             `;
-            const clientParam = [client];
-            const { rows } = await query(clientSQL, clientParam);
+
+            const { rows } = await query(sql, [client.client_id]);
             if ( rows.length === 0 ) {
                 throw new Error(`Failed to DELETE ${testSuiteName} Test Client ${client}`);
             }
@@ -57,7 +57,55 @@ async function deleteTestClients( clients, testSuiteName ) {
     }
 }
 
+async function deleteTestProjects( projects, testSuiteName ) {
+    if ( projects.length > 0 ) {
+        for ( const project of projects ) {
+            const sql = `
+                DELETE
+                FROM projects
+                WHERE project_id = $1
+                RETURNING project_id;
+            `;
+
+            const { rows } = await query(sql, [project.project_id]);
+            if ( rows.length === 0 ) {
+                throw new Error(`Failed to DELETE ${testSuiteName} Test Project ${project}`);
+            }
+            console.log(`Test Project ID ${project} DELETED.`);
+        }
+        return 0;
+    } else {
+        console.log('No Test Projects DELETED.');
+        return 0;
+    }
+}
+
+async function deleteTestTasks( tasks, testSuiteName ) {
+    if ( tasks.length > 0 ) {
+        for ( const task of tasks ) {
+            const sql = `
+                DELETE
+                FROM tasks
+                WHERE task_id = $1
+                RETURNING task_id;
+            `;
+
+            const { rows } = await query(sql, [task.task_id]);
+            if ( rows.length === 0 ) {
+                throw new Error(`Failed to DELETE ${testSuiteName} Test Task ${task}`);
+            }
+            console.log(`Test Task ID ${task} DELETED.`);
+        }
+        return 0;
+    } else {
+        console.log('No Test Tasks DELETED.');
+        return 0;
+    }
+}
+
 module.exports = {
     deleteTestUsers,
-    deleteTestClients
+    deleteTestClients,
+    deleteTestProjects,
+    deleteTestTasks,
 };

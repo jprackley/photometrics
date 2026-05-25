@@ -49,7 +49,7 @@ router.post(
         const { rows } = await query(sql, params);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
             .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND}});
-        res.json(rows);
+        res.status(C_HTTP.STATUS.CREATED).json({settings: rows[0]});
     })
 );
 
@@ -67,7 +67,7 @@ router.get(
         const {rows } = await query(sql, [param]);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
             .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND}});
-        res.json(rows);
+        res.status(C_HTTP.STATUS.OK).json({settings: rows});
     })
 )
 
@@ -116,7 +116,7 @@ router.patch(
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND } });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({settings: rows[0]});
     })
 );
 
@@ -131,7 +131,7 @@ router.delete(
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND } });
-        res.status(C_HTTP.STATUS.NO_CONTENT).send();
+        res.status(C_HTTP.STATUS.NO_CONTENT).json({settings: rows[0]});
     })
     )
 module.exports = router;

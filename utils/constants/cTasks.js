@@ -37,6 +37,8 @@ const MUTABLE_COLUMNS = {
     STATUS: 'status',
     PROGRESS: 'progress',
     START: 'start_time',
+    STOP: 'stop_time',
+    TOTAL: 'total_time',
     DUE: 'due_time',
     COMPLETED: 'completed_at',
     ASSIGNED_TO: 'assigned_to',

@@ -157,7 +157,7 @@ router.post(
         if (settingsRows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
             .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND}});
 
-        res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
+        res.status(C_HTTP.STATUS.CREATED).json({users: rows[0], settings: settingsRows[0]});
     })
 );
 //----------------------------------------------------------------------------------
@@ -188,7 +188,7 @@ router.get(
         if (all === 'true') {
             const sql = `SELECT ${C_USER.SAFE_RETURN} FROM users`;
             const { rows } = await query(sql);
-            return res.json(rows);
+            return res.status(C_HTTP.STATUS.OK).json({users: rows});
         }
 
         //Sets up the pagination variables
@@ -244,7 +244,7 @@ router.get(
         const countSql = `SELECT count(*)::int AS total FROM users ${where}`;
         const { rows: countRows } = await query(countSql, q ? [params[0]] : []);
 
-        res.json({ data: rows, page: Number(page), limit: Number(limit), total: countRows[0].total });
+        res.status(C_HTTP.STATUS.OK).json({ data: rows, page: Number(page), limit: Number(limit), total: countRows[0].total });
     })
 );
 //----------------------------------------------------------------------------------
@@ -261,7 +261,7 @@ router.get(
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message:  C_HTTP.MESSAGE.NOT_FOUND } });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({users: rows[0]});
     })
 )
 //----------------------------------------------------------------------------------
@@ -312,7 +312,7 @@ router.patch(
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: MESSAGE.NOT_FOUND } });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({users: rows[0]});
     })
 )
 //----------------------------------------------------------------------------------
@@ -325,13 +325,13 @@ router.delete(
         validationErrorHandler(req, 'DELETE User - ');
         const { id } = req.params;
 
-        const { rowCount } = await query('DELETE FROM users WHERE user_id = $1 RETURNING *', [id]);
-        if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
+        const { rows } = await query('DELETE FROM users WHERE user_id = $1 RETURNING ${C_USER.SAFE_RETURN}', [id]);
+        if (rows === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.NOT_FOUND } });
 
-        res.status(C_HTTP.STATUS.NO_CONTENT).send();
+        res.status(C_HTTP.STATUS.NO_CONTENT).send({users: rows[0]});
     })
 )
 

@@ -46,7 +46,7 @@ router.post(
         `;
 
         const {rows} = await query(sql, params);
-        res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
+        res.status(C_HTTP.STATUS.CREATED).json({time_entries: rows[0]});
     })
 )
 //----------------------------------------------------------------------------------
@@ -65,7 +65,7 @@ router.get(
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.NOT_FOUND } });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({time_entries: rows[0]});
     })
 )
 //----------------------------------------------------------------------------------
@@ -96,7 +96,7 @@ router.get(
         if (all === 'true') {
             const sql = `SELECT * FROM time_entries`;
             const { rows } = await query(sql);
-            return res.json(rows);
+            return res.status(C_HTTP.STATUS.OK).json({time_entries: rows});
         }
 
         // Basic whitelist for sort fields to avoid SQL injection
@@ -133,7 +133,7 @@ router.get(
         const countSql = `SELECT count(*)::int AS total FROM time_entries ${where}`;
         const { rows: countRows } = await query(countSql, q ? [params[0]] : []);
 
-        res.json({ data: rows, page: Number(page), limit: Number(limit), total: countRows[0].total });
+        res.status(C_HTTP.STATUS.OK).json({ time_entries: rows, page: Number(page), limit: Number(limit), total: countRows[0].total });
     })
 )
 //----------------------------------------------------------------------------------
@@ -179,7 +179,7 @@ router.patch(
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.NOT_FOUND } });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({time_entries: rows[0]});
     })
 )
 //----------------------------------------------------------------------------------
@@ -191,9 +191,9 @@ router.delete(
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE Time Entry - ');
         const {id} = req.params;
-        const {rowCount} = await query('DELETE FROM time_entries WHERE time_entry_id = $1 RETURNING *', [id]);
-        if (rowCount === 0) return res.status(404).json({error: {code: 404, message: 'Time entry not found'}});
-        res.status(C_HTTP.STATUS.NO_CONTENT).send();
+        const {rows} = await query('DELETE FROM time_entries WHERE time_entry_id = $1 RETURNING *', [id]);
+        if (rows === 0) return res.status(404).json({error: {code: 404, message: 'Time entry not found'}});
+        res.status(C_HTTP.STATUS.NO_CONTENT).send({time_entries: rows[0]});
     })
 )
 module.exports = router;

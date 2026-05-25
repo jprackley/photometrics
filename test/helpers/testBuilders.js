@@ -1,5 +1,7 @@
 const C_USER = require("../../utils/constants/cUsers");
 const C_CLIENT = require("../../utils/constants/cClients");
+const C_PROJECT = require("../../utils/constants/cProjects");
+const C_TASK = require("../../utils/constants/cTasks");
 
 /**
  * Builds a User for test suites. Can define field to overrun or leave as an empty string.
@@ -128,4 +130,54 @@ function buildTestClient( testSuiteName,  missingField = null, overrunField = nu
     return client;
 }
 
-module.exports = {buildTestUser, buildTestClient};
+function buildTestProject( testSuiteName, manager, client) {
+
+    try {
+        return {
+            client_id: client.client_id ? client.client_id : null,
+            managed_by: manager.user_id ? manager.user_id : null,
+            project_name: testSuiteName,
+            description: testSuiteName,
+            status: C_PROJECT.STATUS.TODO,
+            priority: C_PROJECT.PRIORITY.NORMAL,
+            notes: testSuiteName,
+            start_time: new Date(Date.now()).toISOString(),
+            shoot_time: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(), //Adds 1 Week starts with ms
+            due_time: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString(),
+            completed_at: null
+        };
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+function buildTestTask (testSuiteName, project, manager, employee) {
+    try {
+        return {
+            project_id: project.project_id,
+            task_name: testSuiteName,
+            category: C_TASK.CATEGORY.EDIT,
+            priority: C_TASK.PRIORITY.NORMAL,
+            description: testSuiteName,
+            status: C_TASK.STATUS.TODO,
+            progress: 0,
+            start_time: null,
+            stop_time: null,
+            total_time: 0,
+            due_time: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
+            completed_at: null,
+            assigned_by: manager.user_id ? manager.user_id : null,
+            assigned_to: employee.user_id ? employee.user_id : null,
+        }
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+}
+
+module.exports = {
+    buildTestUser,
+    buildTestClient,
+    buildTestProject,
+    buildTestTask,
+};

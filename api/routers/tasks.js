@@ -67,7 +67,7 @@ router.post(
             RETURNING *
         `;
         const {rows} = await query(sql, params);
-        res.status(C_HTTP.STATUS.CREATED).json(rows[0]);
+        res.status(C_HTTP.STATUS.CREATED).json({tasks: rows[0]});
     })
 )
 
@@ -86,7 +86,7 @@ router.get('/:id',
                 message: 'Task ID not found'
             }
         });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({tasks: rows[0]});
     })
 )
 
@@ -112,7 +112,7 @@ router.get('/',
         if (all === 'true') {
             const {rows} = await query(`SELECT *
                                         FROM tasks`);
-            return res.json(rows);
+            return res.status(C_HTTP.STATUS.OK).json({tasks: rows});
         }
         const {offset} = buildPagination({page: Number(page), limit: Number(C_NODE.PAGINATE.LIMIT)});
 
@@ -152,7 +152,7 @@ router.get('/',
                           FROM tasks ${where}`;
         const {rows: countRows} = await query(countSql, q ? [params[0]] : []);
 
-        res.json({data: rows, page: Number(page), limit: Number(limit), total: countRows[0].total});
+        res.json({tasks: rows, page: Number(page), limit: Number(limit), total: countRows[0].total});
     })
 )
 
@@ -214,7 +214,7 @@ router.patch(
             SET ${set.join(', ')},
                 updated_at = now()
             WHERE task_id = $${params.length}
-            RETURNING *
+            RETURNING *;
         `;
         const {rows} = await query(sql, params);
         if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
@@ -223,10 +223,51 @@ router.patch(
                 message: C_HTTP.MESSAGE.NOT_FOUND
             }
         });
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({tasks: rows[0]});
     })
 )
 
+router.patch('/:id/timer/start',
+    [param('id').isUUID().withMessage('Invalid task UUID')],
+    asyncHandler(async (req, res) => {
+        validationErrorHandler(req, 'Start Task Timer - ');
+
+        const { id } = req.params;
+        const sql = `
+            UPDATE tasks
+            SET start_time = $1
+            WHERE task_id = $2
+            RETURNING *;
+        `;
+        const {rows} = await query(
+            sql,
+            [new Date(Date.now()).toISOString, id]
+        );
+        return res.status(C_HTTP.STATUS.OK).json({task: rows[0]});
+    })
+)
+
+router.patch('/:id/timer/stop',
+    [param('id').isUUID().withMessage('Invalid task UUID')],
+    asyncHandler(async (req, res) => {
+        validationErrorHandler(req, 'Stop Task Timer - ');
+
+        const { id } = req.params;
+        const sql = `
+            UPDATE tasks
+            SET 
+                stop_time = $1::TIMESTAMPTZ,
+                total_time = $1::TIMESTAMPTZ - start_time
+            WHERE task_id = $2
+            RETURNING *;
+        `;
+        const {rows} = await query(
+            sql,
+            [new Date(Date.now()).toISOString, id]
+        );
+        return res.status(C_HTTP.STATUS.OK).json({tasks: rows[0]});
+    })
+)
 //----------------------------------------------------------------------------------
 // DELETE Task:id
 //----------------------------------------------------------------------------------
@@ -238,14 +279,14 @@ router.delete(
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE Task:id - ');
         const {id} = req.params;
-        const {rowCount} = await query('DELETE FROM tasks WHERE task_id = $1 RETURNING *', [id]);
-        if (rowCount === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
+        const {rows} = await query('DELETE FROM tasks WHERE task_id = $1 RETURNING *', [id]);
+        if (rows === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
             error: {
                 code: C_HTTP.CODE.NOT_FOUND,
                 message: C_HTTP.MESSAGE.NOT_FOUND
             }
         });
-        res.status(C_HTTP.STATUS.NO_CONTENT).send();
+        res.status(C_HTTP.STATUS.NO_CONTENT).send({tasks: rows[0]});
     })
 )
 

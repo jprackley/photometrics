@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const C_HTTP = require('../../../utils/constants/cHTTP');
 
 const query = require("../../db").query;
 const asyncHandler = require("../../handlers/asyncHandler");
@@ -17,7 +18,7 @@ router.get('/',
         const { rows } = await query(sql, [C_USER.ROLES.EMPLOYEE]);
         if (rows.length === 0) return res.status(404).json({error: {code: 404, message: 'Employees not found'}});
 
-        res.json(rows);
+        res.status(C_HTTP.STATUS.OK).json({employees: rows});
    })
 )
 
@@ -32,7 +33,7 @@ router.get('/:id',
         `;
         const {rows} = await query(sql, [id]);
         if (rows.length === 0) return res.status(404).json({error: {code: 404, message: 'Employee not found'}});
-        res.json(rows[0]);
+        res.status(C_HTTP.STATUS.OK).json({employees: rows[0]});
     })
 )
 
