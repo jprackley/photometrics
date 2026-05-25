@@ -252,7 +252,10 @@ router.patch('/:id/timer/start',
             );
             return res.status(C_HTTP.STATUS.OK).json({task: rows[0]});
         } else {
-            return res.status(C_HTTP.STATUS.BAD_REQUEST).json({task: isComplete[0]});
+            return res.status(C_HTTP.STATUS.BAD_REQUEST).json({
+                task: isComplete[0],
+                message: 'This task is already in completed.',
+            });
         }
     })
 )
