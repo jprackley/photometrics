@@ -1,25 +1,19 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
-const C_HTTP = require("../../utils/constants/cHTTP");
 const C_AUTH = require("../../utils/constants/cAuth");
 const {query} = require("../db");
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-function publicUser(user) {
-    const result = {};
-    for (const key in user) {
-        if (key !== 'password_hash') result[key] = user[key];
-    }
-    return result;
-}
-
+//----------------------------------------------------------------------------------
+// JWT Services
+//----------------------------------------------------------------------------------
 function getJwtSecret() {
     return process.env.JWT_SECRET || (!isProduction ? 'photometrics-local-dev-secret' : null);
 }
 
-function createToken(user) {
+function createAccessToken(user) {
     const jwtSecret = getJwtSecret();
     if (!jwtSecret) return null;
 
@@ -31,7 +25,7 @@ function createToken(user) {
         },
         jwtSecret,
         {
-            expiresIn: process.env.JWT_EXPIRES_IN || '10m',
+            expiresIn: process.env.JWT_EXPIRES_IN || '2m',
         }
     );
 }
@@ -44,7 +38,7 @@ async function hashRefreshToken(refreshToken) {
     return await bcrypt.hash(refreshToken, C_AUTH.SALT_ROUNDS);
 }
 
-async function storeRefreshTokens( user, refreshTokenHash ) {
+async function storeRefreshToken( user, refreshTokenHash ) {
     await query(`
                     INSERT INTO user_refresh_tokens (
                         user_id,
@@ -54,6 +48,13 @@ async function storeRefreshTokens( user, refreshTokenHash ) {
                     VALUES ($1, $2, $3)
             `, [user.user_id, refreshTokenHash, new Date(Date.now() + C_AUTH.REFRESH_TOKEN_MAX_AGE_MS)]
     )
+}
+
+async function generateRefreshToken( user ) {
+    const refreshToken = await createRefreshToken();
+    const refreshTokenHash = await hashRefreshToken(refreshToken);
+    await storeRefreshToken( user, refreshTokenHash );
+    return refreshToken;
 }
 
 async function verifyRefreshToken( refreshToken, storedRefreshToken) {
@@ -70,6 +71,16 @@ async function getStoredRefreshToken( user ) {
     if (rows.length === 0) { return null; }
 
     return rows[0].token_hash;
+}
+//----------------------------------------------------------------------------------
+// PostgreSQL query services
+//----------------------------------------------------------------------------------
+function publicUser(user) {
+    const result = {};
+    for (const key in user) {
+        if (key !== 'password_hash') result[key] = user[key];
+    }
+    return result;
 }
 
 async function getUserByEmail(email) {
@@ -103,10 +114,8 @@ async function updateUserAsLoggedIn(user_id) {
 
 module.exports = {
     getUserByEmail,
-    createToken,
-    createRefreshToken,
-    hashRefreshToken,
-    storeRefreshTokens,
+    generateRefreshToken,
+    createAccessToken,
     verifyRefreshToken,
     getStoredRefreshToken,
     updateUserAsLoggedIn,

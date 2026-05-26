@@ -5,7 +5,7 @@ const {compare} = require("bcrypt");
 const C_AUTH = require("../../utils/constants/cAuth");
 const {
     getUserByEmail,
-    updateUserAsLoggedIn,
+    updateUserAsLoggedIn, generateRefreshToken, createAccessToken,
 } = require("../services/authService");
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -60,6 +60,17 @@ async function login(req, res) {
         }
 
         const updatedUser = await updateUserAsLoggedIn(user.user_id);
+
+        res.cookie(
+            'access_token',
+            createAccessToken(updatedUser),
+            accessCookieOptions
+        );
+        res.cookie(
+            'refresh_token',
+            generateRefreshToken(),
+            refreshCookieOptions
+        );
 
         return res.status(C_HTTP.STATUS.OK).json({ user: updatedUser });
     }
