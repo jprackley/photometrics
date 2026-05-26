@@ -11,6 +11,9 @@ router.post('/:id',
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'LOGOUT User - ');
 
+        res.clearCookie('token');
+        res.clearCookie('refresh_token');
+
         return logout(req, res);
     })
 )

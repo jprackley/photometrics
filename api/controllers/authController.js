@@ -1,111 +1,28 @@
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const C_HTTP = require("../../utils/constants/cHTTP");
-const C_AUTH = require("../../utils/constants/cAuth");
 const {query} = require("../db");
+const {compare} = require("bcrypt");
 
-const isProduction = process.env.NODE_ENV === 'production';
+async function login(req, res) {
 
-const accessCookieOptions = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    maxAge: C_AUTH.TOKEN_MAX_AGE_MS,
-};
+    const { email, password_hash } = req.body;
+    let rows;
 
-const refreshCookieOptions = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    maxAge: C_AUTH.REFRESH_TOKEN_MAX_AGE_MS,
-};
-
-function getJwtSecret() {
-    return process.env.JWT_SECRET || (!isProduction ? 'photometrics-local-dev-secret' : null);
-}
-
-function publicUser(user) {
-    const result = {};
-    for (const key in user) {
-        if (key !== 'password_hash') result[key] = user[key];
-    }
-    return result;
-}
-
-function createToken(user) {
-    const jwtSecret = getJwtSecret();
-    if (!jwtSecret) return null;
-
-    return jwt.sign(
-        {
-            user_id: user.user_id,
-            email: user.email,
-            account_role: user.account_role,
-        },
-        jwtSecret,
-        {
-            expiresIn: process.env.JWT_EXPIRES_IN || '10m',
-        }
-    );
-}
-
-function createRefreshToken() {
-    return crypto.randomBytes(64).toString('hex');
-}
-
-function hashRefreshToken(refreshToken) {
-    return crypto
-        .createHash('sha256')
-        .update(refreshToken)
-        .digest('hex');
-}
-
-async function login(res, user, authMode = 'database') {
-    const accessToken = createToken(user);
-    const refreshToken = createRefreshToken();
-    const refreshTokenHash = hashRefreshToken(refreshToken);
-
-    //A catch to ensure the production enviroment is generating tokens.
-    if (!accessToken && !refreshTokenHash && process.env.NODE_ENV === 'production') {
-        return res.status(C_HTTP.STATUS.INTERNAL_SERVER_ERROR).json({
-            error: {
-                code: C_HTTP.CODE.INTERNAL_SERVER_ERROR || 500,
-                message: 'Login is not configured. Set JWT_SECRET in the server environment.',
-            },
-        });
-    }
-
+    //Attempt to retieve the user from the database.
     try {
-        //Attempts to put the refresh token in the database.
-        await query(`
-                    INSERT INTO user_refresh_tokens (
-                        user_id,
-                        token_hash,
-                        expires_at
-                    )
-                    VALUES ($1, $2, $3)
-            `, [user.user_id, refreshTokenHash, new Date(Date.now() + C_AUTH.REFRESH_TOKEN_MAX_AGE_MS)]
-        )
-        //Attempts to update the user as logged in.
+        const result = await query(
+            `
+                SELECT *
+                FROM users
+                WHERE email = $1
+                `,
+            [email]
+        );
+        rows = result.rows;
+    }
 
-        const { rows } = await query(`
-            UPDATE users
-            SET last_login = now(),
-                is_active = true
-            WHERE user_id = $1
-            RETURNING
-                user_id,
-                first_name,
-                last_name,
-                email,
-                account_role,
-                is_active,
-                last_login
-        `, [user.user_id]);
-
-        user = rows[0];
-
-    } catch (dbError) {
+    //Catches an error passed from the database or the pool connection.
+    catch ( dbError ) {
         console.warn( C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR, dbError.message );
         return res.status( C_HTTP.STATUS.INTERNAL_SERVER_ERROR ).json({
             error: {
@@ -113,10 +30,31 @@ async function login(res, user, authMode = 'database') {
                 message: C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR }
         });
     }
-    console.log(`[LOGIN] User ${user.email} has logged in.`);
-    res.cookie('token', accessToken, accessCookieOptions);
-    res.cookie('refresh_token', refreshToken, refreshCookieOptions);
-    return res.json({ user, authMode });
+
+    //Verify if the database responded with a matched user.
+    if (rows.length === 0) {
+        console.warn( C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED );
+        return res.status( C_HTTP.STATUS.UNAUTHORIZED ).json({
+            error: {
+                code: C_HTTP.CODE.UNAUTHORIZED,
+                message: C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED }
+        });
+    }
+
+    //Verifies the password provided by the user.
+    const passwordMatches = await compare(
+        password_hash,
+        rows[0].password_hash
+    );
+
+    if (!passwordMatches) {
+        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
+            error: {
+                code: C_HTTP.CODE.UNAUTHORIZED,
+                message: C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED,
+            },
+        });
+    }
 }
 
 async function logout(req, res) {
@@ -139,16 +77,14 @@ async function logout(req, res) {
 
         if (rows.length === 0) {
             console.warn(`[LOGOUT] User ${id} logout query failed to return row.`);
-            return res.status(C_HTTP.STATUS.NOT_FOUND).json({
+            return res.status(C_HTTP.STATUS.INTERNAL_SERVER_ERROR).json({
                 error: {
-                    code: C_HTTP.CODE.NOT_FOUND,
-                    message: C_HTTP.MESSAGE.LOGOUT.NOT_FOUND
+                    code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
+                    message: C_HTTP.MESSAGE.LOGOUT.INTERNAL_SERVER_ERROR
                 }
             });
         }
         console.log(`[LOGOUT] User ${rows[0].email} has logged out.`);
-        res.clearCookie('token');
-        res.clearCookie('refresh_token');
         return res.status(C_HTTP.STATUS.OK).json({ user: rows[0] });
 
     } catch (error) {
@@ -162,7 +98,72 @@ async function logout(req, res) {
     }
 }
 
+async function refresh(req, res) {
+
+    const refreshToken = req.cookies?.refresh_token;
+    //Verify if the refresh token is present in the request.
+    if (!refreshToken) {
+        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
+            error: {
+                code: C_HTTP.CODE.UNAUTHORIZED,
+                message: 'Refresh token is required'
+            }
+        });
+    }
+
+    let decodedToken;
+
+    try {
+        decodedToken = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    } catch (error) {
+        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
+            error: {
+                code: C_HTTP.CODE.UNAUTHORIZED,
+                message: 'Invalid or expired refresh token'
+            }
+        });
+    }
+
+    const sql = `
+        SELECT user_id, email, account_role
+        FROM users
+        WHERE user_id = $1;
+    `;
+
+    const {rows} = await query(sql, [decodedToken.user_id]);
+
+    if (rows.length === 0) {
+        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
+            error: {
+                code: C_HTTP.CODE.UNAUTHORIZED,
+                message: 'User no longer exists'
+            }
+        });
+    }
+
+    const user = rows[0];
+
+    const newAccessToken = jwt.sign(
+        {
+            user_id: user.user_id,
+            email: user.email,
+            account_role: user.account_role
+        },
+        process.env.JWT_SECRET,
+        {
+            expiresIn: process.env.JWT_EXPIRES_IN || '15m'
+        }
+    );
+
+    res.cookie('token', newAccessToken, accessCookieOptions);
+
+    return res.status(C_HTTP.STATUS.OK).json({
+        message: 'Access token refreshed'
+    });
+}
+
 module.exports = {
     login,
-    logout
+    logout,
+    refresh,
     }
