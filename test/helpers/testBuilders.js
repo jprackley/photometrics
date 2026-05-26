@@ -202,9 +202,12 @@ function buildTestImage( testSuiteName, project, task = null ) {
 
 function buildTestTimeEntry( testSuiteName, task, employee ) {
     try {
+        console.log(JSON.stringify(task));
+        console.log(JSON.stringify(employee));
         return {
-            task_id: task? task.task_id : null,
-            employee_id: employee ? employee.task_id : null,
+            task_id: task.task_id? task.task_id : null,
+            employee_id: employee.user_id? employee.user_id : null,
+            start_time: new Date(Date.now()).toISOString(),
         }
     } catch (error) {
         console.log(error);

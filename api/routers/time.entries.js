@@ -17,8 +17,8 @@ router.post(
         body('task_id').isUUID().withMessage('Invalid task_id UUID'),
         body('employee_id').isUUID().withMessage('Invalid employee_id UUID'),
         body('start_time').isISO8601().withMessage('Invalid start time format'),
-        body('end_time').isISO8601().withMessage('Invalid end time format'),
-        body('total_time').isDecimal().withMessage('Invalid duration format'),
+        body('end_time').optional({values: "falsy"}).isISO8601().withMessage('Invalid end time format'),
+        body('total_time').optional({values: "falsy"}).isDecimal().withMessage('Invalid duration format'),
     ],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'CREATE Time Entry - ');

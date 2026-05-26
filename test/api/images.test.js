@@ -38,7 +38,7 @@ describe('[API] /api/images', () => {
         if ( euser ) { users.push(euser); }
         // Create Manager User
         const muser = await createTestUser( C_USER.ROLES.MANAGER, testSuiteName );
-        if ( muser ) { users.push(euser); }
+        if ( muser ) { users.push(muser); }
         // Create Client
         const client = await createTestClient( testSuiteName);
         if ( client ) { clients.push(client); }
@@ -132,7 +132,7 @@ describe('[API] /api/images', () => {
         test(`[TEST] Read Images by Search [EXPECTED] Status Code ${C_HTTP.STATUS.OK}`, async () => {
 
             console.log(`Starting test READ Images by Search...`);
-            const response = await request(app).get('/api/images?q=test_image_001');
+            const response = await request(app).get(`/api/images?q=${testSuiteName}`);
 
             assertEqual(response, C_HTTP.STATUS.OK);
             assert.ok(response.body.images.length > 0,

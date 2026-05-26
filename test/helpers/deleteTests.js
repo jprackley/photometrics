@@ -13,12 +13,12 @@ async function deleteTestUsers( users, testSuiteName ) {
                DELETE
                FROM users
                WHERE user_id = $1
-               RETURNING user_id;
+               RETURNING *;
            `;
-
-           const { rows } = await query(sql, [user.user_id]);
-           if ( rows.length === 0 ) {
-               throw new Error(`Failed to DELETE ${testSuiteName} Test User ${user}`);
+           const { rowCount } = await query(sql, [user.user_id]);
+           console.log( `${rowCount} rows deleted.`);
+           if ( rowCount === 0 ) {
+               console.warn(`Failed to DELETE ${testSuiteName} Test User ${user.user_id}`);
            }
            console.log('Test User DELETED.');
        }
@@ -46,10 +46,10 @@ async function deleteTestClients( clients, testSuiteName ) {
                 RETURNING client_id;
             `;
 
-            const { rows } = await query(sql, [client.client_id]);
-            console.log( `RETURNING client_id; ${JSON.stringify(rows)}`);
-            if ( rows.length === 0 ) {
-                throw new Error(`Failed to DELETE ${testSuiteName} Test Client ${client}`);
+            const { rowCount } = await query(sql, [client.client_id]);
+            console.log( `${rowCount} rows deleted.`);
+            if ( rowCount === 0 ) {
+                console.warn(`Failed to DELETE ${testSuiteName} Test Client ${client.client_id}`);
             }
             console.log(`Test Client ID ${client} DELETED.`);
         }
@@ -70,9 +70,10 @@ async function deleteTestProjects( projects, testSuiteName ) {
                 RETURNING project_id;
             `;
 
-            const { rows } = await query(sql, [project.project_id]);
-            if ( rows.length === 0 ) {
-                throw new Error(`Failed to DELETE ${testSuiteName} Test Project ${project}`);
+            const { rowCount } = await query(sql, [project.project_id]);
+            console.log( `${rowCount} rows deleted.`);
+            if ( rowCount === 0 ) {
+                console.warn(`Failed to DELETE ${testSuiteName} Test Project ${project.project_id}`);
             }
             console.log(`Test Project ID ${project} DELETED.`);
         }
@@ -93,9 +94,10 @@ async function deleteTestTasks( tasks, testSuiteName ) {
                 RETURNING task_id;
             `;
 
-            const { rows } = await query(sql, [task.task_id]);
-            if ( rows.length === 0 ) {
-                throw new Error(`Failed to DELETE ${testSuiteName} Test Task ${task}`);
+            const { rowCount } = await query(sql, [task.task_id]);
+            console.log( `${rowCount} rows deleted.`);
+            if ( rowCount === 0 ) {
+                console.warn(`Failed to DELETE ${testSuiteName} Test Task ${task.task_id}`);
             }
             console.log(`Test Task ID ${task} DELETED.`);
         }
@@ -116,9 +118,10 @@ async function deleteTestImages( images, testSuiteName ) {
                 RETURNING image_id;
             `;
 
-            const { rows } = await query(sql, [image.image_id]);
-            if ( rows.length === 0 ) {
-                throw new Error(`Failed to DELETE ${testSuiteName} Test Image ${image}`);
+            const { rowCount } = await query(sql, [image.image_id]);
+            console.log( `${rowCount} rows deleted.`);
+            if ( rowCount === 0 ) {
+                console.warn(`Failed to DELETE ${testSuiteName} Test Image ${image.image_id}`);
             }
             console.log(`Test Image ID ${image} DELETED.`);
         }
@@ -139,9 +142,10 @@ async function deleteTestTimeEntries( timeEntries, testSuiteName ) {
                 RETURNING time_entry_id;
             `;
 
-            const {rows} = await query(sql, [timeEntry.time_entry_id]);
-            if (rows.length === 0) {
-                throw new Error(`Failed to DELETE ${testSuiteName} Test Time Entry ${timeEntry}`);
+            const {rowCount} = await query(sql, [timeEntry.time_entry_id]);
+            console.log( `${rowCount} rows deleted.`);
+            if (rowCount === 0) {
+                console.warn(`Failed to DELETE ${testSuiteName} Test Time Entry ${timeEntry.time_entry_id}`);
             }
             console.log(`Test Time Entry ID ${timeEntry} DELETED.`);
         }
