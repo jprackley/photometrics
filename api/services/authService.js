@@ -71,3 +71,43 @@ async function getStoredRefreshToken( user ) {
 
     return rows[0].token_hash;
 }
+
+async function getUserByEmail(email) {
+    const { rows } = await query(
+        `
+        SELECT *
+        FROM users
+        WHERE email = $1;
+        `,
+        [email]
+    );
+
+    if (rows.length === 0) {
+        return null;
+    }
+
+    return rows[0];
+}
+
+async function updateUserAsLoggedIn(user_id) {
+    const {rows} = await query(`
+        UPDATE users
+        SET last_login = NOW(),
+            is_active  = true
+        WHERE user_id = $1
+        RETURNING *
+    `, [user_id]);
+
+    return publicUser( rows[0] ) || null;
+}
+
+module.exports = {
+    getUserByEmail,
+    createToken,
+    createRefreshToken,
+    hashRefreshToken,
+    storeRefreshTokens,
+    verifyRefreshToken,
+    getStoredRefreshToken,
+    updateUserAsLoggedIn,
+    }

@@ -70,7 +70,7 @@ describe('Testing /api/login', () => {
                 });
             assertEqual(response, C_HTTP.STATUS.OK);
             assert.equal(response.body.user.is_active, true,
-                `Expected isActive true, got ${response.body.is_active}`);
+                `Expected isActive true, got ${response.body.user.is_active}`);
             assert.equal(response.body.user.user_id, testUserId,
                 `Expected user_id ${testUserId}, got ${response.body.user.user_id}`);
             assert.equal(response.body.user.first_name, testUser.first_name,

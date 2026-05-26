@@ -3,6 +3,10 @@ const C_HTTP = require("../../utils/constants/cHTTP");
 const {query} = require("../db");
 const {compare} = require("bcrypt");
 const C_AUTH = require("../../utils/constants/cAuth");
+const {
+    getUserByEmail,
+    updateUserAsLoggedIn,
+} = require("../services/authService");
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -25,19 +29,39 @@ const refreshCookieOptions = {
 async function login(req, res) {
 
     const { email, password_hash } = req.body;
-    let rows;
 
     //Attempt to retieve the user from the database.
     try {
-        const result = await query(
-            `
-                SELECT *
-                FROM users
-                WHERE email = $1
-                `,
-            [email]
+        const user = await getUserByEmail( email );
+
+        //Verify if the database responded with a matched user.
+        if (!user) {
+            console.warn( C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED );
+            return res.status( C_HTTP.STATUS.UNAUTHORIZED ).json({
+                error: {
+                    code: C_HTTP.CODE.UNAUTHORIZED,
+                    message: C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED }
+            });
+        }
+
+        //Verifies the password provided by the user.
+        const passwordMatches = await compare(
+            password_hash,
+            user.password_hash
         );
-        rows = result.rows;
+
+        if (!passwordMatches) {
+            return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
+                error: {
+                    code: C_HTTP.CODE.UNAUTHORIZED,
+                    message: C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED,
+                },
+            });
+        }
+
+        const updatedUser = await updateUserAsLoggedIn(user.user_id);
+
+        return res.status(C_HTTP.STATUS.OK).json({ user: updatedUser });
     }
 
     //Catches an error passed from the database or the pool connection.
@@ -49,32 +73,6 @@ async function login(req, res) {
                 message: C_HTTP.MESSAGE.LOGIN.INTERNAL_SERVER_ERROR }
         });
     }
-
-    //Verify if the database responded with a matched user.
-    if (rows.length === 0) {
-        console.warn( C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED );
-        return res.status( C_HTTP.STATUS.UNAUTHORIZED ).json({
-            error: {
-                code: C_HTTP.CODE.UNAUTHORIZED,
-                message: C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED }
-        });
-    }
-
-    //Verifies the password provided by the user.
-    const passwordMatches = await compare(
-        password_hash,
-        rows[0].password_hash
-    );
-
-    if (!passwordMatches) {
-        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
-            error: {
-                code: C_HTTP.CODE.UNAUTHORIZED,
-                message: C_HTTP.MESSAGE.LOGIN.UNAUTHORIZED,
-            },
-        });
-    }
-    return res.status(C_HTTP.STATUS.OK).json({ user: rows[0] });
 }
 
 async function logout(req, res) {
