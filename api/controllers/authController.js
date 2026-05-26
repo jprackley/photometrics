@@ -60,15 +60,17 @@ async function login(req, res) {
         }
 
         const updatedUser = await updateUserAsLoggedIn(user.user_id);
+        const accessToken = createAccessToken(updatedUser);
+        const refreshToken = await generateRefreshToken(updatedUser);
 
         res.cookie(
             'access_token',
-            createAccessToken(updatedUser),
+            accessToken,
             accessCookieOptions
         );
         res.cookie(
             'refresh_token',
-            generateRefreshToken(),
+            refreshToken,
             refreshCookieOptions
         );
 
