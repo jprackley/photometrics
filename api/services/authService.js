@@ -1,13 +1,16 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
+
 const C_AUTH = require("../../utils/constants/cAuth");
+const C_HTTP = require("../../utils/constants/cHTTP");
+
 const {query} = require("../db");
 
 const isProduction = process.env.NODE_ENV === 'production';
 
 //----------------------------------------------------------------------------------
-// JWT Services
+// JWT Access Token Services
 //----------------------------------------------------------------------------------
 function getJwtSecret() {
     return process.env.JWT_SECRET || (!isProduction ? 'photometrics-local-dev-secret' : null);
@@ -30,6 +33,27 @@ function createAccessToken(user) {
     );
 }
 
+function verifyAccessToken( accessToken ) {
+    try {
+        return jwt.verify(accessToken, process.env.JWT_SECRET);
+    } catch (error) {
+        return null;
+    }
+}
+
+function verifyAccessTokenExpired( accessToken ) {
+    try {
+        return jwt.verify(accessToken, process.env.JWT_SECRET, {
+            ignoreExpiration: true
+        });
+    } catch (error) {
+        return null;
+    }
+}
+
+//----------------------------------------------------------------------------------
+// JWT Refresh Token Services
+//----------------------------------------------------------------------------------
 function createRefreshToken() {
     return crypto.randomBytes(64).toString('hex');
 }
@@ -61,17 +85,21 @@ async function verifyRefreshToken( refreshToken, storedRefreshToken) {
     return await bcrypt.compare(refreshToken, storedRefreshToken);
 }
 
-async function getStoredRefreshToken( user ) {
+async function getStoredRefreshTokenHash( user ) {
     const { rows } = await query(`
         SELECT token_hash
         FROM user_refresh_tokens
         WHERE user_id = $1
-    `, [ user.user_id ]);
+          AND revoked_at IS NULL
+          AND expires_at > NOW();
+    `,
+        [ user.user_id ]);
 
     if (rows.length === 0) { return null; }
 
     return rows[0].token_hash;
 }
+
 //----------------------------------------------------------------------------------
 // PostgreSQL query services
 //----------------------------------------------------------------------------------
@@ -116,7 +144,8 @@ module.exports = {
     getUserByEmail,
     generateRefreshToken,
     createAccessToken,
-    verifyRefreshToken,
-    getStoredRefreshToken,
+    verifyAccessToken,
+    verifyAccessTokenExpired,
+    getStoredRefreshTokenHash,
     updateUserAsLoggedIn,
     }
