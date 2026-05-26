@@ -131,66 +131,6 @@ async function logout(req, res) {
 
 async function refresh(req, res) {
 
-    const refreshToken = req.cookies?.refresh_token;
-    //Verify if the refresh token is present in the request.
-    if (!refreshToken) {
-        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
-            error: {
-                code: C_HTTP.CODE.UNAUTHORIZED,
-                message: 'Refresh token is required'
-            }
-        });
-    }
-
-    let decodedToken;
-
-    try {
-        decodedToken = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    } catch (error) {
-        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
-            error: {
-                code: C_HTTP.CODE.UNAUTHORIZED,
-                message: 'Invalid or expired refresh token'
-            }
-        });
-    }
-
-    const sql = `
-        SELECT user_id, email, account_role
-        FROM users
-        WHERE user_id = $1;
-    `;
-
-    const {rows} = await query(sql, [decodedToken.user_id]);
-
-    if (rows.length === 0) {
-        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
-            error: {
-                code: C_HTTP.CODE.UNAUTHORIZED,
-                message: 'User no longer exists'
-            }
-        });
-    }
-
-    const user = rows[0];
-
-    const newAccessToken = jwt.sign(
-        {
-            user_id: user.user_id,
-            email: user.email,
-            account_role: user.account_role
-        },
-        process.env.JWT_SECRET,
-        {
-            expiresIn: process.env.JWT_EXPIRES_IN || '15m'
-        }
-    );
-
-    res.cookie('token', newAccessToken, accessCookieOptions);
-
-    return res.status(C_HTTP.STATUS.OK).json({
-        message: 'Access token refreshed'
-    });
 }
 
 module.exports = {
