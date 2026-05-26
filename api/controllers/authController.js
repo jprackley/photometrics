@@ -22,7 +22,7 @@ const refreshCookieOptions = {
     httpOnly: true,
     secure: isProduction,
     sameSite: 'lax',
-    path: '/api/auth/refresh',
+    path: '/',
     maxAge: C_AUTH.REFRESH_TOKEN_MAX_AGE_MS,
 };
 
