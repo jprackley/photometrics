@@ -16,9 +16,7 @@ router.post(
     asyncHandler(async ( req, res ) => {
         validationErrorHandler( req, 'LOGIN User - ');
 
-        res = await login(req, res);
-
-        return res;
+        return await login(req, res);
     })
 );
 
