@@ -13,6 +13,7 @@ const {query} = require("../db");
 const C_HTTP = require("../../utils/constants/cHTTP");
 const C_NODE = require("../../utils/constants/cNodeServer");
 const C_PROJECT = require("../../utils/constants/cProjects");
+const {verifyAuthentication} = require("../middleware/verifyAuthentication");
 
 
 //----------------------------------------------------------------------------------
@@ -43,6 +44,7 @@ const C_PROJECT = require("../../utils/constants/cProjects");
  */
 router.post(
     '/',
+    verifyAuthentication,
     [
         body('client_id').optional({ values: 'null' }).isUUID().withMessage('Invalid client ID format'),
         body('managed_by').optional({ values: 'null' }).isUUID().withMessage('Invalid user ID format'),
