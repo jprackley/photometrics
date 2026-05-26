@@ -2,6 +2,23 @@ const jwt = require('jsonwebtoken');
 const C_HTTP = require("../../utils/constants/cHTTP");
 const {query} = require("../db");
 const {compare} = require("bcrypt");
+const C_AUTH = require("../../utils/constants/cAuth");
+
+const accessCookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: C_AUTH.TOKEN_MAX_AGE_MS,
+};
+
+const refreshCookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    path: '/api/auth/refresh',
+    maxAge: C_AUTH.REFRESH_TOKEN_MAX_AGE_MS,
+};
 
 async function login(req, res) {
 
@@ -55,6 +72,7 @@ async function login(req, res) {
             },
         });
     }
+    return res.status(C_HTTP.STATUS.OK).json({ users: rows[0] });
 }
 
 async function logout(req, res) {

@@ -7,22 +7,6 @@ const {query} = require("../db");
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-const accessCookieOptions = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: C_AUTH.TOKEN_MAX_AGE_MS,
-};
-
-const refreshCookieOptions = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    path: '/api/auth/refresh',
-    maxAge: C_AUTH.REFRESH_TOKEN_MAX_AGE_MS,
-};
-
 function publicUser(user) {
     const result = {};
     for (const key in user) {
