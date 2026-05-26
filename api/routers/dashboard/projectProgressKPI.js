@@ -17,9 +17,8 @@ router.get(
             FROM project_progress_view;
         `;
         const {rows } = await query(sql);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.PROJECTS_PROGRESS.NOT_FOUND}});
-        res.status(C_HTTP.STATUS.OK).json(rows);
+
+        res.status(C_HTTP.STATUS.OK).json({project_progress: rows});
     }));
 
 router.get(
@@ -34,9 +33,8 @@ router.get(
             WHERE project_id = $1;
         `;
         const {rows } = await query(sql, [param]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.PROJECTS_PROGRESS.NOT_FOUND}});
-        res.status(C_HTTP.STATUS.OK).json(rows);
+
+        res.status(C_HTTP.STATUS.OK).json({project_progress: rows});
     }));
 
 module.exports = router;

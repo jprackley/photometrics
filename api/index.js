@@ -40,6 +40,15 @@ app.use('/api/dashboard/workflow', require('./routers/dashboard/workflowKPI'));
 app.use('/api/dashboard/employee-activity', require('./routers/dashboard/employeeActivityKPI'));
 app.use('/api/dashboard/project-progress', require('./routers/dashboard/projectProgressKPI'));
 
+// 404 handler goes after all routes
+app.use((req, res) => {
+    res.status(C_HTTP.STATUS.NOT_FOUND).json({
+        error: {
+            code: C_HTTP.CODE.NOT_FOUND,
+            message: `Route not found: ${req.method} ${req.originalUrl}`
+        }
+    });
+});
 
 // Error handler MUST BE LAST
 app.use((err, req, res, next) => {
