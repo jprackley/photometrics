@@ -18,7 +18,7 @@ router.get(
         `;
         const {rows } = await query(sql);
 
-        res.status(C_HTTP.STATUS.OK).json({project_progress: rows});
+        res.status(C_HTTP.STATUS.OK).json(rows);
     }));
 
 router.get(
@@ -34,7 +34,7 @@ router.get(
         `;
         const {rows } = await query(sql, [param]);
 
-        res.status(C_HTTP.STATUS.OK).json({project_progress: rows});
+        res.status(C_HTTP.STATUS.OK).json(rows);
     }));
 
 module.exports = router;

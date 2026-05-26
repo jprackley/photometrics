@@ -16,7 +16,6 @@ router.get('/',
         WHERE account_role = $1;
         `;
         const { rows } = await query(sql, [C_USER.ROLES.EMPLOYEE]);
-        if (rows.length === 0) return res.status(404).json({error: {code: 404, message: 'Employees not found'}});
 
         res.status(C_HTTP.STATUS.OK).json({employees: rows});
    })
@@ -32,7 +31,7 @@ router.get('/:id',
         WHERE user_id = $1;
         `;
         const {rows} = await query(sql, [id]);
-        if (rows.length === 0) return res.status(404).json({error: {code: 404, message: 'Employee not found'}});
+
         res.status(C_HTTP.STATUS.OK).json({employees: rows[0]});
     })
 )

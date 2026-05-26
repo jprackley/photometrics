@@ -83,8 +83,7 @@ router.get(
                 u.last_name;
         `;
         const {rows} = await query(sql);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.PRODUCTIVITY.NOT_FOUND}});
+
         res.status(C_HTTP.STATUS.OK).json(rows);
     })
 );
@@ -166,8 +165,7 @@ router.get(
                 u.last_name;
         `;
         const {rows} = await query(sql, [param]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.PRODUCTIVITY.NOT_FOUND}});
+
         res.status(C_HTTP.STATUS.OK).json(rows[0]);
     })
 );

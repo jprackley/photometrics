@@ -145,8 +145,15 @@ router.post(
             RETURNING ${C_USER.SAFE_RETURN}
         `;
         const { rows } = await query(sql, params);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.USERS.NOT_FOUND}});
+        if (rows.length === 0) return res.status(C_HTTP.STATUS.INTERNAL_SERVER_ERROR)
+            .json({
+                error:
+                    {
+                        code: C_HTTP.CODE.INTERNAL_SERVER_ERROR,
+                        message: `Failed to add the new user.`
+                    },
+                users: rows[0]
+            });
 
         const sqlSettings = `          
             INSERT INTO settings (user_id)
@@ -154,8 +161,15 @@ router.post(
             RETURNING *
         `
         const { rows: settingsRows } = await query(sqlSettings, [rows[0].user_id]);
-        if (settingsRows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND}});
+        if (settingsRows.length === 0) return res.status(C_HTTP.STATUS.INTERNAL_SERVER_ERROR)
+            .json({
+                error:
+                    {
+                        code: C_HTTP.CODE.NOT_FOUND,
+                        message: `Failed to create user settings.`
+                    },
+                settings: settingsRows[0]
+            });
 
         res.status(C_HTTP.STATUS.CREATED).json({users: rows[0], settings: settingsRows[0]});
     })
@@ -257,10 +271,7 @@ router.get(
         validationErrorHandler(req, 'READ User:id - ');
         const { id } = req.params;
         const { rows } = await query(`SELECT ${C_USER.SAFE_RETURN} FROM users WHERE user_id = $1`, [id]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
-            error: {
-                code: C_HTTP.CODE.NOT_FOUND,
-                message:  C_HTTP.MESSAGE.NOT_FOUND } });
+
         res.status(C_HTTP.STATUS.OK).json({users: rows[0]});
     })
 )
@@ -300,6 +311,7 @@ router.patch(
                 error: {
                     code: C_HTTP.CODE.BAD_REQUEST,
                     message: C_HTTP.MESSAGE.BAD_REQUEST } });
+
         params.push(id);
         const sql = `
             UPDATE users SET ${set.join(', ')}, updated_at = now()
@@ -308,10 +320,7 @@ router.patch(
         `;
 
         const { rows } = await query(sql, params);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
-            error: {
-                code: C_HTTP.CODE.NOT_FOUND,
-                message: MESSAGE.NOT_FOUND } });
+
         res.status(C_HTTP.STATUS.OK).json({users: rows[0]});
     })
 )
@@ -326,10 +335,6 @@ router.delete(
         const { id } = req.params;
 
         const { rows } = await query(`DELETE FROM users WHERE user_id = $1 RETURNING ${C_USER.SAFE_RETURN}`, [id]);
-        if (rows === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
-            error: {
-                code: C_HTTP.CODE.NOT_FOUND,
-                message: C_HTTP.MESSAGE.NOT_FOUND } });
 
         res.status(C_HTTP.STATUS.NO_CONTENT).send({users: rows[0]});
     })

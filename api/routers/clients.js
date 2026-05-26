@@ -153,6 +153,7 @@ router.post(
             VALUES (${values.join(', ')}) RETURNING *
         `;
         const {rows} = await query(sql, params);
+
         res.status(C_HTTP.STATUS.CREATED).json({clients: rows[0]});
     })
 );
@@ -183,6 +184,7 @@ router.get(
         // If all is true, return all clients, Else return paginated results
         if (all === true) {
             const { rows } = await query('SELECT * FROM clients');
+
             res.status(C_HTTP.STATUS.OK).json({clients: rows});
         }
 
@@ -254,10 +256,7 @@ router.get(
         validationErrorHandler(req, 'READ Client:id - ');
         const { id } = req.params;
         const { rows } = await query('SELECT * FROM clients WHERE client_id = $1', [id]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
-            error: {
-                code: C_HTTP.CODE.NOT_FOUND,
-                message: C_HTTP.MESSAGE.NOT_FOUND  } });
+
         res.status(C_HTTP.STATUS.OK).json({clients: rows[0]});
     })
 );
@@ -401,10 +400,7 @@ router.patch(
             RETURNING *
         `;
         const { rows } = await query(sql, params);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
-            error: {
-                code: C_HTTP.CODE.NOT_FOUND,
-                message: C_HTTP.MESSAGE.NOT_FOUND  } });
+
         res.status(C_HTTP.STATUS.OK).json({clients: rows[0]});
     })
 );
@@ -420,10 +416,6 @@ router.delete(
         const { id } = req.params;
 
         const { rows } = await query('DELETE FROM clients WHERE client_id = $1 RETURNING *', [id]);
-        if (rows === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
-            error: {
-                code: C_HTTP.MESSAGE.NOT_FOUND,
-                message: 'Client not found' } });
 
         res.status(C_HTTP.STATUS.NO_CONTENT).json({clients: rows[0]});
     })

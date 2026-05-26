@@ -47,8 +47,7 @@ router.post(
             RETURNING *;
         `;
         const { rows } = await query(sql, params);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND}});
+
         res.status(C_HTTP.STATUS.CREATED).json({settings: rows[0]});
     })
 );
@@ -65,8 +64,7 @@ router.get(
             WHERE user_id = $1;
         `;
         const {rows } = await query(sql, [param]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND)
-            .json({error: {code: C_HTTP.CODE.NOT_FOUND, message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND}});
+
         res.status(C_HTTP.STATUS.OK).json({settings: rows});
     })
 )
@@ -112,10 +110,7 @@ router.patch(
             RETURNING *
         `;
         const { rows } = await query(sql, params);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
-            error: {
-                code: C_HTTP.CODE.NOT_FOUND,
-                message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND } });
+
         res.status(C_HTTP.STATUS.OK).json({settings: rows[0]});
     })
 );
@@ -127,10 +122,7 @@ router.delete(
         validationErrorHandler(req, 'DELETE Settings - ');
         const {id} = req.params;
         const {rows} = await query('DELETE FROM settings WHERE user_id = $1 RETURNING *', [id]);
-        if (rows.length === 0) return res.status(C_HTTP.STATUS.NOT_FOUND).json({
-            error: {
-                code: C_HTTP.CODE.NOT_FOUND,
-                message: C_HTTP.MESSAGE.SETTINGS.NOT_FOUND } });
+
         res.status(C_HTTP.STATUS.NO_CONTENT).json({settings: rows[0]});
     })
     )
