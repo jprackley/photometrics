@@ -7,7 +7,7 @@ const C_USER = require("../../utils/constants/cUsers");
 
 const { createTestUser } = require("../helpers/createTests");
 const { buildTestUser } = require("../helpers/testBuilders");
-const { assertEqual, assertEqualReturn } = require("../helpers/assertTests");
+const { assertEqual } = require("../helpers/assertTests");
 const { deleteTestUsers } = require("../helpers/deleteTests");
 
 /**
@@ -26,6 +26,7 @@ describe('Testing /api/users', () => {
      * Counter is used to generate unique email addresses.
      */
     const users = [];
+    const testSuiteName = 'usersSuiteName';
     let validUser = {
         first_name: "TestUser",
         last_name: "UserTestSuite",
@@ -40,9 +41,9 @@ describe('Testing /api/users', () => {
 
         console.log('[PRE] Creating Test Data...');
 
-        const employee = await createTestUser(C_USER.ROLES.EMPLOYEE, 'users');
+        const employee = await createTestUser(C_USER.ROLES.EMPLOYEE, testSuiteName);
         users.push( employee );
-        const manager = await createTestUser(C_USER.ROLES.MANAGER, 'users');
+        const manager = await createTestUser(C_USER.ROLES.MANAGER, testSuiteName);
         users.push( manager );
     })
     /**
@@ -51,7 +52,7 @@ describe('Testing /api/users', () => {
     after(async () => {
 
         console.log('[POST] Destroying Test Data...');
-        users.length = await deleteTestUsers(users, 'users');
+        users.length = await deleteTestUsers(users, testSuiteName);
     })
 
     /**
@@ -62,17 +63,15 @@ describe('Testing /api/users', () => {
         test(`[TEST]: CREATE valid User [EXPECTED]: Status Code ${C_HTTP.STATUS.CREATED}`, async () => {
 
             const response = await request(app).post('/api/users').send( validUser );
-            const body = assertEqualReturn(response, C_HTTP.STATUS.CREATED);
-            if (body.user_id !== undefined) {
-                users.push(body);
-            }
+            assertEqual(response, C_HTTP.STATUS.CREATED);
+            if ( response.body.users?.user_id ) { users.push(response.body.users); }
         });
 
         test(`[TEST]: CREATE duplicate email [EXPECTED]: Status Code ${C_HTTP.STATUS.INTERNAL_SERVER_ERROR}`, async () => {
 
             const response = await request(app).post('/api/users').send( validUser );
-            const body = assertEqualReturn(response, C_HTTP.STATUS.INTERNAL_SERVER_ERROR);
-            if ( body.user_id !== undefined ) {users.push(body);}
+            assertEqual(response, C_HTTP.STATUS.INTERNAL_SERVER_ERROR);
+            if ( response.body.users?.user_id ) { users.push(response.body.users); }
         });
 
         test(`[TEST]: CREATE first name missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
@@ -80,8 +79,8 @@ describe('Testing /api/users', () => {
             const response = await request(app).post('/api/users')
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.FIRST_NAME));
 
-            const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-            if ( body.user_id !== undefined ) {users.push(body);}
+            assertEqual(response, C_HTTP.STATUS.BAD_REQUEST);
+            if ( response.body.users?.user_id ) { users.push(response.body.users); }
         });
 
         test(`[TEST]: CREATE last name missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
@@ -89,8 +88,8 @@ describe('Testing /api/users', () => {
             const response = await request(app).post('/api/users')
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.LAST_NAME,));
 
-            const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-            if ( body.user_id !== undefined ) {users.push(body);}
+            assertEqual(response, C_HTTP.STATUS.BAD_REQUEST);
+            if ( response.body.users?.user_id ) { users.push(response.body.users); }
         });
 
         test(`[TEST]: CREATE email missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
@@ -98,8 +97,8 @@ describe('Testing /api/users', () => {
             const response = await request(app).post('/api/users')
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.EMAIL,));
 
-            const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-            if ( body.user_id !== undefined ) {users.push(body);}
+            assertEqual(response, C_HTTP.STATUS.BAD_REQUEST);
+            if ( response.body.users?.user_id ) { users.push(response.body.users); }
         });
 
         test(`[TEST]: CREATE password missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
@@ -107,8 +106,8 @@ describe('Testing /api/users', () => {
             const response = await request(app).post('/api/users')
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.SECURE_COLUMNS.PASSWORD,));
 
-            const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-            if ( body.user_id !== undefined ) {users.push(body);}
+            assertEqual(response, C_HTTP.STATUS.BAD_REQUEST);
+            if ( response.body.users?.user_id ) { users.push(response.body.users); }
         });
 
         test(`[TEST]: CREATE role missing [EXPECTED]: Status Code ${C_HTTP.STATUS.BAD_REQUEST}`, async () => {
@@ -116,8 +115,8 @@ describe('Testing /api/users', () => {
             const response = await request(app).post('/api/users')
                 .send(buildTestUser(C_USER.ROLES.EMPLOYEE, 'users', C_USER.REQUIRED_COLUMNS.ROLE,));
 
-            const body = assertEqualReturn(response, C_HTTP.STATUS.BAD_REQUEST);
-            if ( body.user_id !== undefined ) {users.push(body);}
+            assertEqual(response, C_HTTP.STATUS.BAD_REQUEST);
+            if ( response.body.users?.user_id ) { users.push(response.body.users); }
         });
         
     })

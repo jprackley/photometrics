@@ -81,7 +81,7 @@ describe('Testing /api/projects', () => {
         clients.length = await deleteTestClients(clients, testSuiteName)
         //Deletes all users
         console.log('[POST] Deleting Test Users...');
-        users.length = await deleteTestUsers(clients, testSuiteName);
+        users.length = await deleteTestUsers(users, testSuiteName);
 
     });
     /**
