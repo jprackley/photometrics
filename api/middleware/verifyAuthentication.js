@@ -29,11 +29,12 @@ async function verifyAuthentication(req, res, next) {
     user.user_id = decodedToken.user_id;
 
     if (decodedToken) {
+        console.warn('Access Token is valid. Proceeding to next middleware.');
         return next();
     }
     //If the Access Token is invalid, verify its only expired.
     else if (!decodedToken) {
-        console.log('Testing if Access Token is invalid or expired.')
+        console.warn('Testing if Access Token is invalid or expired.')
 
         const decodedTokenExpired = verifyAccessTokenExpired( accessToken );
         //If the Access Token is expired, begin a refresh process.
