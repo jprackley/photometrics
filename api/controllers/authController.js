@@ -132,13 +132,14 @@ async function logout(req, res) {
     }
 }
 
-async function refresh(req, res, decodedToken) {
-    const user = {
-        user_id: decodedToken.user_id
-    };
+async function refresh(req, res, next ) {
     const refreshToken = req.cookies?.refresh_token;
 
-    const result = await verifyRefreshToken( refreshToken, user );
+    const storedRefreshToken = await verifyRefreshToken( refreshToken );
+
+    const user = {
+        user_id: storedRefreshToken.user_id,
+    };
 
     if (result.isValid) {
         const accessToken = createAccessToken(user);

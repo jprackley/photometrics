@@ -80,29 +80,27 @@ async function generateRefreshToken( user ) {
     return refreshToken;
 }
 
-async function getStoredRefreshTokens( user ) {
+async function getStoredRefreshTokens() {
     const { rows } = await query(`
         SELECT *
         FROM user_refresh_tokens
-        WHERE user_id = $1
-          AND expires_at > NOW();
-    `,
-        [ user.user_id ]);
+        WHERE expires_at > NOW();
+    `);
 
     if (rows.length === 0) { return null; }
 
     return rows;
 }
 
-async function verifyRefreshToken(refreshToken, user) {
-    if (!refreshToken || !user?.user_id) {
+async function verifyRefreshToken( refreshToken ) {
+    if (!refreshToken) {
         return {
             isValid: false,
             refreshToken: null
         };
     }
 
-    const storedRefreshTokenArray = await getStoredRefreshTokens( user )
+    const storedRefreshTokenArray = await getStoredRefreshTokens();
     if (!storedRefreshTokenArray) {
         return {
             isValid: false,
