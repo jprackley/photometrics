@@ -135,10 +135,10 @@ async function logout(req, res) {
 async function refresh(req, res, next ) {
     const refreshToken = req.cookies?.refresh_token;
 
-    const storedRefreshToken = await verifyRefreshToken( refreshToken );
+    const result = await verifyRefreshToken( refreshToken );
 
     const user = {
-        user_id: storedRefreshToken.user_id,
+        user_id: result.refreshToken.user_id,
     };
 
     if (result.isValid) {
