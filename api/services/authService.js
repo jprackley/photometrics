@@ -3,7 +3,6 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 
 const C_AUTH = require("../../utils/constants/cAuth");
-const C_HTTP = require("../../utils/constants/cHTTP");
 
 const {query} = require("../db");
 
@@ -81,23 +80,91 @@ async function generateRefreshToken( user ) {
     return refreshToken;
 }
 
-async function verifyRefreshToken( refreshToken, storedRefreshToken) {
-    return await bcrypt.compare(refreshToken, storedRefreshToken);
-}
-
-async function getStoredRefreshTokenHash( user ) {
+async function getStoredRefreshTokens( user ) {
     const { rows } = await query(`
-        SELECT token_hash
+        SELECT *
         FROM user_refresh_tokens
         WHERE user_id = $1
-          AND revoked_at IS NULL
           AND expires_at > NOW();
     `,
         [ user.user_id ]);
 
     if (rows.length === 0) { return null; }
 
-    return rows[0].token_hash;
+    return rows;
+}
+
+async function verifyRefreshToken(refreshToken, user) {
+    if (!refreshToken || !user?.user_id) {
+        return {
+            isValid: false,
+            refreshToken: null
+        };
+    }
+
+    const storedRefreshTokenArray = await getStoredRefreshTokens( user )
+    if (!storedRefreshTokenArray) {
+        return {
+            isValid: false,
+            refreshToken: null
+        };
+    } else {
+        for (const storedRefreshToken of storedRefreshTokenArray) {
+            const isValidRefreshToken = await bcrypt.compare(refreshToken, storedRefreshToken.token_hash);
+            if (isValidRefreshToken) {
+                return {
+                    isValid: true,
+                    refreshToken: storedRefreshToken
+                };
+            }
+        }
+        return {
+            isValid: false,
+            refreshToken: null
+        };
+    }
+}
+
+async function revokeExpiredRefreshTokensByUserID ( user ) {
+    const { result } = await query(`
+        DELETE FROM user_refresh_tokens
+        WHERE user_id = $1
+        AND expires_at < NOW();
+    `,
+        [ user.user_id ]);
+
+    return result.rowCount;
+}
+
+async function revokeRefreshTokensByUserID( user ) {
+    const { result } = await query(`
+        DELETE FROM user_refresh_tokens
+        WHERE user_id = $1;
+    `,
+        [ user.user_id ]);
+
+    return result.rowCount;
+}
+
+async function revokeRefreshTokenByID( storedRefreshToken ) {
+    if ( !storedRefreshToken ) { return false; }
+    const { result } = await query(`
+        DELETE FROM user_refresh_tokens
+        WHERE refresh_token_id = $1;
+    `,
+        [ storedRefreshToken.refresh_token_id ]);
+
+    return result.rowCount;
+}
+
+async function rotateRefreshToken( user, storedRefreshToken ) {
+
+    if (await revokeRefreshTokenByID(storedRefreshToken) > 0) {
+        return await generateRefreshToken(user);
+    } else {
+        return null;
+    }
+
 }
 
 //----------------------------------------------------------------------------------
@@ -146,6 +213,10 @@ module.exports = {
     createAccessToken,
     verifyAccessToken,
     verifyAccessTokenExpired,
-    getStoredRefreshTokenHash,
+    getStoredRefreshTokens,
+    verifyRefreshToken,
+    rotateRefreshToken,
+    revokeExpiredRefreshTokensByUserID,
+    revokeRefreshTokensByUserID,
     updateUserAsLoggedIn,
     }

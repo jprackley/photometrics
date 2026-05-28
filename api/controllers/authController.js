@@ -1,11 +1,14 @@
-const jwt = require('jsonwebtoken');
 const C_HTTP = require("../../utils/constants/cHTTP");
 const {query} = require("../db");
 const {compare} = require("bcrypt");
 const C_AUTH = require("../../utils/constants/cAuth");
 const {
     getUserByEmail,
-    updateUserAsLoggedIn, generateRefreshToken, createAccessToken,
+    updateUserAsLoggedIn,
+    generateRefreshToken,
+    createAccessToken,
+    verifyRefreshToken,
+    rotateRefreshToken,
 } = require("../services/authService");
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -129,8 +132,36 @@ async function logout(req, res) {
     }
 }
 
-async function refresh(req, res) {
+async function refresh(req, res, decodedToken) {
+    const user = {
+        user_id: decodedToken.user_id
+    };
+    const refreshToken = req.cookies?.refresh_token;
 
+    const result = await verifyRefreshToken( refreshToken, user );
+
+    if (result.isValid) {
+        const accessToken = createAccessToken(user);
+        const newRefreshToken = await rotateRefreshToken( user, result.refreshToken );
+        res.cookie(
+            'access_token',
+            accessToken,
+            accessCookieOptions
+        );
+        res.cookie(
+            'refresh_token',
+            newRefreshToken,
+            refreshCookieOptions
+        );
+        return next();
+    } else {
+        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
+            error: {
+                code: C_HTTP.CODE.UNAUTHORIZED,
+                message: 'Failed to refresh tokens. Please login again.',
+            },
+        })
+    }
 }
 
 module.exports = {
