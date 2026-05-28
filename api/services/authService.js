@@ -124,7 +124,7 @@ async function verifyRefreshToken( refreshToken ) {
 }
 
 async function revokeExpiredRefreshTokensByUserID ( user ) {
-    const { result } = await query(`
+    const result = await query(`
         DELETE FROM user_refresh_tokens
         WHERE user_id = $1
         AND expires_at < NOW();
@@ -135,7 +135,7 @@ async function revokeExpiredRefreshTokensByUserID ( user ) {
 }
 
 async function revokeRefreshTokensByUserID( user ) {
-    const { result } = await query(`
+    const result = await query(`
         DELETE FROM user_refresh_tokens
         WHERE user_id = $1;
     `,
@@ -146,7 +146,7 @@ async function revokeRefreshTokensByUserID( user ) {
 
 async function revokeRefreshTokenByID( storedRefreshToken ) {
     if ( !storedRefreshToken ) { return false; }
-    const { result } = await query(`
+    const result  = await query(`
         DELETE FROM user_refresh_tokens
         WHERE refresh_token_id = $1;
     `,
