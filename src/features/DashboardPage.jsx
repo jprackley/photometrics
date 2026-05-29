@@ -150,6 +150,9 @@ import {
     Modal,
 } from "./sharedComponents";
 
+// Default shape used when the active-projects KPI endpoint does not return
+// a populated payload. Keeping the card shape consistent prevents the dashboard
+// from rendering differently between mock data, empty API responses, and live API data.
 const ACTIVE_PROJECTS_KPI = {
     key: "activeProjects",
     label: "Active Projects",
@@ -158,6 +161,9 @@ const ACTIVE_PROJECTS_KPI = {
 };
 
 
+// Canonical workflow steps used by the dashboard chart. API and task records can
+// use slightly different labels, so all incoming values are normalized to this list
+// before the workflow distribution chart is rendered.
 const WORKFLOW_STEPS = [
     "Import",
     "Cull",
@@ -168,6 +174,9 @@ const WORKFLOW_STEPS = [
     "Other",
 ];
 
+// Common backend/mock-data variations mapped to the canonical workflow labels.
+// This keeps the chart stable even if task categories are entered with different
+// wording such as "editing", "review", or "delivered".
 const WORKFLOW_STEP_ALIASES = {
     import: "Import",
     imported: "Import",
@@ -185,6 +194,10 @@ const WORKFLOW_STEP_ALIASES = {
     other: "Other",
 };
 
+/**
+ * Normalizes a raw task/category/status value into one of the dashboard's
+ * supported workflow stages.
+ */
 function getWorkflowStep(value) {
     const text = String(value || "").trim();
     if (!text) return "Other";
@@ -195,6 +208,11 @@ function getWorkflowStep(value) {
         || "Other";
 }
 
+/**
+ * Builds workflow chart rows from the live task list so the dashboard can show
+ * actual task distribution even when the dedicated workflow KPI endpoint is
+ * unavailable or returns no data.
+ */
 function buildWorkflowRowsFromTasks(tasks = []) {
     const counts = WORKFLOW_STEPS.reduce((acc, step) => ({ ...acc, [step]: 0 }), {});
 
@@ -223,6 +241,10 @@ function buildWorkflowRowsFromTasks(tasks = []) {
         .filter((row) => row.value > 0);
 }
 
+/**
+ * Returns display labels for the current Monday-through-Sunday week used by the
+ * productivity chart.
+ */
 function getCurrentWeekLabels() {
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -238,6 +260,10 @@ function getCurrentWeekLabels() {
     });
 }
 
+/**
+ * Converts productivity KPI rows into a fixed seven-day chart series. Missing
+ * values are normalized to zero so Chart.js always receives a complete dataset.
+ */
 function buildCurrentWeekProductivityRows(rows = []) {
     const labels = getCurrentWeekLabels();
     const values = labels.map((label, index) => {
@@ -253,6 +279,10 @@ function buildCurrentWeekProductivityRows(rows = []) {
     }));
 }
 
+/**
+ * Removes common API wrapper objects while preserving direct KPI payloads. This
+ * lets summary KPI cards support both simple values and structured API responses.
+ */
 function unwrapKpiPayload(payload) {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) return payload;
 
@@ -266,6 +296,10 @@ function unwrapKpiPayload(payload) {
 }
 
 
+/**
+ * Converts a single KPI API response into the normalized card structure expected
+ * by the dashboard KPI grid.
+ */
 function summaryKpiFromApi(payload, template, valueKeys = []) {
     const source = unwrapKpiPayload(payload);
     const keys = [...valueKeys, "active", "completed", "remaining", "total", "count", "value"];
@@ -293,6 +327,10 @@ function summaryKpiFromApi(payload, template, valueKeys = []) {
     return [template];
 }
 
+/**
+ * Legacy active-projects adapter retained for compatibility with older KPI
+ * response shapes.
+ */
 function activeProjectsKpiFromApi(payload) {
     const source = unwrapKpiPayload(payload);
 
@@ -352,14 +390,20 @@ function ColoredLineSegment({ data, segment, index }) {
  * Main dashboard view. Managers see team metrics; employees see only their own work queue and progress.
  */
 function Dashboard({ onPageChange, currentUser, appSettings }) {
+    // Access level controls whether the user sees manager-wide analytics or an
+    // employee-safe view limited to their own tasks and project progress.
     const hasManagerAccess = canManageContent(currentUser);
     const currentUserId = currentUser?.userId || currentUser?.user_id || currentUser?.id || currentUser?.employeeId;
     const currentUserPathId = currentUserId ? encodeURIComponent(currentUserId) : "";
+    // Employees request scoped dashboard data when possible, while managers use
+    // the unscoped endpoints so they can review team-wide activity.
     const workflowEndpoint = currentUserPathId ? `${API_ENDPOINTS.dashboard.workflow}/${currentUserPathId}` : null;
     const employeeActivityEndpoint = !hasManagerAccess && currentUserPathId
         ? `${API_ENDPOINTS.dashboard.employeeActivity}/${currentUserPathId}`
         : API_ENDPOINTS.dashboard.employeeActivity;
 
+    // KPI hooks share the same API/mock-data bridge so the dashboard can run in
+    // demo mode or live API mode without changing component code.
     const { data: activeProjectsKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.active, kpis.slice(0, 1), {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "activeProjects", label: "Active Projects", value: 0, objects: [] }, ["active"]),
@@ -408,6 +452,8 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const projectProgressRows = Array.isArray(projectProgressData) ? projectProgressData : [];
     const rawWorkflowRows = Array.isArray(workflowData) ? workflowData : [];
     const rawProductivityRows = Array.isArray(productivityData) ? productivityData : [];
+    // Memoized chart inputs prevent unnecessary Chart.js re-renders while users
+    // navigate or update filters elsewhere in the application.
     const productivityRows = useMemo(() => buildCurrentWeekProductivityRows(rawProductivityRows), [rawProductivityRows]);
     const productivityChartData = useMemo(() => ({
         labels: productivityRows.map((row) => row.day || row.label || row.name || "Metric"),
@@ -443,6 +489,8 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
             x: { grid: { display: false } },
         },
     }), []);
+    // Normalize task rows before deriving employee assignments, workflow counts,
+    // tracked-time totals, and employee-only dashboard summaries.
     const taskRows = Array.isArray(liveTaskData) ? liveTaskData.map(normalizeTaskForTimers) : taskItems.map(normalizeTaskForTimers);
     const workflowRows = useMemo(() => {
         const rowsFromTasks = buildWorkflowRowsFromTasks(taskRows);
@@ -468,10 +516,14 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
             tooltip: { callbacks: { label: (context) => `${context.label}: ${context.parsed}%` } },
         },
     }), []);
+    // Managers can see the full team activity feed. Employees are restricted to
+    // rows matching their own display name to avoid exposing other users' work.
     const visibleEmployeeActivityData = hasManagerAccess
         ? employeeActivityRows
         : employeeActivityRows.filter((row) => row[0] === employeeName);
     const projectRows = Array.isArray(liveProjectData) ? liveProjectData : projects;
+    // Employee dashboard panels are derived from assigned tasks so the private
+    // view remains consistent with the Tasks page and timer logic.
     const assignedTasks = taskRows.filter((task) => isAssignedToUser(task, currentUser));
     const assignedProjectNames = Array.from(new Set(
         assignedTasks
@@ -490,6 +542,8 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
         status: task.status,
         priority: task.priority,
     }));
+    // Manager KPI cards come from backend summary endpoints. Employee KPI cards
+    // are calculated locally from the user's assigned tasks to enforce data scope.
     const managerKpiCards = normalizeDashboardKpis([
         ...(Array.isArray(activeProjectsKpi) ? activeProjectsKpi : []),
         ...(Array.isArray(completedProjectsKpi) ? completedProjectsKpi : []),
@@ -511,7 +565,7 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     return (
         <section className="space-y-5 bg-slate-50 p-3 sm:p-4 lg:p-6">
 
-            {/* KPI cards */}
+            {/* Summary KPI cards for the current role-specific dashboard view. */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
                 {visibleKpis.map((card) => (
                     <div
@@ -548,7 +602,7 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
 
             {hasManagerAccess ? (
                 <>
-            {/* Charts section */}
+            {/* Manager analytics charts. Employee users receive a private work-queue view instead. */}
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.07fr_0.93fr]">
 
                 {/* Productivity chart */}
@@ -649,6 +703,8 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
  * Employee-only dashboard section that avoids exposing other employees' productivity data.
  */
 function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [], onPageChange }) {
+    // All metrics in this section are calculated from the current user's assigned
+    // tasks only, preventing employee users from seeing team-wide productivity data.
     const openTasks = assignedTasks.filter((task) => task.status !== "Completed");
     const completedTasks = assignedTasks.filter((task) => task.status === "Completed");
     const reviewTasks = assignedTasks.filter((task) => task.category === "Quality Review");
@@ -780,6 +836,8 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [
  * Shows the current employee's most recent assignment records.
  */
 function EmployeeAssignmentsPanel({ rows = [], onViewAll }) {
+    // Show a concise snapshot on the dashboard while keeping the full assignment
+    // workflow available through the linked project/task pages.
     const visibleRows = rows.slice(0, 5);
 
     return (
@@ -843,6 +901,18 @@ function EmployeeAssignmentsPanel({ rows = [], onViewAll }) {
  * Displays manager-facing employee activity in a compact table.
  */
 function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
+    // Keep the activity table paginated so large teams do not make the dashboard
+    // page excessively long or slow to scan.
+    const pageSize = 8;
+    const [currentPage, setCurrentPage] = useState(1);
+    const totalPages = getTotalPages(rows.length, pageSize);
+    const safeCurrentPage = Math.min(currentPage, totalPages);
+    const visibleRows = paginateRows(rows, safeCurrentPage, pageSize);
+
+    useEffect(() => {
+        setCurrentPage((page) => Math.min(page, totalPages));
+    }, [totalPages]);
+
     return (
         <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
             <h2 className="mb-3 text-lg font-bold sm:text-2xl">
@@ -868,8 +938,8 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
 
                 {/* Table rows */}
                 <tbody>
-                {rows.map((row) => (
-                    <tr key={row[0]}>
+                {visibleRows.map((row, index) => (
+                    <tr key={`${row[0]}-${row[1]}-${row[2]}-${index}`}>
                         <td className="break-words border border-slate-300 px-1.5 py-2 sm:px-3">
                             {row[0]}
                         </td>
@@ -899,6 +969,13 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
                     View all employees →
                 </button>
             )}
+
+            <TableFooter
+                text={getRangeText(safeCurrentPage, pageSize, rows.length, "activity records")}
+                currentPage={safeCurrentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+            />
         </div>
     );
 }
@@ -908,25 +985,37 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
  * Displays project completion metrics with progress bars.
  */
 function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
+    // Project progress is shown as both a stacked chart and a detail table so
+    // managers can quickly compare completion and remaining workload.
+    const pageSize = 6;
+    const [currentPage, setCurrentPage] = useState(1);
+    const totalPages = getTotalPages(rows.length, pageSize);
+    const safeCurrentPage = Math.min(currentPage, totalPages);
+    const visibleRows = paginateRows(rows, safeCurrentPage, pageSize);
+
+    useEffect(() => {
+        setCurrentPage((page) => Math.min(page, totalPages));
+    }, [totalPages]);
+
     const projectChartData = useMemo(() => ({
-        labels: rows.map((row) => row[0]),
+        labels: visibleRows.map((row) => row[0]),
         datasets: [
             {
                 label: "Completed Tasks",
-                data: rows.map((row) => normalizeNumber(row[2])),
+                data: visibleRows.map((row) => normalizeNumber(row[2])),
                 backgroundColor: "rgba(34, 197, 94, 0.72)",
                 borderColor: "#16a34a",
                 borderWidth: 1,
             },
             {
                 label: "Remaining Tasks",
-                data: rows.map((row) => normalizeNumber(row[3])),
+                data: visibleRows.map((row) => normalizeNumber(row[3])),
                 backgroundColor: "rgba(124, 58, 237, 0.68)",
                 borderColor: "#7c3aed",
                 borderWidth: 1,
             },
         ],
-    }), [rows]);
+    }), [visibleRows]);
     const projectChartOptions = useMemo(() => ({
         responsive: true,
         maintainAspectRatio: false,
@@ -936,7 +1025,7 @@ function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
                 callbacks: {
                     afterBody: (items) => {
                         const index = items?.[0]?.dataIndex ?? 0;
-                        const progress = normalizeNumber(rows[index]?.[4]);
+                        const progress = normalizeNumber(visibleRows[index]?.[4]);
                         return `Progress: ${progress}%`;
                     },
                 },
@@ -946,7 +1035,7 @@ function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
             x: { stacked: true, grid: { display: false } },
             y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
         },
-    }), [rows]);
+    }), [visibleRows]);
 
     return (
         <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
@@ -977,7 +1066,7 @@ function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
 
                 {/* Table rows */}
                 <tbody>
-                {rows.map((row) => (
+                {visibleRows.map((row) => (
                     <tr key={row[0]}>
                         <td className="break-words border border-slate-300 px-1.5 py-2 sm:px-3">
                             {row[0]}
@@ -1013,6 +1102,13 @@ function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
                     View all projects →
                 </button>
             )}
+
+            <TableFooter
+                text={getRangeText(safeCurrentPage, pageSize, rows.length, "projects")}
+                currentPage={safeCurrentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+            />
         </div>
     );
 }
