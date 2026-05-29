@@ -167,7 +167,9 @@ async function refreshAccessToken( req, res ) {
         });
     }
 
+    console.log('[REFRESH] Access Token created successfully.');
     res.cookie('access_token', accessToken, accessCookieOptions);
+    console.log('[REFRESH] Access Token set in cookie.');
 
     return true;
 }
