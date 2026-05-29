@@ -930,6 +930,7 @@ async function apiRequest(endpoint, options = {}) {
 
     try {
         const response = await fetch(url, {
+            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
                 ...(fetchOptions.headers || {}),
@@ -993,9 +994,41 @@ async function apiRequest(endpoint, options = {}) {
  */
 function unwrapApiPayload(payload) {
     if (Array.isArray(payload)) return payload;
-    if (payload?.data !== undefined) return payload.data;
-    if (payload?.items !== undefined) return payload.items;
-    return payload ?? [];
+    if (!payload || typeof payload !== "object") return payload ?? [];
+
+    // Backend routes currently return resource-named wrappers such as
+    // { users: [...] }, { projects: [...] }, { tasks: [...] }, or { settings: [...] }.
+    // Normalize those wrappers here so every page receives plain rows/objects.
+    const resourceKeys = [
+        "data",
+        "items",
+        "rows",
+        "users",
+        "user",
+        "employees",
+        "employee",
+        "clients",
+        "client",
+        "projects",
+        "project",
+        "tasks",
+        "task",
+        "assignments",
+        "assignment",
+        "settings",
+        "setting",
+        "images",
+        "image",
+        "time_entries",
+        "timeEntries",
+        "timeEntry",
+    ];
+
+    for (const key of resourceKeys) {
+        if (payload[key] !== undefined) return payload[key];
+    }
+
+    return payload;
 }
 
 const KPI_VALUE_KEYS = ["displayValue", "value", "count", "total", "result", "metricValue", "kpi", "data"];
@@ -1541,7 +1574,7 @@ const apiPlaceholders = {
         method: "DELETE",
     }),
     startTaskTimer: (taskId, startedAt, user) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}/timer/start`, {
-        method: "POST",
+        method: "PATCH",
         body: JSON.stringify({
             startedAt,
             userId: user?.id,
@@ -1550,7 +1583,7 @@ const apiPlaceholders = {
         }),
     }),
     stopTaskTimer: (taskId, timeEntry) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}/timer/stop`, {
-        method: "POST",
+        method: "PATCH",
         body: JSON.stringify(timeEntry),
     }),
 };
