@@ -592,6 +592,24 @@ function normalizeWorkflowKpiRows(payload) {
         });
 }
 
+function getAssignedTaskActivity(row) {
+    const description = String(row.description || "");
+
+    const descriptionTaskMatch = description.match(/\n\s*([^\n]+?)\s+updated at:/i);
+    const assignedTask = String(
+        row.assigned_task
+        || row.assignedTask
+        || row.task_name
+        || row.taskName
+        || row.task
+        || row.title
+        || (descriptionTaskMatch ? descriptionTaskMatch[1] : "")
+        || ""
+    ).trim();
+
+    return assignedTask || "No assigned task";
+}
+
 function normalizeEmployeeActivityKpiRows(payload) {
     return toArrayPayload(payload)
         .filter((row) => !isSeedRecord(row))
@@ -600,21 +618,10 @@ function normalizeEmployeeActivityKpiRows(payload) {
             const description = String(row.description || "");
             const statusMatch = description.match(/Status:\s*([^\n]+)/i);
             const status = row.status || (statusMatch ? statusMatch[1].trim() : "Updated");
-            const activityText = String(
-                row.activity
-                || row.task_name
-                || row.taskName
-                || row.category
-                || row.task_type
-                || row.taskType
-                || row.workflow_step
-                || row.workflowStep
-                || "Task Update"
-            ).trim();
 
             return [
                 displayName,
-                activityText,
+                getAssignedTaskActivity(row),
                 formatApiDateTimeForDisplay(row.updated_at || row.created_at),
                 status,
             ];
