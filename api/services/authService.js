@@ -71,25 +71,43 @@ async function hashRefreshToken(refreshToken) {
     return await bcrypt.hash(refreshToken, C_AUTH.SALT_ROUNDS);
 }
 
-async function storeRefreshToken( user, refreshTokenHash ) {
-    await query(`
-                    INSERT INTO user_refresh_tokens (
-                        user_id,
-                        token_hash,
-                        expires_at
-                    )
-                    VALUES ($1, $2, $3)
-            `, [user.user_id, refreshTokenHash, new Date(Date.now() + C_AUTH.REFRESH_TOKEN_MAX_AGE_MS)]
-    )
+async function storeRefreshToken(user, refreshTokenHash) {
+    const { rows } = await query(`
+        INSERT INTO user_refresh_tokens (
+            user_id,
+            token_hash,
+            expires_at
+        )
+        VALUES ($1, $2, $3)
+        RETURNING refresh_token_id, user_id, expires_at, created_at;
+    `, [
+        user.user_id,
+        refreshTokenHash,
+        new Date(Date.now() + C_AUTH.REFRESH_TOKEN_MAX_AGE_MS)
+    ]);
+
+    return rows[0];
 }
 
 async function generateRefreshToken(user) {
     const refreshToken = createRefreshToken();
     const refreshTokenHash = await hashRefreshToken(refreshToken);
 
-    console.log('[GENERATE REFRESH] New raw token fingerprint:', tokenFingerprint(refreshToken));
+    console.log('[GENERATE REFRESH] Created raw token:', {
+        user_id: user.user_id,
+        fingerprint: tokenFingerprint(refreshToken),
+        length: refreshToken.length,
+        hashPrefix: refreshTokenHash.slice(0, 4),
+    });
 
-    await storeRefreshToken(user, refreshTokenHash);
+    const storedRow = await storeRefreshToken(user, refreshTokenHash);
+
+    console.log('[GENERATE REFRESH] Stored token row:', {
+        refresh_token_id: storedRow?.refresh_token_id,
+        user_id: storedRow?.user_id,
+        expires_at: storedRow?.expires_at,
+        fingerprint: tokenFingerprint(refreshToken),
+    });
 
     return refreshToken;
 }

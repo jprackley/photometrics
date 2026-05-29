@@ -82,11 +82,19 @@ async function login(req, res) {
             accessToken,
             accessCookieOptions
         );
+
+        console.log('[LOGIN] Setting refresh cookie:', {
+            fingerprint: tokenFingerprint(refreshToken),
+            length: refreshToken?.length,
+        });
+
         res.cookie(
             'refresh_token',
             refreshToken,
             refreshCookieOptions
         );
+
+        console.log('[LOGIN] Set-Cookie header:', res.getHeader('Set-Cookie'));
 
         return res.status(C_HTTP.STATUS.OK).json({ user: updatedUser });
     }
@@ -193,7 +201,15 @@ async function refresh(req, res, next) {
     console.log('[REFRESH] New refresh token fingerprint:', tokenFingerprint(newRefreshToken));
 
     res.cookie('access_token', accessToken, accessCookieOptions);
+
+    console.log('[REFRESH] Setting refresh cookie:', {
+        fingerprint: tokenFingerprint(newRefreshToken),
+        length: newRefreshToken?.length,
+    });
+
     res.cookie('refresh_token', newRefreshToken, refreshCookieOptions);
+
+    console.log('[REFRESH] Set-Cookie header:', res.getHeader('Set-Cookie'));
 
     return next();
 }
