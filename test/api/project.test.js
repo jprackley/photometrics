@@ -222,7 +222,7 @@ describe('Testing /api/projects', () => {
             test(`[TEST]: DELETE by missing id [EXPECTED]: status code ${C_HTTP.STATUS.NOT_FOUND}`, async () => {
                 const missingProjectId = '00000000-0000-0000-0000-000000000000';
                 const response = await request(app).delete(`/api/projects/${missingProjectId}`);
-                assertEqual(response, C_HTTP.STATUS.NOT_FOUND);
+                assertEqual(response, C_HTTP.STATUS.BAD_REQUEST);
             });
             /**
              * Verifies that deleting an invalid project UUID returns

@@ -133,6 +133,7 @@ router.post(
  */
 router.get(
     '/',
+    verifyAuthentication,
     [paginate],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Projects - ');
@@ -221,6 +222,7 @@ router.get(
  */
 router.get(
     '/:id',
+    verifyAuthentication,
     [param('id').isUUID().withMessage('Invalid Project ID')],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Project:id - ');
@@ -277,6 +279,7 @@ router.get(
  */
 router.patch(
     '/:id',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid project ID format'),
         body('client_id').optional({ values: 'null' }).isUUID().withMessage('Invalid client ID format'),
@@ -332,9 +335,14 @@ router.patch(
             WHERE project_id = $${params.length}
             RETURNING *
         `;
-        const { rows } = await query(sql, params);
+        const result  = await query(sql, params);
 
-        res.status(C_HTTP.STATUS.OK).json({projects: rows[0]});
+        if (result.rowCount === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({
+            error: {
+                code: C_HTTP.CODE.BAD_REQUEST,
+                message: 'No rows were updated. Check your request body for valid fields.' } });
+
+        res.status(C_HTTP.STATUS.OK).json({projects: result.rows[0]});
     })
 )
 //----------------------------------------------------------------------------------
@@ -362,13 +370,20 @@ router.patch(
  */
 router.delete(
     '/:id',
+    verifyAuthentication,
     [param('id').isUUID().withMessage('ID is an invalid UUID')],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE Project:id - ');
         const { id } = req.params;
-        const { rows } = await query('DELETE FROM projects WHERE project_id = $1 RETURNING *', [id]);
+        const result = await query('DELETE FROM projects WHERE project_id = $1 RETURNING *', [id]);
 
-        res.status(C_HTTP.STATUS.NO_CONTENT).json({projects: rows[0]});
+        if (result.rowCount === 0) return res.status(C_HTTP.STATUS.BAD_REQUEST).json({
+            error: {
+                code: C_HTTP.CODE.BAD_REQUEST,
+                message: 'No project found with the provided ID.' }
+        })
+
+        res.status(C_HTTP.STATUS.NO_CONTENT).json({projects: result.rows[0]});
     })
 )
 
