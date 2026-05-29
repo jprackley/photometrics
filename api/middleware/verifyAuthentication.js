@@ -1,6 +1,6 @@
 const C_HTTP = require('../../utils/constants/cHTTP');
 
-const { refresh } = require("../controllers/authController");
+const { refreshAccessToken } = require("../controllers/authController");
 const {
     verifyAccessToken,
     verifyAccessTokenExpired,
@@ -19,7 +19,16 @@ async function verifyAuthentication(req, res, next) {
 
     if (!accessToken) {
         console.warn('No Access Token found in the request cookies.')
-        return await refresh( req, res, next );
+        const newAccessToken = await refreshAccessToken( req, res );
+        if (newAccessToken) {
+            return next();
+        }
+        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
+            error: {
+                code: C_HTTP.CODE.UNAUTHORIZED,
+                message: 'Access and Refresh Token are invalid or expired.'
+            },
+        });
     }
 
     //Test the Access Token to verify it is valid.
@@ -37,7 +46,7 @@ async function verifyAuthentication(req, res, next) {
         //If the Access Token is expired, begin a refresh process.
         if (decodedTokenExpired) {
             console.warn('Access Token is expired. Attempting to refresh tokens.')
-            return await refresh( req, res, next );
+            return await refreshAccessToken( req, res );
         }
         //If the Access Token is invalid for any other reason, the user is not authenticated.
         else if (!decodedTokenExpired) {

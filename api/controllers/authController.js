@@ -10,17 +10,6 @@ const {
     verifyRefreshToken,
     revokeRefreshTokensByUserID
 } = require("../services/authService");
-const crypto = require("crypto");
-
-function tokenFingerprint(token) {
-    if (!token) return null;
-
-    return crypto
-        .createHash('sha256')
-        .update(token)
-        .digest('hex')
-        .slice(0, 16);
-}
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -85,18 +74,11 @@ async function login(req, res) {
             accessCookieOptions
         );
 
-        console.log('[LOGIN] Setting refresh cookie:', {
-            fingerprint: tokenFingerprint(refreshToken),
-            length: refreshToken?.length,
-        });
-
         res.cookie(
             'refresh_token',
             refreshToken,
             refreshCookieOptions
         );
-
-        console.log('[LOGIN] Set-Cookie header:', res.getHeader('Set-Cookie'));
 
         return res.status(C_HTTP.STATUS.OK).json({ user: updatedUser });
     }
@@ -153,22 +135,16 @@ async function logout(req, res) {
     }
 }
 
-async function refresh(req, res, next) {
+async function refreshAccessToken( req, res ) {
     const refreshToken = req.cookies?.refresh_token;
 
     const result = await verifyRefreshToken(refreshToken);
-
-    console.log('[REFRESH] Verify result:', {
-        isValid: result.isValid,
-        hasRefreshTokenRow: Boolean(result.refreshToken),
-        userId: result.refreshToken?.user_id,
-    });
 
     if (!result.isValid || !result.refreshToken) {
         return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
             error: {
                 code: C_HTTP.CODE.UNAUTHORIZED,
-                message: 'Failed to refresh tokens. Please login again.',
+                message: 'Failed to refresh Access Token. Please login again.',
             },
         });
     }
@@ -179,30 +155,22 @@ async function refresh(req, res, next) {
 
     const accessToken = createAccessToken(user);
 
-    console.log('[REFRESH] Access token created:', {
-        exists: Boolean(accessToken),
-        length: accessToken?.length,
-    });
-
     if (!accessToken) {
         return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
             error: {
                 code: C_HTTP.CODE.UNAUTHORIZED,
-                message: 'Failed to create access token.',
+                message: 'Failed to create access token. Login again.',
             },
         });
     }
 
     res.cookie('access_token', accessToken, accessCookieOptions);
 
-    console.log('[REFRESH] Set-Cookie header:', res.getHeader('Set-Cookie'));
-    console.log('[REFRESH] Calling next after access token refresh.');
-
-    return next();
+    return true;
 }
 
 module.exports = {
     login,
     logout,
-    refresh,
+    refresh: refreshAccessToken,
     }

@@ -8,16 +8,6 @@ const {query} = require("../db");
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-function tokenFingerprint(token) {
-    if (!token) return null;
-
-    return crypto
-        .createHash('sha256')
-        .update(token)
-        .digest('hex')
-        .slice(0, 16);
-}
-
 //----------------------------------------------------------------------------------
 // JWT Access Token Services
 //----------------------------------------------------------------------------------
@@ -152,14 +142,6 @@ async function verifyRefreshToken(refreshToken) {
             storedRefreshToken.token_hash
         );
 
-        console.log('[VERIFY REFRESH] Compare result:', {
-            refresh_token_id: storedRefreshToken.refresh_token_id,
-            user_id: storedRefreshToken.user_id,
-            expires_at: storedRefreshToken.expires_at,
-            hash_prefix: storedRefreshToken.token_hash?.slice(0, 4),
-            matched: isValidRefreshToken,
-        });
-
         if (isValidRefreshToken) {
             return {
                 isValid: true,
@@ -174,17 +156,6 @@ async function verifyRefreshToken(refreshToken) {
     };
 }
 
-async function revokeExpiredRefreshTokensByUserID ( user ) {
-    const result = await query(`
-        DELETE FROM user_refresh_tokens
-        WHERE user_id = $1
-        AND expires_at < NOW();
-    `,
-        [ user.user_id ]);
-
-    return result.rowCount;
-}
-
 async function revokeRefreshTokensByUserID( user ) {
     const result = await query(`
         DELETE FROM user_refresh_tokens
@@ -193,48 +164,6 @@ async function revokeRefreshTokensByUserID( user ) {
         [ user.user_id ]);
 
     return result.rowCount;
-}
-
-async function revokeRefreshTokenByID(storedRefreshToken) {
-    if (!storedRefreshToken) {
-        console.log('[REVOKE REFRESH] No stored token provided');
-        return 0;
-    }
-
-    console.log('[REVOKE REFRESH] Attempting delete:', {
-        refresh_token_id: storedRefreshToken.refresh_token_id,
-        user_id: storedRefreshToken.user_id,
-    });
-
-    const result = await query(`
-                DELETE FROM user_refresh_tokens
-                WHERE refresh_token_id = $1
-                RETURNING refresh_token_id, user_id, expires_at;
-        `,
-        [storedRefreshToken.refresh_token_id]);
-
-    console.log('[REVOKE REFRESH] Delete result:', {
-        rowCount: result.rowCount,
-        deletedRows: result.rows,
-    });
-
-    return result.rowCount;
-}
-
-async function rotateRefreshToken(user, storedRefreshToken) {
-    const revokedCount = await revokeRefreshTokenByID(storedRefreshToken);
-
-    console.log('[ROTATE REFRESH] Revoked count:', revokedCount);
-
-    if (revokedCount <= 0) {
-        return null;
-    }
-
-    const newRefreshToken = await generateRefreshToken(user);
-
-    console.log('[ROTATE REFRESH] New token created:', Boolean(newRefreshToken));
-
-    return newRefreshToken;
 }
 
 //----------------------------------------------------------------------------------
@@ -283,10 +212,7 @@ module.exports = {
     createAccessToken,
     verifyAccessToken,
     verifyAccessTokenExpired,
-    getStoredRefreshTokens,
     verifyRefreshToken,
-    rotateRefreshToken,
-    revokeExpiredRefreshTokensByUserID,
     revokeRefreshTokensByUserID,
     updateUserAsLoggedIn,
     }
