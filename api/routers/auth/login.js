@@ -10,7 +10,6 @@ const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
 
 router.post(
     '/',
-    verifyAuthentication,
     [
         body('email').isEmail().withMessage('Invalid email format'),
         body('password_hash').isString().notEmpty().withMessage('Password is required')

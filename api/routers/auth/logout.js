@@ -8,7 +8,6 @@ const {param} = require("express-validator");
 const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
 
 router.post('/:id',
-    verifyAuthentication,
     param('id').isUUID().withMessage('Invalid user_id UUID'),
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'LOGOUT User - ');
