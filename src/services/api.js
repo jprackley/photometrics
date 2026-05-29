@@ -597,14 +597,20 @@ function normalizeEmployeeActivityKpiRows(payload) {
         .filter((row) => !isSeedRecord(row))
         .map((row) => {
             const displayName = getDisplayNameFromApi(row);
-            const description = String(row.description || row.activity || row.task_name || "Updated task");
+            const description = String(row.description || "");
             const statusMatch = description.match(/Status:\s*([^\n]+)/i);
             const status = row.status || (statusMatch ? statusMatch[1].trim() : "Updated");
-            const activityText = description
-                .split(/\n/)[0]
-                .replace(`${displayName} updated Task for Project `, "")
-                .replace(/\s+updated at:\s*$/i, "")
-                .trim() || row.task_name || "Task update";
+            const activityText = String(
+                row.activity
+                || row.task_name
+                || row.taskName
+                || row.category
+                || row.task_type
+                || row.taskType
+                || row.workflow_step
+                || row.workflowStep
+                || "Task Update"
+            ).trim();
 
             return [
                 displayName,
