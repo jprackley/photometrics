@@ -50,6 +50,8 @@ import {
     apiPlaceholders,
     getUseApiDataSetting,
     normalizeBackendUser,
+    normalizeEmployeeRows,
+    normalizeProjectRows,
     normalizeTaskRows,
     saveUseApiDataSetting,
     unwrapApiPayload,
@@ -250,6 +252,38 @@ function TaskForm({ initialTask, projectOptions, employeeOptions, onCancel, onSa
 /**
  * Timer button used by the original task table to start or stop work tracking.
  */
+function normalizeLookupText(value = "") {
+    return String(value || "").trim().toLowerCase();
+}
+
+function getIdFromNamedRows(name, rows, nameKeys = ["name"], idKeys = ["backendId", "id"]) {
+    const normalizedName = normalizeLookupText(name);
+    if (!normalizedName) return null;
+
+    const match = (rows || []).find((row) => nameKeys.some((key) => normalizeLookupText(row?.[key]) === normalizedName));
+    if (!match) return null;
+
+    for (const key of idKeys) {
+        if (match[key]) return match[key];
+    }
+
+    return null;
+}
+
+function resolveProjectIdForTask(task, projectRows, taskRows) {
+    return task.projectId
+        || task.project_id
+        || getIdFromNamedRows(task.project, projectRows, ["name", "project"], ["backendId", "projectId", "id"])
+        || getIdFromNamedRows(task.project, taskRows, ["project"], ["projectId"]);
+}
+
+function resolveEmployeeIdForTask(task, employeeRows, taskRows) {
+    return task.assignedToId
+        || task.assigned_to
+        || getIdFromNamedRows(task.assignedTo, employeeRows, ["name", "displayName", "email"], ["userId", "backendId", "id", "employeeId"])
+        || getIdFromNamedRows(task.assignedTo, taskRows, ["assignedTo"], ["assignedToId"]);
+}
+
 function TimerControl({ task, currentTime, onStart, onStop, isAnotherTimerRunning }) {
     const isRunning = Boolean(task.timerStartedAt);
 
@@ -284,6 +318,12 @@ function TaskManagementPage() {
     const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
         transformPayload: normalizeTaskRows,
     });
+    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projectsList, projects, {
+        transformPayload: normalizeProjectRows,
+    });
+    const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
+        transformPayload: normalizeEmployeeRows,
+    });
     const [taskRows, setTaskRows] = useState(taskItems);
     const [taskSort, setTaskSort] = useState({ key: "dueDate", direction: "asc" });
     const [taskPage, setTaskPage] = useState(1);
@@ -295,6 +335,8 @@ function TaskManagementPage() {
     const [taskModal, setTaskModal] = useState(null);
     const [activeTimerTaskId, setActiveTimerTaskId] = useState(null);
     const [timerTick, setTimerTick] = useState(Date.now());
+    const taskProjectRows = Array.isArray(loadedProjectRows) ? loadedProjectRows : [];
+    const taskEmployeeRows = Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [];
 
     useEffect(() => {
         if (Array.isArray(loadedTaskRows)) {
@@ -405,7 +447,7 @@ function TaskManagementPage() {
 
     const projectRowsForTasks = () => {
         const taskProjects = taskRows.map((task) => task.project).filter(Boolean);
-        const masterProjects = projects.map((project) => project.name).filter(Boolean);
+        const masterProjects = taskProjectRows.map((project) => project.name).filter(Boolean);
         return [...new Set([...masterProjects, ...taskProjects])].sort();
     };
 
@@ -413,6 +455,8 @@ function TaskManagementPage() {
         const cleanTask = {
             ...task,
             id: task.id || generateNextId("TSK", taskRows),
+            projectId: resolveProjectIdForTask(task, taskProjectRows, taskRows),
+            assignedToId: resolveEmployeeIdForTask(task, taskEmployeeRows, taskRows),
             taskName: task.taskName.trim() || "Untitled Task",
             assignedTo: task.assignedTo.trim() || "Unassigned",
             timerStartedAt: task.timerStartedAt || null,
@@ -797,6 +841,12 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
     const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
         transformPayload: normalizeTaskRows,
     });
+    const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projectsList, projects, {
+        transformPayload: normalizeProjectRows,
+    });
+    const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
+        transformPayload: normalizeEmployeeRows,
+    });
     const [taskRows, setTaskRows] = useState(taskItems.map(normalizeTaskForTimers));
     const [taskSort, setTaskSort] = useState({ key: "dueDate", direction: "asc" });
     const [taskPage, setTaskPage] = useState(1);
@@ -808,6 +858,8 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
     const [taskModal, setTaskModal] = useState(null);
     const [activeTimerTaskId, setActiveTimerTaskId] = useState(null);
     const [timerTick, setTimerTick] = useState(Date.now());
+    const taskProjectRows = Array.isArray(loadedProjectRows) ? loadedProjectRows : [];
+    const taskEmployeeRows = Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [];
     const hasManagerAccess = canManageContent(currentUser);
 
     useEffect(() => {
@@ -905,7 +957,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
 
     const projectRowsForTasks = () => {
         const taskProjects = taskRows.map((task) => task.project).filter(Boolean);
-        const masterProjects = projects.map((project) => project.name).filter(Boolean);
+        const masterProjects = taskProjectRows.map((project) => project.name).filter(Boolean);
         return [...new Set([...masterProjects, ...taskProjects])].sort();
     };
 
@@ -936,6 +988,8 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
         const cleanTask = normalizeTaskForTimers({
             ...task,
             id: task.id || generateNextId("TSK", taskRows),
+            projectId: resolveProjectIdForTask(task, taskProjectRows, taskRows),
+            assignedToId: resolveEmployeeIdForTask(task, taskEmployeeRows, taskRows),
             taskName: task.taskName.trim() || "Untitled Task",
             assignedTo: task.assignedTo.trim() || "Unassigned",
             trackedSeconds: normalizeNumber(task.trackedSeconds),
