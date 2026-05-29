@@ -135,9 +135,9 @@ async function logout(req, res) {
 async function refresh(req, res, next) {
     const refreshToken = req.cookies?.refresh_token;
 
-    console.log('[REFRESH] Cookies received:', Object.keys(req.cookies || {}));
-    console.log('[REFRESH] Refresh cookie exists:', Boolean(refreshToken));
-    console.log('[REFRESH] Refresh cookie length:', refreshToken?.length);
+    console.log('[REFRESH] Raw cookie header:', req.headers.cookie);
+    console.log('[REFRESH] Parsed cookies:', req.cookies);
+    console.log('[REFRESH] Refresh cookie fingerprint:', tokenFingerprint(refreshToken));
 
     const result = await verifyRefreshToken(refreshToken);
 
@@ -164,17 +164,7 @@ async function refresh(req, res, next) {
     const accessToken = createAccessToken(user);
     const newRefreshToken = await rotateRefreshToken(user, result.refreshToken);
 
-    console.log('[REFRESH] Created access token:', Boolean(accessToken));
-    console.log('[REFRESH] Created new refresh token:', Boolean(newRefreshToken));
-
-    if (!accessToken || !newRefreshToken) {
-        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
-            error: {
-                code: C_HTTP.CODE.UNAUTHORIZED,
-                message: 'Could not rotate authentication tokens.',
-            },
-        });
-    }
+    console.log('[REFRESH] New refresh token fingerprint:', tokenFingerprint(newRefreshToken));
 
     res.cookie('access_token', accessToken, accessCookieOptions);
     res.cookie('refresh_token', newRefreshToken, refreshCookieOptions);

@@ -8,6 +8,16 @@ const {query} = require("../db");
 
 const isProduction = process.env.NODE_ENV === 'production';
 
+function tokenFingerprint(token) {
+    if (!token) return null;
+
+    return crypto
+        .createHash('sha256')
+        .update(token)
+        .digest('hex')
+        .slice(0, 16);
+}
+
 //----------------------------------------------------------------------------------
 // JWT Access Token Services
 //----------------------------------------------------------------------------------
@@ -73,10 +83,17 @@ async function storeRefreshToken( user, refreshTokenHash ) {
     )
 }
 
-async function generateRefreshToken( user ) {
-    const refreshToken = await createRefreshToken();
+async function generateRefreshToken(user) {
+    const refreshToken = createRefreshToken();
+
+    console.log('[GENERATE REFRESH] Raw token fingerprint:', tokenFingerprint(refreshToken));
+
     const refreshTokenHash = await hashRefreshToken(refreshToken);
-    await storeRefreshToken( user, refreshTokenHash );
+
+    console.log('[GENERATE REFRESH] Hash prefix:', refreshTokenHash.slice(0, 4));
+
+    await storeRefreshToken(user, refreshTokenHash);
+
     return refreshToken;
 }
 
