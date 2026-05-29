@@ -923,6 +923,19 @@ function clearPublishedApiErrors() {
     window.dispatchEvent(new CustomEvent("photometrics-api-error", { detail: null }));
 }
 
+function publishAuthFailure(error) {
+    if (typeof window === "undefined") return;
+
+    window.dispatchEvent(new CustomEvent("photometrics-auth-failed", {
+        detail: {
+            endpoint: error?.endpoint || "unknown",
+            method: error?.method || "GET",
+            status: error?.status || 401,
+            message: error?.message || "Authentication failed",
+        },
+    }));
+}
+
 async function apiRequest(endpoint, options = {}) {
     const method = options.method || "GET";
     const url = buildApiUrl(endpoint);
@@ -959,6 +972,9 @@ async function apiRequest(endpoint, options = {}) {
             error.url = url;
             if (!suppressApiError) {
                 publishApiError(error);
+            }
+            if (response.status === 401) {
+                publishAuthFailure(error);
             }
             throw error;
         }
@@ -1437,7 +1453,7 @@ const apiPlaceholders = {
             throw authError;
         }
     },
-    logout: (userOrId) => {
+    logout: async (userOrId) => {
         const isLocalOnlyAuth = typeof userOrId === "object"
             && ["api-fallback-seed", "api-preview-seed", "local-session"].includes(userOrId?.authMode);
         const userId = typeof userOrId === "string"
@@ -1445,14 +1461,22 @@ const apiPlaceholders = {
             : isLocalOnlyAuth
                 ? null
                 : userOrId?.userId || userOrId?.user_id || userOrId?.id || userOrId?.employeeId;
-        const endpoint = userId
-            ? `${API_ENDPOINTS.auth.logout}/${encodeURIComponent(userId)}`
-            : API_ENDPOINTS.auth.logout;
 
-        return apiRequest(endpoint, {
-            method: "POST",
-            suppressApiError: true,
-        });
+        try {
+            return await apiRequest(API_ENDPOINTS.auth.logout, {
+                method: "POST",
+                suppressApiError: true,
+            });
+        } catch (logoutError) {
+            if (!userId || ![404, 405].includes(Number(logoutError.status))) {
+                throw logoutError;
+            }
+
+            return apiRequest(`${API_ENDPOINTS.auth.logout}/${encodeURIComponent(userId)}`, {
+                method: "POST",
+                suppressApiError: true,
+            });
+        }
     },
     createProject: (project) => apiRequest(API_ENDPOINTS.projects, {
         method: "POST",
