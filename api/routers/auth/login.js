@@ -6,7 +6,6 @@ const asyncHandler = require("../../handlers/asyncHandler");
 const {validationErrorHandler} = require("../../handlers/expressHandlers")
 
 const {login} = require("../../controllers/authController")
-const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
 
 router.post(
     '/',

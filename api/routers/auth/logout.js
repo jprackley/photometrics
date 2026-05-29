@@ -5,7 +5,6 @@ const asyncHandler = require("../../handlers/asyncHandler");
 const {validationErrorHandler} = require("../../handlers/expressHandlers");
 const { logout } = require("../../controllers/authController");
 const {param} = require("express-validator");
-const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
 
 router.post('/:id',
     param('id').isUUID().withMessage('Invalid user_id UUID'),
