@@ -6,6 +6,7 @@ const {query} = require("../db");
 const C_NODE = require("../../utils/constants/cNodeServer");
 const C_HTTP = require("../../utils/constants/cHTTP");
 const C_TIME = require("../../utils/constants/cTimeEntries");
+const {verifyAuthentication} = require("../middleware/verifyAuthentication");
 const router = express.Router();
 
 //----------------------------------------------------------------------------------
@@ -13,6 +14,7 @@ const router = express.Router();
 //----------------------------------------------------------------------------------
 router.post(
     '/',
+    verifyAuthentication,
     [
         body('task_id').isUUID().withMessage('Invalid task_id UUID'),
         body('employee_id').isUUID().withMessage('Invalid employee_id UUID'),
@@ -54,6 +56,7 @@ router.post(
 //----------------------------------------------------------------------------------
 router.get(
     '/:id',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid time_entry_id UUID')
     ],
@@ -77,6 +80,7 @@ router.get(
 //----------------------------------------------------------------------------------
 router.get(
     '/',
+    verifyAuthentication,
     [ paginate ],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Time Entries - ');
@@ -139,6 +143,7 @@ router.get(
 //----------------------------------------------------------------------------------
 router.patch(
     '/:id',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid time_entry_id UUID'),
         body('start_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid start time format'),
@@ -182,6 +187,7 @@ router.patch(
 //----------------------------------------------------------------------------------
 router.delete(
     '/:id',
+    verifyAuthentication,
     [param('id').isUUID().withMessage('Invalid time_entry_id UUID')],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE Time Entry - ');

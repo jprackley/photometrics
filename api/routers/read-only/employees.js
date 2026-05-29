@@ -6,8 +6,10 @@ const query = require("../../db").query;
 const asyncHandler = require("../../handlers/asyncHandler");
 const {validationErrorHandler} = require("../../handlers/expressHandlers")
 const C_USER = require("../../../utils/constants/cUsers");
+const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
 
 router.get('/',
+    verifyAuthentication,
    asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Employees - ');
         const sql = `
@@ -22,6 +24,7 @@ router.get('/',
 )
 
 router.get('/:id',
+    verifyAuthentication,
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Employee:id - ');
         const {id} = req.params;

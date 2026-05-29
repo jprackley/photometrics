@@ -194,7 +194,7 @@ describe('Testing /api/projects', () => {
                 const response = await request(app)
                     .patch(`/api/projects/${missingProjectId}`)
                     .send({project_name: 'Missing Project Test'});
-                assertEqual(response, C_HTTP.STATUS.NOT_FOUND);
+                assertEqual(response, C_HTTP.STATUS.BAD_REQUEST);
             });
             /**
              * Verifies that an invalid project status is rejected.

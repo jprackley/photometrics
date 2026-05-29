@@ -9,12 +9,14 @@ const C_NODE = require('../../utils/constants/cNodeServer');
 const asyncHandler = require('../handlers/asyncHandler');
 const {validationErrorHandler, buildPagination} = require('../handlers/expressHandlers');
 const {query} = require("../db");
+const {verifyAuthentication} = require("../middleware/verifyAuthentication");
 
 //----------------------------------------------------------------------------------
 // POST Task
 //----------------------------------------------------------------------------------
 router.post(
     '/',
+    verifyAuthentication,
     [
         body('project_id').isUUID().withMessage('Invalid project_id UUID'),
         body('task_name').isString().isLength(
@@ -76,6 +78,7 @@ router.post(
 // READ Task:id
 //----------------------------------------------------------------------------------
 router.get('/:id',
+    verifyAuthentication,
     [param('id').isUUID().withMessage('Invalid Task UUID.')],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Task:id - ');
@@ -94,6 +97,7 @@ router.get('/:id',
 // 4. All tasks with pagination and sorting and filtering
 //----------------------------------------------------------------------------------
 router.get('/',
+    verifyAuthentication,
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Tasks - ');
         const {
@@ -158,6 +162,7 @@ router.get('/',
 //----------------------------------------------------------------------------------
 router.patch(
     '/:id',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid Task UUID.'),
         body('project_id').optional({ values: 'null' }).isUUID().withMessage('Invalid project_id UUID'),
@@ -222,6 +227,7 @@ router.patch(
 // PATCH Task:id Start Timer
 //----------------------------------------------------------------------------------
 router.patch('/:id/timer/start',
+    verifyAuthentication,
     [param('id').isUUID().withMessage('Invalid task UUID')],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'Start Task Timer - ');
@@ -259,6 +265,7 @@ router.patch('/:id/timer/start',
 // PATCH Task:id Stop Timer
 //----------------------------------------------------------------------------------
 router.patch('/:id/timer/stop',
+    verifyAuthentication,
     [param('id').isUUID().withMessage('Invalid task UUID')],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'Stop Task Timer - ');
@@ -300,6 +307,7 @@ router.patch('/:id/timer/stop',
 //----------------------------------------------------------------------------------
 router.delete(
     '/:id',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid Task UUID.'),
     ],

@@ -9,12 +9,14 @@ const {query} = require('../db');
 const C_HTTP = require('../../utils/constants/cHTTP');
 const C_IMAGE = require('../../utils/constants/cImages');
 const C_NODE = require('../../utils/constants/cNodeServer');
+const {verifyAuthentication} = require("../middleware/verifyAuthentication");
 
 //----------------------------------------------------------------------------------
 // Create Image
 //----------------------------------------------------------------------------------
 router.post(
     '/',
+    verifyAuthentication,
     [
         body('project_id').isUUID().withMessage('Invalid project_id UUID'),
         body('task_id').optional({ values: 'null' }).isUUID().withMessage('Invalid task_id UUID'),
@@ -74,6 +76,7 @@ router.post(
 //----------------------------------------------------------------------------------
 router.get(
     '/:id',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid image_id UUID'),
     ],
@@ -97,6 +100,7 @@ router.get(
 //----------------------------------------------------------------------------------
 router.get(
     '/',
+    verifyAuthentication,
     [paginate],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Images - ');
@@ -160,6 +164,7 @@ router.get(
 //----------------------------------------------------------------------------------
 router.patch(
     '/:id',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid image_id UUID'),
         body('project_id').optional({ values: 'null' }).isUUID().withMessage('Invalid project_id UUID'),
@@ -222,6 +227,7 @@ router.patch(
 //----------------------------------------------------------------------------------
 router.delete(
     '/:id',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid image_id UUID'),
     ],

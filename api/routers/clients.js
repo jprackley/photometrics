@@ -13,12 +13,14 @@ const {
     buildPagination,
     validationErrorHandler
 } = require('../../api/handlers/expressHandlers');
+const {verifyAuthentication} = require("../middleware/verifyAuthentication");
 
 //----------------------------------------------------------------------------------
 // CREATE Client
 //----------------------------------------------------------------------------------
 router.post(
     '/',
+    verifyAuthentication,
     [
         body('first_name').isString().isLength({
             min: C_CLIENT.MIN.FIRST_NAME,
@@ -170,6 +172,7 @@ router.post(
 router.get(
     '/',
     [paginate],
+    verifyAuthentication,
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Clients - ');
         const {
@@ -251,6 +254,7 @@ router.get(
 //----------------------------------------------------------------------------------
 router.get(
     '/:id',
+    verifyAuthentication,
     [param('id').isUUID()],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Client:id - ');
@@ -266,6 +270,7 @@ router.get(
 //----------------------------------------------------------------------------------
 router.patch(
     '/:id',
+    verifyAuthentication,
     [
         param('id').isUUID(),
         body('first_name').optional({ values: 'falsy' }).isString().isLength({
@@ -410,6 +415,7 @@ router.patch(
 //----------------------------------------------------------------------------------
 router.delete(
     '/:id',
+    verifyAuthentication,
     [param('id').isUUID()],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE Client:id - ');

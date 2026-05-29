@@ -7,9 +7,11 @@ const { query } = require("../../db");
 const {param} = require("express-validator");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
+const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
 
 router.get(
     '/',
+    verifyAuthentication,
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Project Progress KPI - ');
         const sql = `
@@ -23,6 +25,7 @@ router.get(
 
 router.get(
     '/:id',
+    verifyAuthentication,
     param('id').isUUID().withMessage('Invalid Project UUID'),
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Project Progress KPI - ');

@@ -7,10 +7,12 @@ const { query } = require("../db");
 const {param, body} = require("express-validator");
 const C_HTTP = require("../../utils/constants/cHTTP");
 const C_SETTINGS = require("../../utils/constants/cSettings");
+const {verifyAuthentication} = require("../middleware/verifyAuthentication");
 
 
 router.post(
     '/',
+    verifyAuthentication,
     [
         body('user_id').isUUID().withMessage('Invalid user_id UUID'),
         body('theme').optional({values: "falsy"}).isIn(['light', 'dark']).withMessage('Invalid Theme'),
@@ -54,6 +56,7 @@ router.post(
 
 router.get(
     '/:id',
+    verifyAuthentication,
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Settings - ');
         const {id: param} = req.params;
@@ -71,6 +74,7 @@ router.get(
 
 router.patch(
     '/:id',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid Setting UUID'),
         body('theme').optional({values: "falsy"}).isIn(['light', 'dark']).withMessage('Invalid Theme'),
@@ -117,6 +121,7 @@ router.patch(
 
 router.delete(
     '/:id',
+    verifyAuthentication,
     param('id').isUUID().withMessage('Invalid Setting UUID'),
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE Settings - ');

@@ -40,7 +40,7 @@ app.use('/api/dashboard/workflow', require('./routers/dashboard/workflowKPI'));
 app.use('/api/dashboard/employee-activity', require('./routers/dashboard/employeeActivityKPI'));
 app.use('/api/dashboard/project-progress', require('./routers/dashboard/projectProgressKPI'));
 
-app.use('/api/auth/refresh', require('./routers/auth/refresh'));
+//app.use('/api/auth/refresh', require('./routers/auth/refresh'));
 
 // 404 handler goes after all routes
 app.use((req, res) => {

@@ -8,9 +8,11 @@ const { verbose } = require('../../handlers/expressHandlers');
 const {validationErrorHandler} = require("../../handlers/expressHandlers");
 const { query } = require("../../db");
 const C_HTTP = require("../../../utils/constants/cHTTP");
+const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
 
 router.get(
     '/active',
+    verifyAuthentication,
     [verbose],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Active Images - ');
@@ -38,6 +40,7 @@ router.get(
 )
 router.get(
     '/completed',
+    verifyAuthentication,
     [verbose],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Completed Images - ');
@@ -65,6 +68,7 @@ router.get(
 )
 router.get(
     '/remaining',
+    verifyAuthentication,
     [verbose],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Remaining Images - ');
@@ -92,6 +96,7 @@ router.get(
 )
 router.get(
     '/total',
+    verifyAuthentication,
     [verbose],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Total Images - ');

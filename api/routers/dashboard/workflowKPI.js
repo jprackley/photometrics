@@ -6,9 +6,11 @@ const {validationErrorHandler} = require("../../../api/handlers/expressHandlers"
 const { query } = require("../../db");
 const {param} = require("express-validator");
 const C_HTTP = require("../../../utils/constants/cHTTP");
+const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
 
 router.get(
     '/:id',
+    verifyAuthentication,
     param('id').isUUID().withMessage('Invalid User UUID'),
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Workflow KPI - ');

@@ -13,12 +13,14 @@ const asyncHandler = require('../handlers/asyncHandler');
 const {validationErrorHandler, paginate, buildPagination} = require("../handlers/expressHandlers");
 const { query } = require('../db');
 const {MESSAGE} = require("../../utils/constants/cHTTP");
+const {verifyAuthentication} = require("../middleware/verifyAuthentication");
 
 //----------------------------------------------------------------------------------
 // Create Users
 //----------------------------------------------------------------------------------
 router.post(
     '/',
+    verifyAuthentication,
     [
         body('employee_id').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.EMPLOYEE_ID,
@@ -186,6 +188,7 @@ router.post(
 //----------------------------------------------------------------------------------
 router.get(
     '/',
+    verifyAuthentication,
     [paginate],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Users - ');
@@ -266,6 +269,7 @@ router.get(
 //----------------------------------------------------------------------------------
 router.get(
     `/:id`,
+    verifyAuthentication,
     [param('id').isUUID()],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ User:id - ');
@@ -280,6 +284,7 @@ router.get(
 //----------------------------------------------------------------------------------
 router.patch(
     '/:id',
+    verifyAuthentication,
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'UPDATE User - ');
         const {id} = req.params;
@@ -329,6 +334,7 @@ router.patch(
 //----------------------------------------------------------------------------------
 router.delete(
     '/:id',
+    verifyAuthentication,
     [param('id').isUUID()],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE User - ');
