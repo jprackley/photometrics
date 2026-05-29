@@ -121,6 +121,9 @@ async function logout(req, res) {
                 }
             });
         }
+
+        await revokeRefreshTokensByUserID(rows[0].user_id);
+
         console.log(`[LOGOUT] User ${rows[0].email} has logged out.`);
         return res.status(C_HTTP.STATUS.OK).json({ user: rows[0] });
 
