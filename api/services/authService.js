@@ -82,22 +82,7 @@ async function storeRefreshToken(user, refreshTokenHash) {
 async function generateRefreshToken(user) {
     const refreshToken = createRefreshToken();
     const refreshTokenHash = await hashRefreshToken(refreshToken);
-
-    console.log('[GENERATE REFRESH] Created raw token:', {
-        user_id: user.user_id,
-        fingerprint: tokenFingerprint(refreshToken),
-        length: refreshToken.length,
-        hashPrefix: refreshTokenHash.slice(0, 4),
-    });
-
-    const storedRow = await storeRefreshToken(user, refreshTokenHash);
-
-    console.log('[GENERATE REFRESH] Stored token row:', {
-        refresh_token_id: storedRow?.refresh_token_id,
-        user_id: storedRow?.user_id,
-        expires_at: storedRow?.expires_at,
-        fingerprint: tokenFingerprint(refreshToken),
-    });
+    await storeRefreshToken(user, refreshTokenHash);
 
     return refreshToken;
 }
