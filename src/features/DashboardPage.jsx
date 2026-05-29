@@ -157,6 +157,102 @@ const ACTIVE_PROJECTS_KPI = {
     objects: [],
 };
 
+
+const WORKFLOW_STEPS = [
+    "Import",
+    "Cull",
+    "Edit",
+    "Quality Review",
+    "Export",
+    "Delivery",
+    "Other",
+];
+
+const WORKFLOW_STEP_ALIASES = {
+    import: "Import",
+    imported: "Import",
+    cull: "Cull",
+    culling: "Cull",
+    edit: "Edit",
+    editing: "Edit",
+    "photo editing": "Edit",
+    review: "Quality Review",
+    "quality review": "Quality Review",
+    export: "Export",
+    exported: "Export",
+    delivery: "Delivery",
+    delivered: "Delivery",
+    other: "Other",
+};
+
+function getWorkflowStep(value) {
+    const text = String(value || "").trim();
+    if (!text) return "Other";
+
+    const normalized = text.toLowerCase();
+    return WORKFLOW_STEP_ALIASES[normalized]
+        || WORKFLOW_STEPS.find((step) => step.toLowerCase() === normalized)
+        || "Other";
+}
+
+function buildWorkflowRowsFromTasks(tasks = []) {
+    const counts = WORKFLOW_STEPS.reduce((acc, step) => ({ ...acc, [step]: 0 }), {});
+
+    tasks.forEach((task) => {
+        const category = task.category && task.category !== "Other" ? task.category : null;
+        const step = getWorkflowStep(
+            category
+            || task.taskType
+            || task.taskName
+            || task.type
+            || task.workflowStep
+            || task.status
+        );
+        counts[step] += 1;
+    });
+
+    return WORKFLOW_STEPS
+        .map((step, index) => ({
+            name: step,
+            status: step,
+            value: counts[step],
+            count: counts[step],
+            displayValue: String(counts[step]),
+            color: ["#2563eb", "#f5c400", "#ef233c", "#2fb344", "#7c3aed", "#14b8a6", "#64748b"][index],
+        }))
+        .filter((row) => row.value > 0);
+}
+
+function getCurrentWeekLabels() {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    const day = today.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    startOfWeek.setDate(today.getDate() + mondayOffset);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    return Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(startOfWeek);
+        date.setDate(startOfWeek.getDate() + index);
+        return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    });
+}
+
+function buildCurrentWeekProductivityRows(rows = []) {
+    const labels = getCurrentWeekLabels();
+    const values = labels.map((label, index) => {
+        const source = rows[index];
+        return normalizeNumber(source?.value ?? source?.productivity ?? source?.percent);
+    });
+
+    return labels.map((label, index) => ({
+        day: label,
+        name: label,
+        value: values[index],
+        color: rows[index]?.color || "#7c3aed",
+    }));
+}
+
 function unwrapKpiPayload(payload) {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) return payload;
 
@@ -310,8 +406,9 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const employeeName = currentUser?.employeeName || currentUser?.name;
     const employeeActivityRows = Array.isArray(employeeActivityData) ? employeeActivityData : [];
     const projectProgressRows = Array.isArray(projectProgressData) ? projectProgressData : [];
-    const workflowRows = Array.isArray(workflowData) ? workflowData : [];
-    const productivityRows = Array.isArray(productivityData) ? productivityData : [];
+    const rawWorkflowRows = Array.isArray(workflowData) ? workflowData : [];
+    const rawProductivityRows = Array.isArray(productivityData) ? productivityData : [];
+    const productivityRows = useMemo(() => buildCurrentWeekProductivityRows(rawProductivityRows), [rawProductivityRows]);
     const productivityChartData = useMemo(() => ({
         labels: productivityRows.map((row) => row.day || row.label || row.name || "Metric"),
         datasets: [
@@ -346,6 +443,11 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
             x: { grid: { display: false } },
         },
     }), []);
+    const taskRows = Array.isArray(liveTaskData) ? liveTaskData.map(normalizeTaskForTimers) : taskItems.map(normalizeTaskForTimers);
+    const workflowRows = useMemo(() => {
+        const rowsFromTasks = buildWorkflowRowsFromTasks(taskRows);
+        return rowsFromTasks.length > 0 ? rowsFromTasks : rawWorkflowRows;
+    }, [rawWorkflowRows, taskRows]);
     const workflowChartData = useMemo(() => ({
         labels: workflowRows.map((row) => row.name || "Workflow"),
         datasets: [
@@ -369,7 +471,6 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const visibleEmployeeActivityData = hasManagerAccess
         ? employeeActivityRows
         : employeeActivityRows.filter((row) => row[0] === employeeName);
-    const taskRows = Array.isArray(liveTaskData) ? liveTaskData.map(normalizeTaskForTimers) : taskItems.map(normalizeTaskForTimers);
     const projectRows = Array.isArray(liveProjectData) ? liveProjectData : projects;
     const assignedTasks = taskRows.filter((task) => isAssignedToUser(task, currentUser));
     const assignedProjectNames = Array.from(new Set(
