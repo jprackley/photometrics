@@ -46,7 +46,17 @@ async function verifyAuthentication(req, res, next) {
         //If the Access Token is expired, begin a refresh process.
         if (decodedTokenExpired) {
             console.warn('Access Token is expired. Attempting to refresh tokens.')
-            return await refreshAccessToken( req, res );
+            const refreshed = await refreshAccessToken(req, res);
+
+            if (refreshed) {
+                return next();
+            }
+            return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
+                error: {
+                    code: C_HTTP.CODE.UNAUTHORIZED,
+                    message: 'Access and Refresh Token are invalid or expired.'
+                },
+            });
         }
         //If the Access Token is invalid for any other reason, the user is not authenticated.
         else if (!decodedTokenExpired) {
