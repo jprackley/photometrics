@@ -137,11 +137,12 @@ async function refresh(req, res, next ) {
 
     const result = await verifyRefreshToken( refreshToken );
 
-    const user = {
-        user_id: result.refreshToken.user_id,
-    };
-
     if (result.isValid) {
+
+        const user = {
+            user_id: result.refreshToken.user_id,
+        };
+
         const accessToken = createAccessToken(user);
         const newRefreshToken = await rotateRefreshToken( user, result.refreshToken );
         res.cookie(
