@@ -172,5 +172,5 @@ async function refreshAccessToken( req, res ) {
 module.exports = {
     login,
     logout,
-    refresh: refreshAccessToken,
+    refreshAccessToken,
     }
