@@ -1,3 +1,21 @@
+// =============================================================================
+// API SERVICE LAYER
+// =============================================================================
+// Purpose:
+// Centralized frontend integration layer responsible for:
+//   • API communication and endpoint management
+//   • Data normalization between backend and UI models
+//   • Dashboard KPI transformations
+//   • Authentication and session helpers
+//   • Settings persistence and preference management
+//   • Reusable React data-loading utilities
+//
+// Notes:
+// This file acts as the contract between the React frontend and backend APIs.
+// UI components should consume these helpers instead of calling backend
+// endpoints directly.
+// =============================================================================
+
 // -----------------------------------------------------------------------------
 // Frontend API Service Layer
 // -----------------------------------------------------------------------------
@@ -592,24 +610,6 @@ function normalizeWorkflowKpiRows(payload) {
         });
 }
 
-function getAssignedTaskActivity(row) {
-    const description = String(row.description || "");
-
-    const descriptionTaskMatch = description.match(/\n\s*([^\n]+?)\s+updated at:/i);
-    const assignedTask = String(
-        row.assigned_task
-        || row.assignedTask
-        || row.task_name
-        || row.taskName
-        || row.task
-        || row.title
-        || (descriptionTaskMatch ? descriptionTaskMatch[1] : "")
-        || ""
-    ).trim();
-
-    return assignedTask || "No assigned task";
-}
-
 function normalizeEmployeeActivityKpiRows(payload) {
     return toArrayPayload(payload)
         .filter((row) => !isSeedRecord(row))
@@ -618,10 +618,24 @@ function normalizeEmployeeActivityKpiRows(payload) {
             const description = String(row.description || "");
             const statusMatch = description.match(/Status:\s*([^\n]+)/i);
             const status = row.status || (statusMatch ? statusMatch[1].trim() : "Updated");
+            const taskName = row.task_name || row.taskName;
+            const projectName = row.project_name || row.projectName || row.project;
+            const activityText = String(
+                row.activity
+                || (taskName && projectName ? `${taskName} - ${projectName}` : "")
+                || taskName
+                || projectName
+                || row.category
+                || row.task_type
+                || row.taskType
+                || row.workflow_step
+                || row.workflowStep
+                || "Task Update"
+            ).trim();
 
             return [
                 displayName,
-                getAssignedTaskActivity(row),
+                activityText,
                 formatApiDateTimeForDisplay(row.updated_at || row.created_at),
                 status,
             ];
