@@ -175,6 +175,15 @@ async function refresh(req, res, next) {
     const accessToken = createAccessToken(user);
     const newRefreshToken = await rotateRefreshToken(user, result.refreshToken);
 
+    if (!accessToken || !newRefreshToken) {
+        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
+            error: {
+                code: C_HTTP.CODE.UNAUTHORIZED,
+                message: 'Failed to rotate refresh token. Please login again.',
+            },
+        });
+    }
+
     console.log('[REFRESH] New refresh token fingerprint:', tokenFingerprint(newRefreshToken));
 
     res.cookie('access_token', accessToken, accessCookieOptions);
