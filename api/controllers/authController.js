@@ -10,6 +10,17 @@ const {
     verifyRefreshToken,
     rotateRefreshToken,
 } = require("../services/authService");
+const crypto = require("crypto");
+
+function tokenFingerprint(token) {
+    if (!token) return null;
+
+    return crypto
+        .createHash('sha256')
+        .update(token)
+        .digest('hex')
+        .slice(0, 16);
+}
 
 const isProduction = process.env.NODE_ENV === 'production';
 
