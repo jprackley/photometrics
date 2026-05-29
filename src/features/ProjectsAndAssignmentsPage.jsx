@@ -610,7 +610,9 @@ function ProjectsAndAssignments() {
                     : await apiPlaceholders.updateProject(cleanProject.backendId || cleanProject.id, projectToApi(cleanProject));
                 cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
             } catch (apiError) {
-                console.warn("Project API endpoint is not connected yet. Saving locally.", apiError);
+                console.warn("Project API request failed. The project list was not changed.", apiError);
+                window.alert(apiError?.message || "Project could not be saved. Please try again.");
+                return;
             }
         }
 
@@ -642,7 +644,9 @@ function ProjectsAndAssignments() {
                     : await apiPlaceholders.updateAssignment(cleanAssignment.backendId || cleanAssignment.taskId || cleanAssignment.id, cleanAssignment);
                 cleanAssignment = normalizeAssignmentRows([savedAssignment])[0] || cleanAssignment;
             } catch (apiError) {
-                console.warn("Assignment API endpoint is not connected yet. Saving locally.", apiError);
+                console.warn("Assignment API request failed. The assignment list was not changed.", apiError);
+                window.alert(apiError?.message || "Assignment could not be saved. Please try again.");
+                return;
             }
         }
 
@@ -664,7 +668,9 @@ function ProjectsAndAssignments() {
             try {
                 await apiPlaceholders.deleteProject(project.backendId || project.id);
             } catch (apiError) {
-                console.warn("Project delete API endpoint is not connected yet. Deleting locally.", apiError);
+                console.warn("Project delete API request failed. The project list was not changed.", apiError);
+                window.alert(apiError?.message || "Project could not be deleted. Please try again.");
+                return;
             }
         }
 
@@ -678,7 +684,9 @@ function ProjectsAndAssignments() {
             try {
                 await apiPlaceholders.deleteAssignment(assignment.backendId || assignment.taskId || assignment.id);
             } catch (apiError) {
-                console.warn("Assignment delete API endpoint is not connected yet. Deleting locally.", apiError);
+                console.warn("Assignment delete API request failed. The assignment list was not changed.", apiError);
+                window.alert(apiError?.message || "Assignment could not be deleted. Please try again.");
+                return;
             }
         }
 
@@ -1124,7 +1132,9 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                     : await apiPlaceholders.updateProject(cleanProject.backendId || cleanProject.id, projectToApi(cleanProject));
                 cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
             } catch (apiError) {
-                console.warn("Project API endpoint is not connected yet. Saving locally.", apiError);
+                console.warn("Project API request failed. The project list was not changed.", apiError);
+                window.alert(apiError?.message || "Project could not be saved. Please try again.");
+                return;
             }
         }
 
@@ -1157,7 +1167,9 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                     : await apiPlaceholders.updateAssignment(cleanAssignment.backendId || cleanAssignment.taskId || cleanAssignment.id, cleanAssignment);
                 cleanAssignment = normalizeAssignmentRows([savedAssignment])[0] || cleanAssignment;
             } catch (apiError) {
-                console.warn("Assignment API endpoint is not connected yet. Saving locally.", apiError);
+                console.warn("Assignment API request failed. The assignment list was not changed.", apiError);
+                window.alert(apiError?.message || "Assignment could not be saved. Please try again.");
+                return;
             }
         }
 
@@ -1178,7 +1190,9 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
             try {
                 await apiPlaceholders.deleteProject(project.backendId || project.id);
             } catch (apiError) {
-                console.warn("Project delete API endpoint is not connected yet. Deleting locally.", apiError);
+                console.warn("Project delete API request failed. The project list was not changed.", apiError);
+                window.alert(apiError?.message || "Project could not be deleted. Please try again.");
+                return;
             }
         }
         setProjectRows((currentRows) => currentRows.filter((row) => row.id !== project.id));
@@ -1190,7 +1204,9 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
             try {
                 await apiPlaceholders.deleteAssignment(assignment.backendId || assignment.taskId || assignment.id);
             } catch (apiError) {
-                console.warn("Assignment delete API endpoint is not connected yet. Deleting locally.", apiError);
+                console.warn("Assignment delete API request failed. The assignment list was not changed.", apiError);
+                window.alert(apiError?.message || "Assignment could not be deleted. Please try again.");
+                return;
             }
         }
         setAssignmentRows((currentRows) => currentRows.filter((row) => row.id !== assignment.id));
