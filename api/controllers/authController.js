@@ -8,7 +8,7 @@ const {
     generateRefreshToken,
     createAccessToken,
     verifyRefreshToken,
-    rotateRefreshToken,
+    revokeRefreshTokensByUserID
 } = require("../services/authService");
 const crypto = require("crypto");
 
@@ -75,6 +75,8 @@ async function login(req, res) {
 
         const updatedUser = await updateUserAsLoggedIn(user.user_id);
         const accessToken = createAccessToken(updatedUser);
+
+        await revokeRefreshTokensByUserID(updatedUser);
         const refreshToken = await generateRefreshToken(updatedUser);
 
         res.cookie(
@@ -154,18 +156,7 @@ async function logout(req, res) {
 async function refresh(req, res, next) {
     const refreshToken = req.cookies?.refresh_token;
 
-    console.log('[REFRESH] Raw cookie header:', req.headers.cookie);
-    console.log('[REFRESH] Parsed cookies:', req.cookies);
-    console.log('[REFRESH] Refresh cookie fingerprint:', tokenFingerprint(refreshToken));
-
     const result = await verifyRefreshToken(refreshToken);
-
-    console.log('[REFRESH] Verify result:', {
-        isValid: result.isValid,
-        hasRefreshTokenRow: Boolean(result.refreshToken),
-        userId: result.refreshToken?.user_id,
-        refreshTokenId: result.refreshToken?.refresh_token_id,
-    });
 
     if (!result.isValid || !result.refreshToken) {
         return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
@@ -181,35 +172,17 @@ async function refresh(req, res, next) {
     };
 
     const accessToken = createAccessToken(user);
-    const newRefreshToken = await rotateRefreshToken(user, result.refreshToken);
 
-    console.log('[REFRESH] Setting new refresh cookie:', {
-        exists: Boolean(newRefreshToken),
-        length: newRefreshToken?.length,
-        fingerprint: tokenFingerprint(newRefreshToken),
-    });
-
-    if (!accessToken || !newRefreshToken) {
+    if (!accessToken) {
         return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
             error: {
                 code: C_HTTP.CODE.UNAUTHORIZED,
-                message: 'Failed to rotate refresh token. Please login again.',
+                message: 'Failed to create access token.',
             },
         });
     }
 
-    console.log('[REFRESH] New refresh token fingerprint:', tokenFingerprint(newRefreshToken));
-
     res.cookie('access_token', accessToken, accessCookieOptions);
-
-    console.log('[REFRESH] Setting refresh cookie:', {
-        fingerprint: tokenFingerprint(newRefreshToken),
-        length: newRefreshToken?.length,
-    });
-
-    res.cookie('refresh_token', newRefreshToken, refreshCookieOptions);
-
-    console.log('[REFRESH] Set-Cookie header:', res.getHeader('Set-Cookie'));
 
     return next();
 }
