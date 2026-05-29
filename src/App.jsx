@@ -267,6 +267,20 @@ export default function App() {
     }, []);
 
     useEffect(() => {
+        const handleAuthFailure = () => {
+            clearPublishedApiErrors();
+            window.localStorage.removeItem("photometrics-session");
+            setCurrentUser(null);
+            setPage("dashboard");
+            setGlobalSearch("");
+            setIsSidebarCollapsed(false);
+        };
+
+        window.addEventListener("photometrics-auth-failed", handleAuthFailure);
+        return () => window.removeEventListener("photometrics-auth-failed", handleAuthFailure);
+    }, []);
+
+    useEffect(() => {
         const syncSettings = () => setAppSettings(loadSavedAppSettings());
         const systemThemeQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
 
