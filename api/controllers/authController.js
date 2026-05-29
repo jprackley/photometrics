@@ -158,6 +158,12 @@ async function refresh(req, res, next) {
 
     const result = await verifyRefreshToken(refreshToken);
 
+    console.log('[REFRESH] Verify result:', {
+        isValid: result.isValid,
+        hasRefreshTokenRow: Boolean(result.refreshToken),
+        userId: result.refreshToken?.user_id,
+    });
+
     if (!result.isValid || !result.refreshToken) {
         return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
             error: {
@@ -173,6 +179,11 @@ async function refresh(req, res, next) {
 
     const accessToken = createAccessToken(user);
 
+    console.log('[REFRESH] Access token created:', {
+        exists: Boolean(accessToken),
+        length: accessToken?.length,
+    });
+
     if (!accessToken) {
         return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
             error: {
@@ -183,6 +194,9 @@ async function refresh(req, res, next) {
     }
 
     res.cookie('access_token', accessToken, accessCookieOptions);
+
+    console.log('[REFRESH] Set-Cookie header:', res.getHeader('Set-Cookie'));
+    console.log('[REFRESH] Calling next after access token refresh.');
 
     return next();
 }
