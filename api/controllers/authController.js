@@ -132,38 +132,54 @@ async function logout(req, res) {
     }
 }
 
-async function refresh(req, res, next ) {
+async function refresh(req, res, next) {
     const refreshToken = req.cookies?.refresh_token;
 
-    const result = await verifyRefreshToken( refreshToken );
+    console.log('[REFRESH] Cookies received:', Object.keys(req.cookies || {}));
+    console.log('[REFRESH] Refresh cookie exists:', Boolean(refreshToken));
+    console.log('[REFRESH] Refresh cookie length:', refreshToken?.length);
 
-    if (result.isValid) {
+    const result = await verifyRefreshToken(refreshToken);
 
-        const user = {
-            user_id: result.refreshToken.user_id,
-        };
+    console.log('[REFRESH] Verify result:', {
+        isValid: result.isValid,
+        hasRefreshTokenRow: Boolean(result.refreshToken),
+        userId: result.refreshToken?.user_id,
+        refreshTokenId: result.refreshToken?.refresh_token_id,
+    });
 
-        const accessToken = createAccessToken(user);
-        const newRefreshToken = await rotateRefreshToken( user, result.refreshToken );
-        res.cookie(
-            'access_token',
-            accessToken,
-            accessCookieOptions
-        );
-        res.cookie(
-            'refresh_token',
-            newRefreshToken,
-            refreshCookieOptions
-        );
-        return next();
-    } else {
+    if (!result.isValid || !result.refreshToken) {
         return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
             error: {
                 code: C_HTTP.CODE.UNAUTHORIZED,
                 message: 'Failed to refresh tokens. Please login again.',
             },
-        })
+        });
     }
+
+    const user = {
+        user_id: result.refreshToken.user_id,
+    };
+
+    const accessToken = createAccessToken(user);
+    const newRefreshToken = await rotateRefreshToken(user, result.refreshToken);
+
+    console.log('[REFRESH] Created access token:', Boolean(accessToken));
+    console.log('[REFRESH] Created new refresh token:', Boolean(newRefreshToken));
+
+    if (!accessToken || !newRefreshToken) {
+        return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
+            error: {
+                code: C_HTTP.CODE.UNAUTHORIZED,
+                message: 'Could not rotate authentication tokens.',
+            },
+        });
+    }
+
+    res.cookie('access_token', accessToken, accessCookieOptions);
+    res.cookie('refresh_token', newRefreshToken, refreshCookieOptions);
+
+    return next();
 }
 
 module.exports = {
