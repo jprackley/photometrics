@@ -85,12 +85,9 @@ async function storeRefreshToken( user, refreshTokenHash ) {
 
 async function generateRefreshToken(user) {
     const refreshToken = createRefreshToken();
-
-    console.log('[GENERATE REFRESH] Raw token fingerprint:', tokenFingerprint(refreshToken));
-
     const refreshTokenHash = await hashRefreshToken(refreshToken);
 
-    console.log('[GENERATE REFRESH] Hash prefix:', refreshTokenHash.slice(0, 4));
+    console.log('[GENERATE REFRESH] New raw token fingerprint:', tokenFingerprint(refreshToken));
 
     await storeRefreshToken(user, refreshTokenHash);
 
@@ -180,25 +177,46 @@ async function revokeRefreshTokensByUserID( user ) {
     return result.rowCount;
 }
 
-async function revokeRefreshTokenByID( storedRefreshToken ) {
-    if ( !storedRefreshToken ) { return false; }
-    const result  = await query(`
-        DELETE FROM user_refresh_tokens
-        WHERE refresh_token_id = $1;
-    `,
-        [ storedRefreshToken.refresh_token_id ]);
+async function revokeRefreshTokenByID(storedRefreshToken) {
+    if (!storedRefreshToken) {
+        console.log('[REVOKE REFRESH] No stored token provided');
+        return 0;
+    }
+
+    console.log('[REVOKE REFRESH] Attempting delete:', {
+        refresh_token_id: storedRefreshToken.refresh_token_id,
+        user_id: storedRefreshToken.user_id,
+    });
+
+    const result = await query(`
+                DELETE FROM user_refresh_tokens
+                WHERE refresh_token_id = $1
+                RETURNING refresh_token_id, user_id, expires_at;
+        `,
+        [storedRefreshToken.refresh_token_id]);
+
+    console.log('[REVOKE REFRESH] Delete result:', {
+        rowCount: result.rowCount,
+        deletedRows: result.rows,
+    });
 
     return result.rowCount;
 }
 
-async function rotateRefreshToken( user, storedRefreshToken ) {
+async function rotateRefreshToken(user, storedRefreshToken) {
+    const revokedCount = await revokeRefreshTokenByID(storedRefreshToken);
 
-    if (await revokeRefreshTokenByID(storedRefreshToken) > 0) {
-        return await generateRefreshToken(user);
-    } else {
+    console.log('[ROTATE REFRESH] Revoked count:', revokedCount);
+
+    if (revokedCount <= 0) {
         return null;
     }
 
+    const newRefreshToken = await generateRefreshToken(user);
+
+    console.log('[ROTATE REFRESH] New token created:', Boolean(newRefreshToken));
+
+    return newRefreshToken;
 }
 
 //----------------------------------------------------------------------------------

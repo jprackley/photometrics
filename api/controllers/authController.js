@@ -175,6 +175,12 @@ async function refresh(req, res, next) {
     const accessToken = createAccessToken(user);
     const newRefreshToken = await rotateRefreshToken(user, result.refreshToken);
 
+    console.log('[REFRESH] Setting new refresh cookie:', {
+        exists: Boolean(newRefreshToken),
+        length: newRefreshToken?.length,
+        fingerprint: tokenFingerprint(newRefreshToken),
+    });
+
     if (!accessToken || !newRefreshToken) {
         return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
             error: {
