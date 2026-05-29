@@ -35,10 +35,13 @@ const productivity = [
 // Workflow pie chart data
 // Mock workflow distribution data for the dashboard pie chart.
 const workflow = [
-    { name: "Editing", value: 40, color: "#ef233c" },
-    { name: "Culling", value: 25, color: "#f5c400" },
-    { name: "Review", value: 15, color: "#2fb344" },
-    { name: "Completed", value: 20, color: "#2563eb" },
+    { name: "Import", value: 10, color: "#2563eb" },
+    { name: "Cull", value: 25, color: "#f5c400" },
+    { name: "Edit", value: 40, color: "#ef233c" },
+    { name: "Quality Review", value: 15, color: "#2fb344" },
+    { name: "Export", value: 5, color: "#7c3aed" },
+    { name: "Delivery", value: 3, color: "#14b8a6" },
+    { name: "Other", value: 2, color: "#64748b" },
 ];
 
 // Employee activity table data
