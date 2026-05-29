@@ -92,7 +92,10 @@ async function getStoredRefreshTokens() {
     return rows;
 }
 
-async function verifyRefreshToken( refreshToken ) {
+async function verifyRefreshToken(refreshToken) {
+    console.log('[VERIFY REFRESH] Incoming token exists:', Boolean(refreshToken));
+    console.log('[VERIFY REFRESH] Incoming token length:', refreshToken?.length);
+
     if (!refreshToken) {
         return {
             isValid: false,
@@ -101,26 +104,42 @@ async function verifyRefreshToken( refreshToken ) {
     }
 
     const storedRefreshTokenArray = await getStoredRefreshTokens();
+
+    console.log('[VERIFY REFRESH] Active stored token count:', storedRefreshTokenArray?.length || 0);
+
     if (!storedRefreshTokenArray) {
         return {
             isValid: false,
             refreshToken: null
         };
-    } else {
-        for (const storedRefreshToken of storedRefreshTokenArray) {
-            const isValidRefreshToken = await bcrypt.compare(refreshToken, storedRefreshToken.token_hash);
-            if (isValidRefreshToken) {
-                return {
-                    isValid: true,
-                    refreshToken: storedRefreshToken
-                };
-            }
-        }
-        return {
-            isValid: false,
-            refreshToken: null
-        };
     }
+
+    for (const storedRefreshToken of storedRefreshTokenArray) {
+        const isValidRefreshToken = await bcrypt.compare(
+            refreshToken,
+            storedRefreshToken.token_hash
+        );
+
+        console.log('[VERIFY REFRESH] Compare result:', {
+            refresh_token_id: storedRefreshToken.refresh_token_id,
+            user_id: storedRefreshToken.user_id,
+            expires_at: storedRefreshToken.expires_at,
+            hash_prefix: storedRefreshToken.token_hash?.slice(0, 4),
+            matched: isValidRefreshToken,
+        });
+
+        if (isValidRefreshToken) {
+            return {
+                isValid: true,
+                refreshToken: storedRefreshToken
+            };
+        }
+    }
+
+    return {
+        isValid: false,
+        refreshToken: null
+    };
 }
 
 async function revokeExpiredRefreshTokensByUserID ( user ) {
