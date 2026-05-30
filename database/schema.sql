@@ -3,6 +3,10 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 DROP VIEW IF EXISTS task_progress_view CASCADE;
 DROP VIEW IF EXISTS project_progress_view CASCADE;
 DROP VIEW IF EXISTS assignments CASCADE;
+DROP VIEW IF EXISTS project_delivery_report CASCADE;
+DROP VIEW IF EXISTS task_time_report CASCADE;
+DROP VIEW IF EXISTS employee_productivity_report CASCADE;
+DROP VIEW IF EXISTS assignment_status_report CASCADE;
 
 DROP TABLE IF EXISTS time_entries CASCADE;
 DROP TABLE IF EXISTS images CASCADE;
@@ -13,6 +17,8 @@ DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS addresses CASCADE;
 DROP TABLE IF EXISTS settings CASCADE;
 DROP TABLE IF EXISTS user_refresh_tokens CASCADE;
+
+DROP TABLE IF EXISTS project_delivery_report_snapshots CASCADE;
 
 DROP TYPE IF EXISTS image_status CASCADE;
 DROP TYPE IF EXISTS task_priority CASCADE;
@@ -283,6 +289,34 @@ CREATE TABLE time_entries
     CONSTRAINT chk_time_entry_end_after_start
         CHECK (end_time IS NULL OR end_time >= start_time)
 );
+---------------------------------------------------------------------------
+-- Report Snapshots
+---------------------------------------------------------------------------
+CREATE TABLE project_delivery_report_snapshots
+(
+    report_snapshot_id UUID PRIMARY KEY     DEFAULT gen_random_uuid(),
+
+    project_id         UUID,
+    project_name       VARCHAR(255),
+    client             VARCHAR(255),
+
+    due_date           TIMESTAMPTZ,
+
+    total_images       INTEGER     NOT NULL DEFAULT 0,
+    completed_images   INTEGER     NOT NULL DEFAULT 0,
+    remaining_images   INTEGER     NOT NULL DEFAULT 0,
+
+    progress           NUMERIC(5, 2),
+
+    project_status     VARCHAR(50),
+    due_status         VARCHAR(50),
+
+    open_tasks         INTEGER     NOT NULL DEFAULT 0,
+    review_items       INTEGER     NOT NULL DEFAULT 0,
+    assigned_employees INTEGER     NOT NULL DEFAULT 0,
+
+    generated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 ---------------------------------------------------------------------------
 -- Views
@@ -324,6 +358,99 @@ LEFT JOIN tasks t ON u.user_id = t.assigned_to
 LEFT JOIN projects p ON t.project_id = p.project_id
 WHERE u.account_role = 'Employee'
 ORDER BY assigned_date DESC;
+
+CREATE OR REPLACE VIEW project_delivery_report AS
+WITH image_counts AS (
+    SELECT
+        project_id,
+        COUNT(image_id) AS total_images,
+        COUNT(image_id) FILTER (
+            WHERE status = 'Completed'
+            ) AS completed_images,
+        COUNT(image_id) FILTER (
+            WHERE status <> 'Completed'
+            ) AS remaining_images,
+        COALESCE(
+        ROUND(
+            COUNT(image_id) FILTER (
+                WHERE status = 'Completed'
+            )::numeric / NULLIF(COUNT(image_id), 0) * 100, 2
+        ), 100 ) AS progress
+    FROM images
+    GROUP BY project_id
+),
+
+     task_counts AS (
+         SELECT
+             project_id,
+             COUNT(task_id) FILTER (
+                 WHERE status <> 'Completed'
+                     AND status <> 'Cancelled'
+                 ) AS open_tasks,
+             COUNT(task_id) FILTER (
+                 WHERE category = 'Quality Review'
+                 AND (status <> 'Completed' AND status <> 'Cancelled')
+                 ) AS review_items
+         FROM tasks
+         GROUP BY project_id
+     ),
+
+    assigned_employees AS (
+        SELECT
+            project_id,
+            ARRAY_AGG(
+                    DISTINCT CONCAT(u.first_name, ' ', u.last_name)
+            ) FILTER ( WHERE u.account_role = 'Employee' )
+                AS assigned_employees
+        FROM tasks t
+        LEFT JOIN users u
+        ON t.assigned_to = u.user_id
+        GROUP BY project_id
+    )
+
+
+SELECT
+    p.project_id,
+    p.project_name,
+    COALESCE(
+            NULLIF(c.company_name, ''),
+            CONCAT_WS(' ', c.first_name, c.last_name)
+    ) AS client,
+
+    p.due_time AS due_date,
+
+    CASE
+        WHEN p.status = 'Completed' THEN 'Completed'
+        WHEN p.due_time IS NULL THEN NULL
+        WHEN p.due_time < NOW() THEN 'Overdue'
+        WHEN p.due_time <= NOW() + INTERVAL '7 days' THEN 'Due Soon'
+        ELSE 'On Track'
+        END AS due_status,
+
+    COALESCE(ic.total_images, 0) AS total_images,
+    COALESCE(ic.completed_images, 0) AS completed_images,
+    COALESCE(ic.remaining_images, 0) AS remaining_images,
+    COALESCE(ic.progress, 0) AS progress,
+
+    p.status,
+
+    COALESCE(tc.open_tasks, 0) AS open_tasks,
+    COALESCE(tc.review_items, 0) AS review_items,
+
+    COALESCE(ae.assigned_employees, ARRAY[]::text[]) AS assigned_employees
+
+FROM projects p
+         LEFT JOIN clients c
+                   ON p.client_id = c.client_id
+         LEFT JOIN image_counts ic
+                   ON p.project_id = ic.project_id
+         LEFT JOIN task_counts tc
+                   ON p.project_id = tc.project_id
+         LEFT JOIN assigned_employees ae
+                   ON p.project_id = ae.project_id
+
+ORDER BY due_date DESC;
+
 ---------------------------------------------------------------------------
 -- HARDCODED LOGIN USERS
 ---------------------------------------------------------------------------
