@@ -50,7 +50,7 @@ router.post('/:id/save',
             `
         , [id])
 
-        res.status(C_HTTP.STATUS.OK).json({reports: result.rows[0]});
+        res.status(C_HTTP.STATUS.OK).json({report: result.rows[0]});
     })
 )
 

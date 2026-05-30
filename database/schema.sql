@@ -313,7 +313,7 @@ CREATE TABLE project_delivery_report_snapshots
 
     open_tasks         INTEGER     NOT NULL DEFAULT 0,
     review_items       INTEGER     NOT NULL DEFAULT 0,
-    assigned_employees INTEGER     NOT NULL DEFAULT 0,
+    assigned_employees TEXT[]      NOT NULL DEFAULT ARRAY[]::text[],
 
     generated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
