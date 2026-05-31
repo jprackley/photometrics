@@ -258,13 +258,13 @@ export default function App() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [globalSearch, setGlobalSearch] = useState("");
     // Always require authentication on application startup.
-    // Persisted sessions are cleared so the app always opens on the login screen.
-    const [currentUser, setCurrentUser] = useState(null);
+    const [currentUser, setCurrentUser] = useState(() => {
+    const saved = window.localStorage.getItem("photometrics-session");
+    return saved ? JSON.parse(saved) : null;
+});
     const [appSettings, setAppSettings] = useState(() => loadSavedAppSettings());
 
-    useEffect(() => {
-        window.localStorage.removeItem("photometrics-session");
-    }, []);
+
 
     useEffect(() => {
         const handleAuthFailure = () => {
