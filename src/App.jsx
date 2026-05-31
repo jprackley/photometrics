@@ -254,7 +254,9 @@ function ApiErrorBanner() {
  * Coordinates authenticated app state, page routing, sidebar behavior, and logout/session handling.
  */
 export default function App() {
-    const [page, setPage] = useState("dashboard");
+    const [page, setPage] = useState(() => {
+    return window.localStorage.getItem("photometrics-page") || "dashboard";
+});
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [globalSearch, setGlobalSearch] = useState("");
     // Always require authentication on application startup.
@@ -264,7 +266,9 @@ export default function App() {
 });
     const [appSettings, setAppSettings] = useState(() => loadSavedAppSettings());
 
-
+    useEffect(() => {
+    window.localStorage.setItem("photometrics-page", page);
+}, [page]);
 
     useEffect(() => {
         const handleAuthFailure = () => {
