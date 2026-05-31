@@ -150,9 +150,6 @@ import {
     Modal,
 } from "./sharedComponents";
 
-// Default shape used when the active-projects KPI endpoint does not return
-// a populated payload. Keeping the card shape consistent prevents the dashboard
-// from rendering differently between mock data, empty API responses, and live API data.
 const ACTIVE_PROJECTS_KPI = {
     key: "activeProjects",
     label: "Active Projects",
@@ -160,10 +157,29 @@ const ACTIVE_PROJECTS_KPI = {
     objects: [],
 };
 
+const DASHBOARD_KPI_STYLES = [
+    { icon: Folder, border: "border-blue-100", iconBg: "bg-blue-50", iconText: "text-blue-700", valueText: "text-blue-900" },
+    { icon: ListChecks, border: "border-amber-100", iconBg: "bg-amber-50", iconText: "text-amber-700", valueText: "text-amber-900" },
+    { icon: ShieldCheck, border: "border-emerald-100", iconBg: "bg-emerald-50", iconText: "text-emerald-700", valueText: "text-emerald-900" },
+    { icon: Sparkles, border: "border-violet-100", iconBg: "bg-violet-50", iconText: "text-violet-700", valueText: "text-violet-900" },
+    { icon: Users, border: "border-cyan-100", iconBg: "bg-cyan-50", iconText: "text-cyan-700", valueText: "text-cyan-900" },
+    { icon: Clock, border: "border-slate-200", iconBg: "bg-slate-100", iconText: "text-slate-700", valueText: "text-slate-950" },
+];
 
-// Canonical workflow steps used by the dashboard chart. API and task records can
-// use slightly different labels, so all incoming values are normalized to this list
-// before the workflow distribution chart is rendered.
+function getKpiPresentation(card, index) {
+    const label = String(card?.label || "").toLowerCase();
+
+    if (label.includes("project")) return DASHBOARD_KPI_STYLES[0];
+    if (label.includes("task")) return DASHBOARD_KPI_STYLES[1];
+    if (label.includes("completed")) return DASHBOARD_KPI_STYLES[2];
+    if (label.includes("image")) return DASHBOARD_KPI_STYLES[3];
+    if (label.includes("employee")) return DASHBOARD_KPI_STYLES[4];
+    if (label.includes("time")) return DASHBOARD_KPI_STYLES[5];
+
+    return DASHBOARD_KPI_STYLES[index % DASHBOARD_KPI_STYLES.length];
+}
+
+
 const WORKFLOW_STEPS = [
     "Import",
     "Cull",
@@ -174,9 +190,6 @@ const WORKFLOW_STEPS = [
     "Other",
 ];
 
-// Common backend/mock-data variations mapped to the canonical workflow labels.
-// This keeps the chart stable even if task categories are entered with different
-// wording such as "editing", "review", or "delivered".
 const WORKFLOW_STEP_ALIASES = {
     import: "Import",
     imported: "Import",
@@ -194,10 +207,6 @@ const WORKFLOW_STEP_ALIASES = {
     other: "Other",
 };
 
-/**
- * Normalizes a raw task/category/status value into one of the dashboard's
- * supported workflow stages.
- */
 function getWorkflowStep(value) {
     const text = String(value || "").trim();
     if (!text) return "Other";
@@ -208,11 +217,6 @@ function getWorkflowStep(value) {
         || "Other";
 }
 
-/**
- * Builds workflow chart rows from the live task list so the dashboard can show
- * actual task distribution even when the dedicated workflow KPI endpoint is
- * unavailable or returns no data.
- */
 function buildWorkflowRowsFromTasks(tasks = []) {
     const counts = WORKFLOW_STEPS.reduce((acc, step) => ({ ...acc, [step]: 0 }), {});
 
@@ -241,10 +245,6 @@ function buildWorkflowRowsFromTasks(tasks = []) {
         .filter((row) => row.value > 0);
 }
 
-/**
- * Returns display labels for the current Monday-through-Sunday week used by the
- * productivity chart.
- */
 function getCurrentWeekLabels() {
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -260,10 +260,6 @@ function getCurrentWeekLabels() {
     });
 }
 
-/**
- * Converts productivity KPI rows into a fixed seven-day chart series. Missing
- * values are normalized to zero so Chart.js always receives a complete dataset.
- */
 function buildCurrentWeekProductivityRows(rows = []) {
     const labels = getCurrentWeekLabels();
     const values = labels.map((label, index) => {
@@ -279,10 +275,6 @@ function buildCurrentWeekProductivityRows(rows = []) {
     }));
 }
 
-/**
- * Removes common API wrapper objects while preserving direct KPI payloads. This
- * lets summary KPI cards support both simple values and structured API responses.
- */
 function unwrapKpiPayload(payload) {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) return payload;
 
@@ -296,10 +288,6 @@ function unwrapKpiPayload(payload) {
 }
 
 
-/**
- * Converts a single KPI API response into the normalized card structure expected
- * by the dashboard KPI grid.
- */
 function summaryKpiFromApi(payload, template, valueKeys = []) {
     const source = unwrapKpiPayload(payload);
     const keys = [...valueKeys, "active", "completed", "remaining", "total", "count", "value"];
@@ -327,10 +315,6 @@ function summaryKpiFromApi(payload, template, valueKeys = []) {
     return [template];
 }
 
-/**
- * Legacy active-projects adapter retained for compatibility with older KPI
- * response shapes.
- */
 function activeProjectsKpiFromApi(payload) {
     const source = unwrapKpiPayload(payload);
 
@@ -390,20 +374,14 @@ function ColoredLineSegment({ data, segment, index }) {
  * Main dashboard view. Managers see team metrics; employees see only their own work queue and progress.
  */
 function Dashboard({ onPageChange, currentUser, appSettings }) {
-    // Access level controls whether the user sees manager-wide analytics or an
-    // employee-safe view limited to their own tasks and project progress.
     const hasManagerAccess = canManageContent(currentUser);
     const currentUserId = currentUser?.userId || currentUser?.user_id || currentUser?.id || currentUser?.employeeId;
     const currentUserPathId = currentUserId ? encodeURIComponent(currentUserId) : "";
-    // Employees request scoped dashboard data when possible, while managers use
-    // the unscoped endpoints so they can review team-wide activity.
     const workflowEndpoint = currentUserPathId ? `${API_ENDPOINTS.dashboard.workflow}/${currentUserPathId}` : null;
     const employeeActivityEndpoint = !hasManagerAccess && currentUserPathId
         ? `${API_ENDPOINTS.dashboard.employeeActivity}/${currentUserPathId}`
         : API_ENDPOINTS.dashboard.employeeActivity;
 
-    // KPI hooks share the same API/mock-data bridge so the dashboard can run in
-    // demo mode or live API mode without changing component code.
     const { data: activeProjectsKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.active, kpis.slice(0, 1), {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "activeProjects", label: "Active Projects", value: 0, objects: [] }, ["active"]),
@@ -452,8 +430,6 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const projectProgressRows = Array.isArray(projectProgressData) ? projectProgressData : [];
     const rawWorkflowRows = Array.isArray(workflowData) ? workflowData : [];
     const rawProductivityRows = Array.isArray(productivityData) ? productivityData : [];
-    // Memoized chart inputs prevent unnecessary Chart.js re-renders while users
-    // navigate or update filters elsewhere in the application.
     const productivityRows = useMemo(() => buildCurrentWeekProductivityRows(rawProductivityRows), [rawProductivityRows]);
     const productivityChartData = useMemo(() => ({
         labels: productivityRows.map((row) => row.day || row.label || row.name || "Metric"),
@@ -489,8 +465,6 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
             x: { grid: { display: false } },
         },
     }), []);
-    // Normalize task rows before deriving employee assignments, workflow counts,
-    // tracked-time totals, and employee-only dashboard summaries.
     const taskRows = Array.isArray(liveTaskData) ? liveTaskData.map(normalizeTaskForTimers) : taskItems.map(normalizeTaskForTimers);
     const workflowRows = useMemo(() => {
         const rowsFromTasks = buildWorkflowRowsFromTasks(taskRows);
@@ -516,14 +490,10 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
             tooltip: { callbacks: { label: (context) => `${context.label}: ${context.parsed}%` } },
         },
     }), []);
-    // Managers can see the full team activity feed. Employees are restricted to
-    // rows matching their own display name to avoid exposing other users' work.
     const visibleEmployeeActivityData = hasManagerAccess
         ? employeeActivityRows
         : employeeActivityRows.filter((row) => row[0] === employeeName);
     const projectRows = Array.isArray(liveProjectData) ? liveProjectData : projects;
-    // Employee dashboard panels are derived from assigned tasks so the private
-    // view remains consistent with the Tasks page and timer logic.
     const assignedTasks = taskRows.filter((task) => isAssignedToUser(task, currentUser));
     const assignedProjectNames = Array.from(new Set(
         assignedTasks
@@ -542,8 +512,6 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
         status: task.status,
         priority: task.priority,
     }));
-    // Manager KPI cards come from backend summary endpoints. Employee KPI cards
-    // are calculated locally from the user's assigned tasks to enforce data scope.
     const managerKpiCards = normalizeDashboardKpis([
         ...(Array.isArray(activeProjectsKpi) ? activeProjectsKpi : []),
         ...(Array.isArray(completedProjectsKpi) ? completedProjectsKpi : []),
@@ -561,139 +529,246 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
         { key: "accessLevel", label: "Access Level", value: "Employee" },
     ]);
     const visibleKpis = hasManagerAccess ? managerKpiCards : employeeKpiCards;
+    const openTaskCount = taskRows.filter((task) => task.status !== "Completed").length;
+    const completedTaskCount = taskRows.filter((task) => task.status === "Completed").length;
+    const taskCompletionRate = taskRows.length ? Math.round((completedTaskCount / taskRows.length) * 100) : 0;
+    const assignedCompletedTaskCount = assignedTasks.filter((task) => task.status === "Completed").length;
+    const assignedTaskCompletionRate = assignedTasks.length ? Math.round((assignedCompletedTaskCount / assignedTasks.length) * 100) : 0;
+    const visibleTaskCompletionRate = hasManagerAccess ? taskCompletionRate : assignedTaskCompletionRate;
+    const reviewQueueCount = taskRows.filter((task) => (
+        /review/i.test(String(task.category || task.status || task.taskName || ""))
+    )).length;
+    const projectLabel = projectRows.length === 1 ? "project" : "projects";
+    const openTaskLabel = openTaskCount === 1 ? "open task" : "open tasks";
+    const reviewItemLabel = reviewQueueCount === 1 ? "review item" : "review items";
+    const assignmentLabel = assignedTasks.length === 1 ? "assignment" : "assignments";
+    const dashboardTitle = hasManagerAccess ? "Studio Overview" : "My Dashboard";
+    const dashboardSubtitle = hasManagerAccess
+        ? `${projectRows.length} ${projectLabel}, ${openTaskCount} ${openTaskLabel}, ${reviewQueueCount} ${reviewItemLabel}`
+        : `${assignedTasks.length} ${assignmentLabel} connected to ${employeeName || "your login"}`;
 
     return (
-        <section className="space-y-5 bg-slate-50 p-3 sm:p-4 lg:p-6">
+        <section className="min-h-full px-3 py-4 sm:px-5 lg:px-6 lg:py-6">
+            <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-5">
+                <div className="pm-surface rounded-lg border border-slate-200 bg-white px-5 py-5 lg:px-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                            Dashboard
+                        </p>
+                        <h1 className="mt-2 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">
+                            {dashboardTitle}
+                        </h1>
+                        <p className="mt-2 max-w-3xl text-sm font-medium text-slate-600 sm:text-base">
+                            {dashboardSubtitle}
+                        </p>
+                    </div>
 
-            {/* Summary KPI cards for the current role-specific dashboard view. */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-                {visibleKpis.map((card) => (
-                    <div
-                        key={card.id || card.label}
-                        className="rounded-xl border border-slate-300 bg-white px-4 py-5 text-center shadow-sm sm:px-5 sm:py-7"
-                    >
-                        <div className="text-sm font-bold">{card.label}</div>
-
-                        {/* Highlight efficiency in green */}
-                        <div
-                            className={`mt-6 text-4xl ${
-                                card.label === "Efficiency"
-                                    ? "text-green-700"
-                                    : "text-black"
-                            }`}
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => onPageChange?.("projects")}
+                            className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-100"
                         >
-                            {card.value}
-                        </div>
+                            <Folder size={18} />
+                            Projects
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onPageChange?.("tasks")}
+                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-violet-600 px-3 text-sm font-bold text-white shadow-sm hover:bg-violet-700"
+                        >
+                            <ListChecks size={18} />
+                            Tasks
+                        </button>
+                    </div>
+                </div>
+                </div>
 
-                        {card.objects?.length > 0 && (
-                            <div className="mt-3 text-xs font-semibold text-slate-500">
-                                {card.objects.length} detail {card.objects.length === 1 ? "record" : "records"}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+                    {visibleKpis.map((card, index) => (
+                        <DashboardKpiCard key={card.id || card.label} card={card} index={index} />
+                    ))}
+                </div>
+
+                {showDashboardTips && (
+                    <DashboardStatusStrip
+                        hasManagerAccess={hasManagerAccess}
+                        openTaskCount={openTaskCount}
+                        taskCompletionRate={visibleTaskCompletionRate}
+                        reviewQueueCount={reviewQueueCount}
+                        assignedTasksCount={assignedTasks.length}
+                        visibleProjectsCount={visibleProjectProgressData.length}
+                    />
+                )}
+
+                {hasManagerAccess ? (
+                    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.12fr)_minmax(360px,0.88fr)]">
+                        <section className="pm-surface rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
+                            <DashboardPanelHeader
+                                title="Employee Productivity"
+                                subtitle="Current week"
+                                count={`${taskCompletionRate}% complete`}
+                            />
+
+                            <div className="mt-4 h-[250px]">
+                                <ChartLine data={productivityChartData} options={productivityChartOptions} />
                             </div>
-                        )}
-                    </div>
-                ))}
-            </div>
+                        </section>
 
-            {showDashboardTips && (
-                <div className="pm-dashboard-tip rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800 shadow-sm">
-                    Dashboard tip: use the page search and sidebar sections to quickly narrow projects, employees, tasks, reports, and analytics.
-                </div>
-            )}
+                        <section className="pm-surface rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
+                            <DashboardPanelHeader
+                                title="Workflow Distribution"
+                                subtitle={`${workflowRows.length} active stages`}
+                            />
 
-            {hasManagerAccess ? (
-                <>
-            {/* Manager analytics charts. Employee users receive a private work-queue view instead. */}
-            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.07fr_0.93fr]">
-
-                {/* Productivity chart */}
-                <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
-                    <h2 className="mb-2 text-xl font-bold sm:text-2xl">
-                        Employee Productivity
-                    </h2>
-
-                    <div className="h-[230px]">
-                        <ChartLine data={productivityChartData} options={productivityChartOptions} />
-                    </div>
-                </div>
-
-                {/* Workflow pie chart */}
-                <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
-                    <h2 className="mb-2 text-xl font-bold sm:text-2xl">
-                        Workflow Distribution
-                    </h2>
-
-                    <div className="flex h-[230px] items-center justify-center gap-16">
-
-                        {/* Chart.js doughnut chart */}
-                        <div className="h-full w-2/5 min-w-[180px]">
-                            <Doughnut data={workflowChartData} options={workflowChartOptions} />
-                        </div>
-
-                        {/* Legend */}
-                        <div className="w-64 space-y-5">
-                            {workflowRows.map((item) => (
-                                <div
-                                    key={item.name}
-                                    className="grid grid-cols-[1fr_auto] items-center gap-8"
-                                >
-                                    <div
-                                        className="flex items-center gap-4"
-                                        style={{ color: item.color }}
-                                    >
-                                        <span
-                                            className="h-4 w-4 rounded-full"
-                                            style={{
-                                                backgroundColor: item.color
-                                            }}
-                                        />
-
-                                        <span className="text-base font-medium">
-                                            {item.name}
-                                        </span>
-                                    </div>
-
-                                    <strong className="text-base">
-                                        {item.displayValue ?? `${item.value}%`}
-                                    </strong>
+                            <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(180px,0.9fr)_minmax(190px,1fr)] lg:items-center">
+                                <div className="h-[230px] min-w-0">
+                                    <Doughnut data={workflowChartData} options={workflowChartOptions} />
                                 </div>
-                            ))}
-                        </div>
+
+                                <div className="space-y-3">
+                                    {workflowRows.map((item) => (
+                                        <div
+                                            key={item.name}
+                                            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-sm"
+                                        >
+                                            <div className="flex min-w-0 items-center gap-3">
+                                                <span
+                                                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                                    style={{ backgroundColor: item.color }}
+                                                />
+                                                <span className="truncate font-semibold text-slate-700">
+                                                    {item.name}
+                                                </span>
+                                            </div>
+
+                                            <strong className="font-bold text-slate-950">
+                                                {item.displayValue ?? item.value}
+                                            </strong>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
                     </div>
+                ) : (
+                    <EmployeeDashboardInsights
+                        assignedTasks={assignedTasks}
+                        assignedAssignments={assignedAssignments}
+                        onPageChange={onPageChange}
+                    />
+                )}
+
+                {hasManagerAccess ? (
+                    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                        <EmployeeActivityPanel
+                            rows={visibleEmployeeActivityData}
+                            onViewAll={() => onPageChange?.("employees")}
+                        />
+                        <ProjectProgressPanel
+                            rows={visibleProjectProgressData}
+                            onViewAll={() => onPageChange?.("projects")}
+                        />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                        <EmployeeAssignmentsPanel
+                            rows={assignedAssignments}
+                            onViewAll={() => onPageChange?.("projects")}
+                        />
+                        <ProjectProgressPanel
+                            rows={visibleProjectProgressData}
+                            onViewAll={() => onPageChange?.("projects")}
+                        />
+                    </div>
+                )}
+            </div>
+        </section>
+    );
+}
+
+
+function DashboardKpiCard({ card, index }) {
+    const presentation = getKpiPresentation(card, index);
+    const Icon = presentation.icon;
+
+    return (
+        <article className={`pm-surface rounded-lg border ${presentation.border} bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-md`}>
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-slate-600">{card.label}</p>
+                    <p className={`mt-3 text-3xl font-bold leading-none ${presentation.valueText}`}>
+                        {card.value}
+                    </p>
+                </div>
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${presentation.iconBg} ${presentation.iconText} ring-1 ring-black/5`}>
+                    <Icon size={20} />
                 </div>
             </div>
-                </>
-            ) : (
-                <EmployeeDashboardInsights
-                    assignedTasks={assignedTasks}
-                    assignedAssignments={assignedAssignments}
-                    onPageChange={onPageChange}
-                />
-            )}
 
-            {hasManagerAccess ? (
-                <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-                    <EmployeeActivityPanel
-                        rows={visibleEmployeeActivityData}
-                        onViewAll={() => onPageChange?.("employees")}
-                    />
-                    <ProjectProgressPanel
-                        rows={visibleProjectProgressData}
-                        onViewAll={() => onPageChange?.("projects")}
-                    />
+        </article>
+    );
+}
+
+function DashboardStatusStrip({
+    hasManagerAccess,
+    openTaskCount,
+    taskCompletionRate,
+    reviewQueueCount,
+    assignedTasksCount,
+    visibleProjectsCount,
+}) {
+    const statusItems = hasManagerAccess
+        ? [
+            { label: "Open tasks", value: openTaskCount, tone: "text-amber-700" },
+            { label: "Task completion", value: `${taskCompletionRate}%`, tone: "text-emerald-700" },
+            { label: "Review queue", value: reviewQueueCount, tone: "text-violet-700" },
+        ]
+        : [
+            { label: "Assigned tasks", value: assignedTasksCount, tone: "text-blue-700" },
+            { label: "Visible projects", value: visibleProjectsCount, tone: "text-violet-700" },
+            { label: "Task completion", value: `${taskCompletionRate}%`, tone: "text-emerald-700" },
+        ];
+
+    return (
+        <div className="pm-surface grid gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm sm:grid-cols-3">
+            {statusItems.map((item) => (
+                <div key={item.label} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 sm:justify-start">
+                    <span className="font-semibold text-slate-500">{item.label}</span>
+                    <strong className={`text-base ${item.tone}`}>{item.value}</strong>
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-                    <EmployeeAssignmentsPanel
-                        rows={assignedAssignments}
-                        onViewAll={() => onPageChange?.("projects")}
-                    />
-                    <ProjectProgressPanel
-                        rows={visibleProjectProgressData}
-                        onViewAll={() => onPageChange?.("projects")}
-                    />
+            ))}
+        </div>
+    );
+}
+
+function DashboardPanelHeader({ title, subtitle, count, actionLabel, onAction }) {
+    return (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-bold text-slate-950 sm:text-xl">{title}</h2>
+                    {count && (
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
+                            {count}
+                        </span>
+                    )}
                 </div>
+                {subtitle && <p className="mt-1 text-sm font-medium text-slate-500">{subtitle}</p>}
+            </div>
+
+            {actionLabel && onAction && (
+                <button
+                    type="button"
+                    onClick={onAction}
+                    className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-100"
+                >
+                    {actionLabel}
+                    <ChevronRight size={16} />
+                </button>
             )}
-        </section>
+        </div>
     );
 }
 
@@ -703,8 +778,6 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
  * Employee-only dashboard section that avoids exposing other employees' productivity data.
  */
 function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [], onPageChange }) {
-    // All metrics in this section are calculated from the current user's assigned
-    // tasks only, preventing employee users from seeing team-wide productivity data.
     const openTasks = assignedTasks.filter((task) => task.status !== "Completed");
     const completedTasks = assignedTasks.filter((task) => task.status === "Completed");
     const reviewTasks = assignedTasks.filter((task) => task.category === "Quality Review");
@@ -724,7 +797,7 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [
 
     return (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.07fr_0.93fr]">
-            <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
+            <div className="pm-surface rounded-lg border border-slate-200 bg-white p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 className="text-xl font-bold sm:text-2xl">My Work Queue</h2>
@@ -742,21 +815,21 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [
                 </div>
 
                 <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Open</div>
                         <div className="mt-2 text-3xl font-bold text-slate-900">{openTasks.length}</div>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-bold uppercase tracking-wide text-slate-500">High Priority</div>
                         <div className="mt-2 text-3xl font-bold text-red-700">{highPriorityTasks.length}</div>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Ready For Review</div>
                         <div className="mt-2 text-3xl font-bold text-amber-700">{reviewTasks.length}</div>
                     </div>
                 </div>
 
-                <div className="mt-5 overflow-x-auto rounded-xl border border-slate-200">
+                <div className="mt-5 overflow-x-auto rounded-lg border border-slate-200">
                     <table className="min-w-[620px] w-full border-collapse text-sm">
                         <thead className="bg-slate-100 text-slate-700">
                         <tr>
@@ -788,7 +861,7 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [
                 </div>
             </div>
 
-            <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
+            <div className="pm-surface rounded-lg border border-slate-200 bg-white p-5">
                 <h2 className="text-xl font-bold sm:text-2xl">My Progress Snapshot</h2>
                 <p className="mt-1 text-sm text-slate-500">
                     Private view of your workload, completion rate, and tracked time.
@@ -804,17 +877,17 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                             <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Tracked Time</div>
                             <div className="mt-2 text-2xl font-bold text-slate-900">{formatDuration(totalTrackedSeconds)}</div>
                         </div>
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                             <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Estimated Hours</div>
                             <div className="mt-2 text-2xl font-bold text-slate-900">{totalEstimatedHours}</div>
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-slate-200">
+                    <div className="rounded-lg border border-slate-200">
                         {statusCounts.map((item) => (
                             <div key={item.status} className="flex items-center justify-between border-b border-slate-100 px-4 py-3 last:border-b-0">
                                 <span className="font-semibold text-slate-700">{item.status}</span>
@@ -823,7 +896,7 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [
                         ))}
                     </div>
 
-                    <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800">
+                    <div className="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800">
                         You have {assignedAssignments.length} assignment records connected to your login.
                     </div>
                 </div>
@@ -836,17 +909,23 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [
  * Shows the current employee's most recent assignment records.
  */
 function EmployeeAssignmentsPanel({ rows = [], onViewAll }) {
-    // Show a concise snapshot on the dashboard while keeping the full assignment
-    // workflow available through the linked project/task pages.
     const visibleRows = rows.slice(0, 5);
 
     return (
-        <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
-            <h2 className="mb-3 text-lg font-bold sm:text-2xl">My Assignments</h2>
+        <section className="pm-surface rounded-lg border border-slate-200 bg-white">
+            <div className="p-4 pb-3 sm:p-5 sm:pb-4">
+                <DashboardPanelHeader
+                    title="My Assignments"
+                    subtitle="Current work connected to your login"
+                    count={`${rows.length} records`}
+                    actionLabel={onViewAll ? "Assignments" : undefined}
+                    onAction={onViewAll}
+                />
+            </div>
 
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <div className="mx-4 overflow-x-auto rounded-lg border border-slate-200 sm:mx-5">
                 <table className="min-w-[620px] w-full border-collapse text-sm">
-                    <thead className="bg-slate-100 text-slate-700">
+                    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                         {[
                             "Assignment",
@@ -856,25 +935,25 @@ function EmployeeAssignmentsPanel({ rows = [], onViewAll }) {
                             "Priority",
                             "Status",
                         ].map((heading) => (
-                            <th key={heading} className="border border-slate-200 px-3 py-2 text-left font-bold">
+                            <th key={heading} className="border-b border-slate-200 px-3 py-3 text-left font-bold">
                                 {heading}
                             </th>
                         ))}
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100">
                     {visibleRows.length > 0 ? visibleRows.map((assignment) => (
                         <tr key={assignment.id} className="hover:bg-slate-50">
-                            <td className="border border-slate-200 px-3 py-2 font-semibold">{assignment.id}</td>
-                            <td className="border border-slate-200 px-3 py-2">{assignment.project}</td>
-                            <td className="border border-slate-200 px-3 py-2">{assignment.taskType}</td>
-                            <td className="border border-slate-200 px-3 py-2">{assignment.dueDate}</td>
-                            <td className="border border-slate-200 px-3 py-2"><PriorityBadge value={assignment.priority} /></td>
-                            <td className="border border-slate-200 px-3 py-2"><Badge value={assignment.status} /></td>
+                            <td className="px-3 py-3 font-semibold text-slate-900">{assignment.id}</td>
+                            <td className="px-3 py-3 text-slate-700">{assignment.project}</td>
+                            <td className="px-3 py-3 text-slate-700">{assignment.taskType}</td>
+                            <td className="px-3 py-3 text-slate-600">{assignment.dueDate}</td>
+                            <td className="px-3 py-3"><PriorityBadge value={assignment.priority} /></td>
+                            <td className="px-3 py-3"><Badge value={assignment.status} /></td>
                         </tr>
                     )) : (
                         <tr>
-                            <td className="border border-slate-200 px-3 py-6 text-center text-slate-500" colSpan={6}>
+                            <td className="px-3 py-8 text-center text-slate-500" colSpan={6}>
                                 No assignments are currently assigned to your login.
                             </td>
                         </tr>
@@ -883,16 +962,7 @@ function EmployeeAssignmentsPanel({ rows = [], onViewAll }) {
                 </table>
             </div>
 
-            {onViewAll && (
-                <button
-                    type="button"
-                    onClick={onViewAll}
-                    className="mt-4 font-semibold text-blue-600 hover:text-blue-800"
-                >
-                    View my assignments →
-                </button>
-            )}
-        </div>
+        </section>
     );
 }
 
@@ -901,8 +971,6 @@ function EmployeeAssignmentsPanel({ rows = [], onViewAll }) {
  * Displays manager-facing employee activity in a compact table.
  */
 function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
-    // Keep the activity table paginated so large teams do not make the dashboard
-    // page excessively long or slow to scan.
     const pageSize = 8;
     const [currentPage, setCurrentPage] = useState(1);
     const totalPages = getTotalPages(rows.length, pageSize);
@@ -914,21 +982,28 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
     }, [totalPages]);
 
     return (
-        <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
-            <h2 className="mb-3 text-lg font-bold sm:text-2xl">
-                Employee Activity
-            </h2>
+        <section className="pm-surface rounded-lg border border-slate-200 bg-white">
+            <div className="p-4 pb-3 sm:p-5 sm:pb-4">
+                <DashboardPanelHeader
+                    title="Employee Activity"
+                    subtitle="Latest assignment movement"
+                    count={`${rows.length} records`}
+                    actionLabel={onViewAll ? "Employees" : undefined}
+                    onAction={onViewAll}
+                />
+            </div>
 
-            <table className="w-full table-fixed border-collapse text-xs sm:text-sm">
+            <div className="mx-4 overflow-x-auto rounded-lg border border-slate-200 sm:mx-5">
+            <table className="w-full min-w-[620px] table-fixed border-collapse text-sm">
 
                 {/* Table header */}
-                <thead>
+                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                    {["Employee", "Activity", "Updated", "Status"]
+                    {["Employee", "Assignment", "Updated", "Status"]
                         .map((h) => (
                             <th
                                 key={h}
-                                className="break-words border border-slate-300 bg-white px-1.5 py-2 font-bold sm:px-2"
+                                className="border-b border-slate-200 px-3 py-3 text-left font-bold"
                             >
                                 {h}
                             </th>
@@ -937,38 +1012,29 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
                 </thead>
 
                 {/* Table rows */}
-                <tbody>
+                <tbody className="divide-y divide-slate-100">
                 {visibleRows.map((row, index) => (
-                    <tr key={`${row[0]}-${row[1]}-${row[2]}-${index}`}>
-                        <td className="break-words border border-slate-300 px-1.5 py-2 sm:px-3">
+                    <tr key={`${row[0]}-${row[1]}-${row[2]}-${index}`} className="hover:bg-slate-50">
+                        <td className="px-3 py-3 align-middle font-semibold text-slate-900">
                             {row[0]}
                         </td>
 
-                        <td className="break-words border border-slate-300 px-1.5 py-2 text-center sm:px-3">
+                        <td className="px-3 py-3 align-middle text-slate-700">
                             {row[1]}
                         </td>
 
-                        <td className="break-words border border-slate-300 px-1.5 py-2 text-center sm:px-3">
+                        <td className="px-3 py-3 align-middle text-slate-600">
                             {row[2]}
                         </td>
 
-                        <td className="break-words border border-slate-300 px-1.5 py-2 text-center sm:px-3">
+                        <td className="px-3 py-3 align-middle">
                             <Badge value={row[3]} />
                         </td>
                     </tr>
                 ))}
                 </tbody>
             </table>
-
-            {onViewAll && (
-                <button
-                    type="button"
-                    onClick={onViewAll}
-                    className="mt-4 font-semibold text-blue-600 hover:text-blue-800"
-                >
-                    View all employees →
-                </button>
-            )}
+            </div>
 
             <TableFooter
                 text={getRangeText(safeCurrentPage, pageSize, rows.length, "activity records")}
@@ -976,7 +1042,7 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
             />
-        </div>
+        </section>
     );
 }
 
@@ -985,8 +1051,6 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
  * Displays project completion metrics with progress bars.
  */
 function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
-    // Project progress is shown as both a stacked chart and a detail table so
-    // managers can quickly compare completion and remaining workload.
     const pageSize = 6;
     const [currentPage, setCurrentPage] = useState(1);
     const totalPages = getTotalPages(rows.length, pageSize);
@@ -1032,31 +1096,47 @@ function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
             },
         },
         scales: {
-            x: { stacked: true, grid: { display: false } },
-            y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+            x: {
+                stacked: true,
+                grid: { display: false },
+                ticks: {
+                    color: "#64748b",
+                    font: { size: 11, weight: "600" },
+                    maxRotation: 28,
+                    minRotation: 0,
+                },
+            },
+            y: { stacked: true, beginAtZero: true, ticks: { precision: 0 }, grid: { color: "#e2e8f0" } },
         },
     }), [visibleRows]);
 
     return (
-        <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
-            <h2 className="mb-3 text-lg font-bold sm:text-2xl">
-                Project Progress
-            </h2>
+        <section className="pm-surface rounded-lg border border-slate-200 bg-white">
+            <div className="p-4 pb-3 sm:p-5 sm:pb-4">
+                <DashboardPanelHeader
+                    title="Project Progress"
+                    subtitle="Completed and remaining task load"
+                    count={`${rows.length} projects`}
+                    actionLabel={onViewAll ? "Projects" : undefined}
+                    onAction={onViewAll}
+                />
+            </div>
 
-            <div className="mb-5 h-[260px]">
+            <div className="mx-4 mb-4 h-[250px] sm:mx-5">
                 <ChartBar data={projectChartData} options={projectChartOptions} />
             </div>
 
-            <table className="w-full table-fixed border-collapse text-xs sm:text-sm">
+            <div className="mx-4 overflow-x-auto rounded-lg border border-slate-200 sm:mx-5">
+            <table className="w-full min-w-[720px] table-fixed border-collapse text-sm">
 
                 {/* Table header */}
-                <thead>
+                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                     {["Project", "Total Tasks", "Completed", "Remaining", "Progress"]
                         .map((h) => (
                             <th
                                 key={h}
-                                className="break-words border border-slate-300 bg-white px-1.5 py-2 font-bold sm:px-2"
+                                className="border-b border-slate-200 px-3 py-3 text-left font-bold"
                             >
                                 {h}
                             </th>
@@ -1065,43 +1145,34 @@ function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
                 </thead>
 
                 {/* Table rows */}
-                <tbody>
+                <tbody className="divide-y divide-slate-100">
                 {visibleRows.map((row) => (
-                    <tr key={row[0]}>
-                        <td className="break-words border border-slate-300 px-1.5 py-2 sm:px-3">
+                    <tr key={row[0]} className="hover:bg-slate-50">
+                        <td className="px-3 py-3 align-middle font-semibold text-slate-900">
                             {row[0]}
                         </td>
 
-                        <td className="border border-slate-300 px-1.5 py-2 text-center sm:px-3">
+                        <td className="px-3 py-3 text-center align-middle text-slate-700">
                             {row[1]}
                         </td>
 
-                        <td className="border border-slate-300 px-1.5 py-2 text-center sm:px-3">
+                        <td className="px-3 py-3 text-center align-middle text-slate-700">
                             {row[2]}
                         </td>
 
-                        <td className="border border-slate-300 px-1.5 py-2 text-center sm:px-3">
+                        <td className="px-3 py-3 text-center align-middle text-slate-700">
                             {row[3]}
                         </td>
 
                         {/* Progress bar */}
-                        <td className="border border-slate-300 px-1.5 py-2 sm:px-3">
+                        <td className="px-3 py-3 align-middle">
                             <ProgressBar value={row[4]} compact />
                         </td>
                     </tr>
                 ))}
                 </tbody>
             </table>
-
-            {onViewAll && (
-                <button
-                    type="button"
-                    onClick={onViewAll}
-                    className="mt-4 font-semibold text-blue-600 hover:text-blue-800"
-                >
-                    View all projects →
-                </button>
-            )}
+            </div>
 
             <TableFooter
                 text={getRangeText(safeCurrentPage, pageSize, rows.length, "projects")}
@@ -1109,7 +1180,7 @@ function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
             />
-        </div>
+        </section>
     );
 }
 
