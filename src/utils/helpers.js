@@ -299,7 +299,7 @@ function normalizeTaskForTimers(task) {
         // User-specific timer sessions live here so each logged-in employee can
         // run and stop their own timer without overwriting another user's timer.
         timersByUser: task?.timersByUser || {},
-        timerStartedAt: null,
+        timerStartedAt: task?.timerStartedAt || null,
     };
 }
 
