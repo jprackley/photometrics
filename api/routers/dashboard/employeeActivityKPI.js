@@ -10,6 +10,21 @@ const {param} = require("express-validator");
 const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
 
 router.get(
+    '/',
+    //verifyAuthentication,
+    asyncHandler(async (req, res) => {
+        validationErrorHandler(req, 'GET Employee Activity KPI - ');
+        const sql = `
+            SELECT *
+            FROM employee_activity_view
+         `;
+        const { rows } = await query(sql);
+
+        res.status(C_HTTP.STATUS.OK).json(rows);
+    })
+)
+
+router.get(
     '/:id',
     //verifyAuthentication,
     param('id').isUUID().withMessage('Invalid User UUID'),
@@ -22,21 +37,6 @@ router.get(
             WHERE user_id = $1;
         `;
         const { rows } = await query(sql, [param]);
-
-        res.status(C_HTTP.STATUS.OK).json(rows);
-    })
-)
-
-router.get(
-    '/',
-    //verifyAuthentication,
-    asyncHandler(async (req, res) => {
-        validationErrorHandler(req, 'GET Employee Activity KPI - ');
-        const sql = `
-            SELECT *
-            FROM employee_activity_view
-         `;
-        const { rows } = await query(sql);
 
         res.status(C_HTTP.STATUS.OK).json(rows);
     })
