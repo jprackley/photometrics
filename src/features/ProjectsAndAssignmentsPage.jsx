@@ -135,6 +135,17 @@ import {
     Modal,
 } from "./sharedComponents";
 
+const calculateProjectProgress = (project = {}) => {
+    const totalImages = normalizeNumber(project.images);
+    const completedImages = normalizeNumber(project.completedImages);
+
+    if (totalImages <= 0) {
+        return 0;
+    }
+
+    return Math.max(0, Math.min(100, Math.round((completedImages / totalImages) * 100)));
+};
+
 /**
  * Create/edit form for project records.
  */
@@ -187,7 +198,7 @@ function ProjectForm({ initialProject, onCancel, onSave }) {
             rejectedImages,
             deliveredImages: Math.min(normalizeNumber(form.deliveredImages), completedImages),
             averageEditMinutes: normalizeNumber(form.averageEditMinutes),
-            progress: totalImages > 0 ? Math.round((completedImages / totalImages) * 100) : Math.max(0, Math.min(100, normalizeNumber(form.progress))),
+            progress: totalImages > 0 ? Math.round((completedImages / totalImages) * 100) : 0,
         });
     };
 
@@ -274,7 +285,7 @@ function ProjectForm({ initialProject, onCancel, onSave }) {
                     </FormField>
 
                     <FormField label="Progress %">
-                        <TextInput value={form.progress} onChange={(value) => updateField("progress", value)} placeholder="0" type="number" readOnly />
+                        <TextInput value={calculateProjectProgress(form)} placeholder="0" type="number" readOnly />
                     </FormField>
 
                     <div className="sm:col-span-2 lg:col-span-3">
@@ -690,7 +701,7 @@ function ProjectsAndAssignments() {
             }
         }
 
-        setAssignmentRows((currentRows) => currentRows.filter((row) => row.id !== assignment.id));
+        setAssignmentRows((currentRows) => currentRows.filter((row) => (row.backendId || row.taskId || row.id) !== (assignment.backendId || assignment.taskId || assignment.id)));
     };
 
     const handleProjectSort = (columnKey) => {
@@ -752,23 +763,20 @@ function ProjectsAndAssignments() {
                         <tr key={project.id} className="hover:bg-slate-50">
                             <td className="border border-slate-300 px-4 py-3">
                                 <div className="font-semibold text-slate-900">{project.name}</div>
-                                <div className="text-xs text-slate-500">{project.id}</div>
                             </td>
 
                             <td className="border border-slate-300 px-4 py-3">{project.client}</td>
                             <td className="border border-slate-300 px-4 py-3">{project.startDate}</td>
                             <td className="border border-slate-300 px-4 py-3">{project.dueDate}</td>
                             <td className="border border-slate-300 px-4 py-3 text-center">
-                                <div className="font-semibold text-slate-900">{project.images}</div>
-                                {(project.completedImages || project.deliveredImages || project.rejectedImages) && (
-                                    <div className="mt-1 text-[11px] leading-4 text-slate-500">
-                                        {normalizeNumber(project.completedImages)} complete · {normalizeNumber(project.deliveredImages)} delivered · {normalizeNumber(project.rejectedImages)} rejected
-                                    </div>
-                                )}
+                                <div className="font-semibold text-slate-900">{normalizeNumber(project.images)} total</div>
+                                <div className="mt-1 text-[11px] leading-4 text-slate-500">
+                                    {normalizeNumber(project.completedImages)} complete
+                                </div>
                             </td>
 
                             <td className="border border-slate-300 px-4 py-3">
-                                <ProgressBar value={project.progress} />
+                                <ProgressBar value={calculateProjectProgress(project)} />
                             </td>
 
                             <td className="border border-slate-300 px-4 py-3 text-center">
@@ -862,7 +870,7 @@ function ProjectsAndAssignments() {
 
                     <tbody>
                     {visibleAssignmentRows.map((assignment) => (
-                        <tr key={assignment.id} className="hover:bg-slate-50">
+                        <tr key={assignment.backendId || assignment.id} className="hover:bg-slate-50">
                             <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">
                                 {assignment.id}
                             </td>
@@ -1209,7 +1217,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                 return;
             }
         }
-        setAssignmentRows((currentRows) => currentRows.filter((row) => row.id !== assignment.id));
+        setAssignmentRows((currentRows) => currentRows.filter((row) => (row.backendId || row.taskId || row.id) !== (assignment.backendId || assignment.taskId || assignment.id)));
     };
 
     const handleProjectSort = (columnKey) => {
@@ -1275,20 +1283,17 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                         <tr key={project.id} className="hover:bg-slate-50">
                             <td className="border border-slate-300 px-4 py-3">
                                 <div className="font-semibold text-slate-900">{project.name}</div>
-                                <div className="text-xs text-slate-500">{project.id}</div>
                             </td>
                             <td className="border border-slate-300 px-4 py-3">{project.client}</td>
                             <td className="border border-slate-300 px-4 py-3">{project.startDate}</td>
                             <td className="border border-slate-300 px-4 py-3">{project.dueDate}</td>
                             <td className="border border-slate-300 px-4 py-3 text-center">
-                                <div className="font-semibold text-slate-900">{project.images}</div>
-                                {(project.completedImages || project.deliveredImages || project.rejectedImages) && (
-                                    <div className="mt-1 text-[11px] leading-4 text-slate-500">
-                                        {normalizeNumber(project.completedImages)} complete · {normalizeNumber(project.deliveredImages)} delivered · {normalizeNumber(project.rejectedImages)} rejected
-                                    </div>
-                                )}
+                                <div className="font-semibold text-slate-900">{normalizeNumber(project.images)} total</div>
+                                <div className="mt-1 text-[11px] leading-4 text-slate-500">
+                                    {normalizeNumber(project.completedImages)} complete
+                                </div>
                             </td>
-                            <td className="border border-slate-300 px-4 py-3"><ProgressBar value={project.progress} /></td>
+                            <td className="border border-slate-300 px-4 py-3"><ProgressBar value={calculateProjectProgress(project)} /></td>
                             <td className="border border-slate-300 px-4 py-3 text-center"><Badge value={project.status} /></td>
                             {hasManagerAccess && (
                                 <td className="border border-slate-300 px-4 py-3">
@@ -1344,7 +1349,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                     </thead>
                     <tbody>
                     {visibleAssignmentRows.map((assignment) => (
-                        <tr key={assignment.id} className="hover:bg-slate-50">
+                        <tr key={assignment.backendId || assignment.id} className="hover:bg-slate-50">
                             <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">{assignment.id}</td>
                             <td className="border border-slate-300 px-4 py-3">{assignment.project}</td>
                             <td className="border border-slate-300 px-4 py-3">{assignment.taskType}</td>

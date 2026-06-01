@@ -254,17 +254,21 @@ function ApiErrorBanner() {
  * Coordinates authenticated app state, page routing, sidebar behavior, and logout/session handling.
  */
 export default function App() {
-    const [page, setPage] = useState("dashboard");
+    const [page, setPage] = useState(() => {
+    return window.localStorage.getItem("photometrics-page") || "dashboard";
+});
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [globalSearch, setGlobalSearch] = useState("");
     // Always require authentication on application startup.
-    // Persisted sessions are cleared so the app always opens on the login screen.
-    const [currentUser, setCurrentUser] = useState(null);
+    const [currentUser, setCurrentUser] = useState(() => {
+    const saved = window.localStorage.getItem("photometrics-session");
+    return saved ? JSON.parse(saved) : null;
+});
     const [appSettings, setAppSettings] = useState(() => loadSavedAppSettings());
 
     useEffect(() => {
-        window.localStorage.removeItem("photometrics-session");
-    }, []);
+    window.localStorage.setItem("photometrics-page", page);
+}, [page]);
 
     useEffect(() => {
         const handleAuthFailure = () => {

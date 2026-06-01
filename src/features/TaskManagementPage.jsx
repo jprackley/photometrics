@@ -284,6 +284,15 @@ function resolveEmployeeIdForTask(task, employeeRows, taskRows) {
         || getIdFromNamedRows(task.assignedTo, taskRows, ["assignedTo"], ["assignedToId"]);
 }
 
+function getTaskBackendId(task = {}) {
+    return task.backendId || task.taskId || task.id;
+}
+
+function getSavedTaskFromApiResponse(response, fallbackTask) {
+    const savedTask = normalizeTaskRows(response)[0];
+    return normalizeTaskForTimers(savedTask || fallbackTask);
+}
+
 function TimerControl({ task, currentTime, onStart, onStop, isAnotherTimerRunning }) {
     const isRunning = Boolean(task.timerStartedAt);
 
@@ -406,7 +415,7 @@ function TaskManagementPage() {
 
     const taskTotalPages = getTotalPages(sortedTaskRows.length, TASKS_PAGE_SIZE);
     const visibleTaskRows = paginateRows(sortedTaskRows, taskPage, TASKS_PAGE_SIZE);
-    const activeTask = taskRows.find((task) => task.id === activeTimerTaskId);
+    const activeTask = taskRows.find((task) => getTaskBackendId(task) === activeTimerTaskId);
     const totalTrackedSeconds = taskRows.reduce((total, task) => total + getLiveTrackedSeconds(task, timerTick), 0);
     const completedTasks = taskRows.filter((task) => task.status === "Completed").length;
     const reviewTasks = taskRows.filter((task) => task.category === "Quality Review").length;
@@ -463,12 +472,16 @@ function TaskManagementPage() {
             trackedSeconds: normalizeNumber(task.trackedSeconds),
         };
 
+        let savedTask = cleanTask;
+
         if (getUseApiDataSetting()) {
             try {
                 if (taskModal.mode === "create") {
-                    await apiPlaceholders.createTask(cleanTask);
+                    const response = await apiPlaceholders.createTask(cleanTask);
+                    savedTask = getSavedTaskFromApiResponse(response, cleanTask);
                 } else {
-                    await apiPlaceholders.updateTask(cleanTask.id, cleanTask);
+                    const response = await apiPlaceholders.updateTask(getTaskBackendId(cleanTask), cleanTask);
+                    savedTask = getSavedTaskFromApiResponse(response, cleanTask);
                 }
             } catch (apiError) {
                 console.warn("Task API endpoint is not connected yet. Saving locally.", apiError);
@@ -477,10 +490,11 @@ function TaskManagementPage() {
 
         setTaskRows((currentRows) => {
             if (taskModal.mode === "create") {
-                return [cleanTask, ...currentRows];
+                return [savedTask, ...currentRows];
             }
 
-            return currentRows.map((row) => row.id === cleanTask.id ? cleanTask : row);
+            const savedTaskId = getTaskBackendId(savedTask);
+            return currentRows.map((row) => getTaskBackendId(row) === savedTaskId ? savedTask : row);
         });
         setTaskPage(1);
         setTaskModal(null);
@@ -491,21 +505,23 @@ function TaskManagementPage() {
 
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.deleteTask(task.id);
+                await apiPlaceholders.deleteTask(getTaskBackendId(task));
             } catch (apiError) {
                 console.warn("Task delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
         }
 
-        if (activeTimerTaskId === task.id) {
+        if (activeTimerTaskId === getTaskBackendId(task)) {
             setActiveTimerTaskId(null);
         }
 
-        setTaskRows((currentRows) => currentRows.filter((row) => row.id !== task.id));
+        const taskId = getTaskBackendId(task);
+        setTaskRows((currentRows) => currentRows.filter((row) => getTaskBackendId(row) !== taskId));
     };
 
     const startTimer = async (task) => {
-        if (activeTimerTaskId && activeTimerTaskId !== task.id) {
+        const taskId = getTaskBackendId(task);
+        if (activeTimerTaskId && activeTimerTaskId !== taskId) {
             window.alert("Please stop the active timer before starting another task.");
             return;
         }
@@ -514,18 +530,18 @@ function TaskManagementPage() {
 
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.startTaskTimer(task.id, new Date(startedAt).toISOString());
+                await apiPlaceholders.startTaskTimer(taskId, new Date(startedAt).toISOString());
             } catch (apiError) {
                 console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
             }
         }
 
         setTaskRows((currentRows) => currentRows.map((row) => (
-            row.id === task.id
+            getTaskBackendId(row) === taskId
                 ? { ...row, timerStartedAt: startedAt, status: row.status === "Completed" ? "In Progress" : row.status }
                 : row
         )));
-        setActiveTimerTaskId(task.id);
+        setActiveTimerTaskId(taskId);
         setTimerTick(startedAt);
     };
 
@@ -545,7 +561,7 @@ function TaskManagementPage() {
 
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.stopTaskTimer(task.id, {
+                await apiPlaceholders.stopTaskTimer(getTaskBackendId(task), {
                     stoppedAt: new Date(stoppedAt).toISOString(),
                     elapsedSeconds,
                     totalTrackedSeconds: nextTrackedSeconds,
@@ -556,7 +572,7 @@ function TaskManagementPage() {
         }
 
         setTaskRows((currentRows) => currentRows.map((row) => (
-            row.id === task.id
+            getTaskBackendId(row) === getTaskBackendId(task)
                 ? { ...row, trackedSeconds: nextTrackedSeconds, timerStartedAt: null, lastStoppedAt }
                 : row
         )));
@@ -620,7 +636,7 @@ function TaskManagementPage() {
                     <div className="mt-5 space-y-3 text-sm text-slate-700">
                         <div className="flex justify-between border-b border-slate-200 pb-2">
                             <span className="font-semibold">Active Task ID</span>
-                            <span>{activeTask?.id || "None"}</span>
+                            <span>{activeTask ? (activeTask.displayId || activeTask.id) : "None"}</span>
                         </div>
                         <div className="flex justify-between border-b border-slate-200 pb-2">
                             <span className="font-semibold">Assigned To</span>
@@ -724,13 +740,13 @@ function TaskManagementPage() {
 
                         <tbody>
                         {visibleTaskRows.map((task) => {
-                            const liveTask = taskRows.find((row) => row.id === task.id) || task;
-                            const isAnotherTimerRunning = Boolean(activeTimerTaskId && activeTimerTaskId !== liveTask.id);
+                            const liveTask = taskRows.find((row) => getTaskBackendId(row) === getTaskBackendId(task)) || task;
+                            const isAnotherTimerRunning = Boolean(activeTimerTaskId && activeTimerTaskId !== getTaskBackendId(liveTask));
 
                             return (
-                                <tr key={liveTask.id} className="hover:bg-slate-50">
+                                <tr key={liveTask.displayId || liveTask.id} className="hover:bg-slate-50">
                                     <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">
-                                        {liveTask.id}
+                                        {liveTask.displayId || liveTask.id}
                                     </td>
                                     <td className="border border-slate-300 px-4 py-3">
                                         <div className="font-semibold text-slate-900">{liveTask.taskName}</div>
@@ -870,8 +886,8 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
 
     useEffect(() => {
         const currentUserKey = getTimerUserKey(currentUser);
-        const runningTask = taskRows.find((task) => task.timersByUser?.[currentUserKey]?.startedAt);
-        setActiveTimerTaskId(runningTask?.id || null);
+        const runningTask = taskRows.find((task) => task.timersByUser?.[currentUserKey]?.startedAt || getTaskTimerSession(task, currentUser).startedAt);
+        setActiveTimerTaskId(runningTask ? getTaskBackendId(runningTask) : null);
     }, [taskRows, currentUser]);
 
     useEffect(() => {
@@ -939,7 +955,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
 
     const taskTotalPages = getTotalPages(sortedTaskRows.length, TASKS_PAGE_SIZE);
     const visibleTaskRows = paginateRows(sortedTaskRows, taskPage, TASKS_PAGE_SIZE);
-    const activeTask = taskRows.find((task) => task.id === activeTimerTaskId);
+    const activeTask = taskRows.find((task) => getTaskBackendId(task) === activeTimerTaskId);
     const totalTrackedSeconds = accessibleTaskRows.reduce((total, task) => total + getLiveTrackedSeconds(task, timerTick, hasManagerAccess ? null : currentUser), 0);
     const completedTasks = accessibleTaskRows.filter((task) => task.status === "Completed").length;
     const reviewTasks = accessibleTaskRows.filter((task) => task.category === "Quality Review").length;
@@ -995,12 +1011,16 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             trackedSeconds: normalizeNumber(task.trackedSeconds),
         });
 
+        let savedTask = cleanTask;
+
         if (getUseApiDataSetting()) {
             try {
                 if (taskModal.mode === "create") {
-                    await apiPlaceholders.createTask(cleanTask);
+                    const response = await apiPlaceholders.createTask(cleanTask);
+                    savedTask = getSavedTaskFromApiResponse(response, cleanTask);
                 } else {
-                    await apiPlaceholders.updateTask(cleanTask.id, cleanTask);
+                    const response = await apiPlaceholders.updateTask(getTaskBackendId(cleanTask), cleanTask);
+                    savedTask = getSavedTaskFromApiResponse(response, cleanTask);
                 }
             } catch (apiError) {
                 console.warn("Task API endpoint is not connected yet. Saving locally.", apiError);
@@ -1008,8 +1028,8 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
         }
 
         setTaskRows((currentRows) => taskModal.mode === "create"
-            ? [cleanTask, ...currentRows]
-            : currentRows.map((row) => row.id === cleanTask.id ? cleanTask : row)
+            ? [savedTask, ...currentRows]
+            : currentRows.map((row) => getTaskBackendId(row) === getTaskBackendId(savedTask) ? savedTask : row)
         );
         setTaskPage(1);
         setTaskModal(null);
@@ -1019,12 +1039,13 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
         if (!hasManagerAccess || !window.confirm(`Delete ${task.taskName}?`)) return;
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.deleteTask(task.id);
+                await apiPlaceholders.deleteTask(getTaskBackendId(task));
             } catch (apiError) {
                 console.warn("Task delete API endpoint is not connected yet. Deleting locally.", apiError);
             }
         }
-        setTaskRows((currentRows) => currentRows.filter((row) => row.id !== task.id));
+        const taskId = getTaskBackendId(task);
+        setTaskRows((currentRows) => currentRows.filter((row) => getTaskBackendId(row) !== taskId));
     };
 
     const startTimer = async (task) => {
@@ -1033,7 +1054,8 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             return;
         }
 
-        if (activeTimerTaskId && activeTimerTaskId !== task.id) {
+        const taskId = getTaskBackendId(task);
+        if (activeTimerTaskId && activeTimerTaskId !== taskId) {
             window.alert("Please stop your active timer before starting another task.");
             return;
         }
@@ -1049,13 +1071,13 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
 
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.startTaskTimer(task.id, new Date(startedAt).toISOString(), currentUser);
+                await apiPlaceholders.startTaskTimer(taskId, new Date(startedAt).toISOString(), currentUser);
             } catch (apiError) {
                 console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
             }
         }
 
-        setTaskRows((currentRows) => currentRows.map((row) => row.id === task.id
+        setTaskRows((currentRows) => currentRows.map((row) => getTaskBackendId(row) === taskId
             ? {
                 ...row,
                 status: row.status === "Completed" ? "In Progress" : row.status,
@@ -1071,7 +1093,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             }
             : row
         ));
-        setActiveTimerTaskId(task.id);
+        setActiveTimerTaskId(taskId);
         setTimerTick(startedAt);
     };
 
@@ -1093,7 +1115,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
 
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.stopTaskTimer(task.id, {
+                await apiPlaceholders.stopTaskTimer(getTaskBackendId(task), {
                     userId: currentUser?.id,
                     employeeId: currentUser?.employeeId,
                     employeeName: currentUser?.employeeName || currentUser?.name,
@@ -1106,7 +1128,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             }
         }
 
-        setTaskRows((currentRows) => currentRows.map((row) => row.id === task.id
+        setTaskRows((currentRows) => currentRows.map((row) => getTaskBackendId(row) === getTaskBackendId(task)
             ? {
                 ...row,
                 lastStoppedAt,
@@ -1168,7 +1190,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                         )}
                     </div>
                     <div className="mt-5 space-y-3 text-sm text-slate-700">
-                        <div className="flex justify-between border-b border-slate-200 pb-2"><span className="font-semibold">Active Task ID</span><span>{activeTask?.id || "None"}</span></div>
+                        <div className="flex justify-between border-b border-slate-200 pb-2"><span className="font-semibold">Active Task ID</span><span>{activeTask ? (activeTask.displayId || activeTask.id) : "None"}</span></div>
                         <div className="flex justify-between border-b border-slate-200 pb-2"><span className="font-semibold">Logged In As</span><span>{currentUser?.employeeName || currentUser?.name}</span></div>
                         <div className="flex justify-between"><span className="font-semibold">Last Stop</span><span>{activeTask ? getTaskTimerSession(activeTask, currentUser).lastStoppedAt || "Not recorded" : "Not recorded"}</span></div>
                     </div>
@@ -1206,12 +1228,12 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                         </thead>
                         <tbody>
                         {visibleTaskRows.map((task) => {
-                            const liveTask = taskRows.find((row) => row.id === task.id) || task;
-                            const isAnotherTimerRunning = Boolean(activeTimerTaskId && activeTimerTaskId !== liveTask.id);
+                            const liveTask = taskRows.find((row) => getTaskBackendId(row) === getTaskBackendId(task)) || task;
+                            const isAnotherTimerRunning = Boolean(activeTimerTaskId && activeTimerTaskId !== getTaskBackendId(liveTask));
                             const canUseTimer = hasManagerAccess || isAssignedToUser(liveTask, currentUser);
                             return (
-                                <tr key={liveTask.id} className="hover:bg-slate-50">
-                                    <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">{liveTask.id}</td>
+                                <tr key={liveTask.displayId || liveTask.id} className="hover:bg-slate-50">
+                                    <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">{liveTask.displayId || liveTask.id}</td>
                                     <td className="border border-slate-300 px-4 py-3"><div className="font-semibold text-slate-900">{liveTask.taskName}</div><div className="text-xs text-slate-500">Est. {liveTask.estimatedHours}h</div></td>
                                     <td className="border border-slate-300 px-4 py-3">{liveTask.project}</td>
                                     <td className="border border-slate-300 px-4 py-3">{liveTask.assignedTo}</td>

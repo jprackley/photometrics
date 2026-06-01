@@ -267,22 +267,25 @@ function LoginHeroGraphic() {
  * Handles demo and API-backed login, including manager and employee credential shortcuts.
  */
 function LoginPage({ onLogin }) {
-    const [email, setEmail] = useState("manager@photometrics.com");
-    const [password, setPassword] = useState("demo123");
+    const initialUseMockLoginData = useMemo(() => !getUseApiDataSetting(), []);
+    const [email, setEmail] = useState(initialUseMockLoginData ? "manager@photometrics.com" : "muser@gmail.com");
+    const [password, setPassword] = useState(initialUseMockLoginData ? "demo123" : "password");
     const [rememberMe, setRememberMe] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [useMockLoginData, setUseMockLoginData] = useState(() => !getUseApiDataSetting());
+    const [useMockLoginData, setUseMockLoginData] = useState(initialUseMockLoginData);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 
     const handleMockDataToggle = (checked) => {
         setUseMockLoginData(checked);
         saveUseApiDataSetting(!checked);
+        setEmail(checked ? "manager@photometrics.com" : "muser@gmail.com");
+        setPassword(checked ? "demo123" : "password");
         setError("");
         setMessage(checked
-            ? "Mock data is enabled. Demo logins will use front-end mock accounts."
-            : "Mock data is off. Sign in will use the backend API/database only."
+            ? "Demo access is enabled."
+            : "Database access is enabled."
         );
     };
 
@@ -291,7 +294,7 @@ function LoginPage({ onLogin }) {
         setPassword("demo123");
         setRememberMe(true);
         setError("");
-        setMessage("Manager credentials loaded. Click Sign In for full access.");
+        setMessage("Demo manager credentials loaded.");
     };
 
     const fillEmployeeCredentials = (employeeUser) => {
@@ -299,7 +302,7 @@ function LoginPage({ onLogin }) {
         setPassword(employeeUser.password);
         setRememberMe(true);
         setError("");
-        setMessage(`${employeeUser.name} credentials loaded. This login only shows assigned jobs.`);
+        setMessage(`${employeeUser.name} demo credentials loaded.`);
     };
 
     const handleSubmit = async (event) => {
@@ -338,196 +341,204 @@ function LoginPage({ onLogin }) {
         } catch (apiError) {
             console.warn("Login API failed while mock data is turned off. Mock login fallback is disabled.", apiError);
             const apiMessage = apiError?.message || "The login API/database request failed.";
-            setError(`${apiMessage} Mock login will not be used unless Use Mock Data is turned on.`);
+            setError(`${apiMessage} Enable demo access to use mock accounts.`);
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    const employeeDemoUsers = mockUsers.filter((user) => user.accessLevel === "employee");
+    const loginModeLabel = useMockLoginData ? "Demo accounts" : "Database";
+
     return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-8 text-slate-900 sm:px-6 lg:px-8">
-            <div className="w-full max-w-5xl overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-2xl">
-                <div className="grid grid-cols-1 lg:grid-cols-[0.88fr_1.12fr]">
-                    <section className="bg-[#07111f] px-6 py-7 text-white sm:px-8 lg:px-10">
-                        <div className="rounded-2xl border border-white/10 bg-white px-4 py-3 shadow-xl">
-                            <Logo />
-                        </div>
+        <main className="min-h-screen bg-[#eef2f6] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
+            <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center">
+                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
+                    <div className="grid min-h-[690px] grid-cols-1 lg:grid-cols-[minmax(340px,0.9fr)_minmax(460px,1.1fr)]">
+                        <section className="relative overflow-hidden bg-[#0b1320] px-6 py-7 text-white sm:px-8 lg:px-10">
+                            <div className="absolute inset-x-0 bottom-0 h-44 bg-[#162236]" />
+                            <div className="absolute -right-24 top-24 h-72 w-72 rounded-full border border-white/10" />
+                            <div className="absolute -right-10 top-40 h-32 w-32 rounded-full bg-[#d6b768]/20 blur-2xl" />
 
-                        <div className="mt-8">
-                            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-blue-200">
-                                Productivity Dashboard
-                            </p>
-                            <h1 className="mt-4 text-3xl font-black leading-tight text-white lg:text-4xl">
-                                Sign in to manage projects, employees, tasks, and reports.
-                            </h1>
-                            <p className="mt-4 text-sm leading-6 text-slate-300">
-                                This login page can use backend authentication or front-end mock accounts. Turn mock data on only when reviewing the app without a live database.
-                            </p>
-                        </div>
-
-                        <div className="mt-7 grid grid-cols-3 gap-3">
-                            <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-center shadow-lg">
-                                <div className="text-xl font-black">12</div>
-                                <div className="mt-1 text-[11px] text-slate-300">Active projects</div>
-                            </div>
-                            <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-center shadow-lg">
-                                <div className="text-xl font-black">45</div>
-                                <div className="mt-1 text-[11px] text-slate-300">Tasks today</div>
-                            </div>
-                            <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-center shadow-lg">
-                                <div className="text-xl font-black">87%</div>
-                                <div className="mt-1 text-[11px] text-slate-300">Efficiency</div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section className="px-6 py-7 sm:px-8 lg:px-10">
-                        <div className="mb-6 text-center sm:text-left">
-                            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700">
-                                <ShieldCheck size={16} /> Secure manager access
-                            </div>
-                            <h2 className="text-3xl font-black text-slate-950">Welcome back</h2>
-                            <p className="mt-2 text-sm leading-6 text-slate-600">
-                                Sign in to continue to the Photometrics dashboard.
-                            </p>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <label className="block space-y-2 text-sm font-semibold text-slate-700">
-                                <span>Email Address</span>
-                                <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-950 shadow-sm focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-100">
-                                    <Mail size={20} className="text-slate-400" />
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(event) => setEmail(event.target.value)}
-                                        placeholder="manager@photometrics.com"
-                                        className="w-full bg-transparent text-sm outline-none"
-                                        autoComplete="email"
-                                    />
+                            <div className="relative z-10 flex h-full flex-col">
+                                <div className="max-w-[360px] rounded-lg border border-white/10 bg-white p-4 shadow-lg">
+                                    <Logo />
                                 </div>
-                            </label>
 
-                            <label className="block space-y-2 text-sm font-semibold text-slate-700">
-                                <span>Password</span>
-                                <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-950 shadow-sm focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-100">
-                                    <Lock size={20} className="text-slate-400" />
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        value={password}
-                                        onChange={(event) => setPassword(event.target.value)}
-                                        placeholder="Enter password"
-                                        className="w-full bg-transparent text-sm outline-none"
-                                        autoComplete="current-password"
-                                    />
+                                <div className="mt-12 max-w-md">
+                                    <div className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#e8cf8b]">
+                                        <ShieldCheck size={16} />
+                                        Studio console
+                                    </div>
+                                    <h1 className="mt-5 text-4xl font-bold leading-tight tracking-normal text-white">
+                                        Photometrics operations, in one secure workspace.
+                                    </h1>
+                                    <p className="mt-4 max-w-sm text-sm leading-6 text-slate-300">
+                                        Manage active photography projects, production assignments, employee work, and delivery progress.
+                                    </p>
+                                </div>
+
+                                <div className="mt-auto grid gap-3 pt-10 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                                    {[
+                                        ["Projects", "12"],
+                                        ["Open tasks", "45"],
+                                        ["Efficiency", "87%"],
+                                    ].map(([label, value]) => (
+                                        <div key={label} className="rounded-lg border border-white/10 bg-white/10 p-4">
+                                            <div className="text-2xl font-bold text-white">{value}</div>
+                                            <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-300">{label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="flex items-center px-6 py-8 sm:px-8 lg:px-12">
+                            <div className="mx-auto w-full max-w-[520px]">
+                                <div className="mb-7">
+                                    <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-emerald-700">
+                                        <Lock size={15} />
+                                        {loginModeLabel}
+                                    </div>
+                                    <h2 className="text-3xl font-bold tracking-normal text-slate-950">Sign in</h2>
+                                    <p className="mt-2 text-sm text-slate-600">
+                                        Access the Photometrics dashboard.
+                                    </p>
+                                </div>
+
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <label className="block space-y-2 text-sm font-bold text-slate-700">
+                                        <span>Email</span>
+                                        <div className="flex h-12 items-center gap-3 rounded-lg border border-slate-300 bg-white px-3 text-slate-950 shadow-sm focus-within:border-[#c7a34b] focus-within:ring-2 focus-within:ring-[#f5e7bf]">
+                                            <Mail size={18} className="shrink-0 text-slate-400" />
+                                            <input
+                                                type="email"
+                                                value={email}
+                                                onChange={(event) => setEmail(event.target.value)}
+                                                placeholder="muser@gmail.com"
+                                                className="w-full bg-transparent text-sm font-semibold outline-none"
+                                                autoComplete="email"
+                                            />
+                                        </div>
+                                    </label>
+
+                                    <label className="block space-y-2 text-sm font-bold text-slate-700">
+                                        <span>Password</span>
+                                        <div className="flex h-12 items-center gap-3 rounded-lg border border-slate-300 bg-white px-3 text-slate-950 shadow-sm focus-within:border-[#c7a34b] focus-within:ring-2 focus-within:ring-[#f5e7bf]">
+                                            <Lock size={18} className="shrink-0 text-slate-400" />
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                value={password}
+                                                onChange={(event) => setPassword(event.target.value)}
+                                                placeholder="Enter password"
+                                                className="w-full bg-transparent text-sm font-semibold outline-none"
+                                                autoComplete="current-password"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword((value) => !value)}
+                                                className="rounded-md p-1 text-slate-500 hover:bg-slate-100"
+                                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                            >
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                    </label>
+
+                                    <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                                        <label className="flex items-center gap-2 font-semibold text-slate-700">
+                                            <input
+                                                type="checkbox"
+                                                checked={rememberMe}
+                                                onChange={(event) => setRememberMe(event.target.checked)}
+                                                className="h-4 w-4 accent-[#c7a34b]"
+                                            />
+                                            Remember me
+                                        </label>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setError("");
+                                                setMessage("Password reset is pending backend implementation.");
+                                            }}
+                                            className="font-bold text-[#9a6b12] hover:text-[#73500d]"
+                                        >
+                                            Forgot password?
+                                        </button>
+                                    </div>
+
+                                    {error && (
+                                        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    {message && (
+                                        <div className="rounded-lg border border-[#ead8a8] bg-[#fff8e7] px-4 py-3 text-sm font-semibold text-[#77520f]">
+                                            {message}
+                                        </div>
+                                    )}
+
                                     <button
-                                        type="button"
-                                        onClick={() => setShowPassword((value) => !value)}
-                                        className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"
-                                        aria-label={showPassword ? "Hide password" : "Show password"}
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#d7b55f] px-5 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-[#e5c872] disabled:cursor-not-allowed disabled:opacity-70"
                                     >
-                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        {isSubmitting ? "Signing in" : "Sign in"}
                                     </button>
-                                </div>
-                            </label>
+                                </form>
 
-                            <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                                <label className="flex items-center gap-2 font-medium text-slate-700">
-                                    <input
-                                        type="checkbox"
-                                        checked={rememberMe}
-                                        onChange={(event) => setRememberMe(event.target.checked)}
-                                        className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-300"
-                                    />
-                                    Remember me
-                                </label>
+                                <details className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                                    <summary className="cursor-pointer select-none font-bold text-slate-900">
+                                        Testing access
+                                    </summary>
 
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setError("");
-                                        setMessage("Password reset is pending backend implementation.");
-                                    }}
-                                    className="font-semibold text-amber-700 hover:text-amber-800"
-                                >
-                                    Forgot password?
-                                </button>
+                                    <div className="mt-4 space-y-4">
+                                        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white px-3 py-3">
+                                            <span>
+                                                <span className="block text-sm font-bold text-slate-800">Demo accounts</span>
+                                                <span className="mt-1 block text-xs text-slate-500">
+                                                    Current mode: {loginModeLabel}
+                                                </span>
+                                            </span>
+                                            <input
+                                                type="checkbox"
+                                                checked={useMockLoginData}
+                                                onChange={(event) => handleMockDataToggle(event.target.checked)}
+                                                className="h-5 w-5 accent-[#c7a34b]"
+                                            />
+                                        </label>
+
+                                        <button
+                                            type="button"
+                                            onClick={fillDemoCredentials}
+                                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 shadow-sm transition hover:bg-slate-100"
+                                        >
+                                            Load demo manager
+                                        </button>
+
+                                        <div className="grid gap-2">
+                                            {employeeDemoUsers.map((employeeUser) => (
+                                                <button
+                                                    key={employeeUser.id}
+                                                    type="button"
+                                                    onClick={() => fillEmployeeCredentials(employeeUser)}
+                                                    className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-700 transition hover:border-[#d7b55f] hover:bg-[#fff8e7]"
+                                                >
+                                                    <span className="truncate">{employeeUser.name}</span>
+                                                    <span className="truncate text-slate-500">{employeeUser.email}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </details>
                             </div>
-
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                <label className="flex cursor-pointer items-start justify-between gap-4">
-                                    <span>
-                                        <span className="block text-sm font-bold text-slate-800">Use Mock Data</span>
-                                        <span className="mt-1 block text-xs leading-5 text-slate-600">
-                                            When this is off, login uses the backend API/database only and will not fall back to mock accounts if the API fails.
-                                        </span>
-                                    </span>
-                                    <input
-                                        type="checkbox"
-                                        checked={useMockLoginData}
-                                        onChange={(event) => handleMockDataToggle(event.target.checked)}
-                                        className="mt-1 h-5 w-5 rounded border-slate-300 text-amber-500 focus:ring-amber-300"
-                                    />
-                                </label>
-                                <div className="mt-2 text-xs font-semibold text-slate-500">
-                                    Current login mode: {useMockLoginData ? "Mock demo accounts" : "Database/API only"}
-                                </div>
-                            </div>
-
-                            {error && (
-                                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                                    {error}
-                                </div>
-                            )}
-
-                            {message && (
-                                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                                    {message}
-                                </div>
-                            )}
-
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#e0bd6d] px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-amber-900/10 transition hover:bg-[#efcf83] disabled:cursor-not-allowed disabled:opacity-70"
-                            >
-                                {isSubmitting ? "Signing In..." : "Sign In"}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={fillDemoCredentials}
-                                className="w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-800 shadow-sm transition hover:bg-slate-50"
-                            >
-                                {useMockLoginData ? "Use Demo Login" : "Load Demo Credentials"}
-                            </button>
-                        </form>
-
-                        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                            <div className="font-bold text-slate-950">Demo logins</div>
-                            <div className="mt-2 grid gap-1">
-                                <span>Manager: manager@photometrics.com</span>
-                                <span>Password for all demo accounts: demo123</span>
-                            </div>
-
-                            <div className="mt-4 max-h-36 space-y-2 overflow-y-auto pr-1">
-                                {mockUsers.filter((user) => user.accessLevel === "employee").map((employeeUser) => (
-                                    <button
-                                        key={employeeUser.id}
-                                        type="button"
-                                        onClick={() => fillEmployeeCredentials(employeeUser)}
-                                        className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-700 transition hover:border-amber-300 hover:bg-amber-50"
-                                    >
-                                        <span>{employeeUser.name}</span>
-                                        <span className="truncate text-slate-500">{employeeUser.email}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </section>
+                        </section>
+                    </div>
                 </div>
             </div>
-        </div>
+        </main>
     );
 }
 

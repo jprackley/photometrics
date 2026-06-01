@@ -48,6 +48,7 @@ import {
     API_ENDPOINTS,
     DEFAULT_USE_API_DATA,
     apiPlaceholders,
+    apiRequest,
     getUseApiDataSetting,
     normalizeBackendUser,
     normalizeEmployeeRows,
@@ -137,6 +138,50 @@ import {
     InsightCard,
     DueStatusBadge,
 } from "./sharedComponents";
+
+
+function formatReportDate(value) {
+    if (!value) return "";
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) return String(value);
+    return parsedDate.toLocaleDateString([], { month: "short", day: "2-digit", year: "numeric" });
+}
+
+function normalizeProjectDeliveryReportRow(report = {}) {
+    const totalImages = Number(report.total_images ?? report.totalImages ?? 0) || 0;
+    const completedImages = Number(report.completed_images ?? report.completedImages ?? 0) || 0;
+    const remainingImages = Number(report.remaining_images ?? report.remainingImages ?? Math.max(0, totalImages - completedImages)) || 0;
+    const assignedEmployees = Array.isArray(report.assigned_employees)
+        ? report.assigned_employees
+        : Array.isArray(report.assignedEmployees)
+            ? report.assignedEmployees
+            : [];
+
+    return {
+        id: report.report_snapshot_id || report.project_id || report.projectId || report.id,
+        snapshotId: report.report_snapshot_id || report.snapshotId,
+        projectId: report.project_id || report.projectId,
+        name: report.project_name || report.projectName || "Untitled Project",
+        client: report.client || "",
+        dueDate: formatReportDate(report.due_date || report.dueDate),
+        images: formatNumber(totalImages),
+        completedImages: formatNumber(completedImages),
+        remainingImages: formatNumber(remainingImages),
+        progress: normalizeNumber(report.progress),
+        status: report.project_status || report.status || "",
+        dueStatus: report.due_status === null || report.due_status === undefined ? "NULL" : String(report.due_status),
+        openTasks: Number(report.open_tasks ?? report.openTasks ?? 0) || 0,
+        reviewItems: Number(report.review_items ?? report.reviewItems ?? 0) || 0,
+        assignedTo: assignedEmployees.length ? assignedEmployees.join(", ") : "Unassigned",
+        generatedAt: report.generated_at || report.generatedAt || "",
+    };
+}
+
+function unwrapProjectDeliveryPayload(payload, key) {
+    if (!payload) return key === "reports" ? [] : null;
+    if (key === "reports") return Array.isArray(payload.reports) ? payload.reports : [];
+    return payload.report || payload;
+}
 
 /**
  * Shared table for report output.
@@ -246,6 +291,11 @@ function ReportsPage({ globalSearch = "" }) {
     })), [rawAssignmentRows, projectNameById, employeeNameById]);
 
     const [reportType, setReportType] = useState("Project Delivery");
+    const [selectedProjectId, setSelectedProjectId] = useState("");
+    const [projectDeliveryHistoryRows, setProjectDeliveryHistoryRows] = useState([]);
+    const [projectDeliveryPreviewRow, setProjectDeliveryPreviewRow] = useState(null);
+    const [projectDeliveryMessage, setProjectDeliveryMessage] = useState("");
+    const [isProjectDeliveryLoading, setIsProjectDeliveryLoading] = useState(false);
     const [statusFilter, setStatusFilter] = useState("All Status");
     const [employeeFilter, setEmployeeFilter] = useState("All Employees");
 
@@ -253,6 +303,83 @@ function ReportsPage({ globalSearch = "" }) {
         () => buildOperationsReportData(projectRows, assignmentRows, taskRows, employeeRows, timeEntryRows),
         [projectRows, assignmentRows, taskRows, employeeRows, timeEntryRows]
     );
+
+    const useLiveProjectDeliveryReport = getUseApiDataSetting();
+
+    const projectSelectOptions = useMemo(() => ([
+        { value: "", label: "Select a project" },
+        ...projectRows.map((project) => ({
+            value: project.backendId || project.id,
+            label: project.name,
+        })),
+    ]), [projectRows]);
+
+    const loadProjectDeliveryHistory = async () => {
+        if (!useLiveProjectDeliveryReport) return;
+        setIsProjectDeliveryLoading(true);
+        setProjectDeliveryMessage("");
+        try {
+            const payload = await apiRequest("/reports/project_delivery/history");
+            const rows = unwrapProjectDeliveryPayload(payload, "reports").map(normalizeProjectDeliveryReportRow);
+            setProjectDeliveryHistoryRows(rows);
+        } catch (apiError) {
+            console.warn("Project Delivery report history could not be loaded.", apiError);
+            setProjectDeliveryMessage(apiError?.message || "Project Delivery report history could not be loaded.");
+        } finally {
+            setIsProjectDeliveryLoading(false);
+        }
+    };
+
+    const loadProjectDeliveryPreview = async (projectId = selectedProjectId) => {
+        if (!projectId) {
+            setProjectDeliveryMessage("Select a project before generating a report preview.");
+            return;
+        }
+        setIsProjectDeliveryLoading(true);
+        setProjectDeliveryMessage("");
+        try {
+            const payload = await apiRequest(`/reports/project_delivery/${encodeURIComponent(projectId)}`);
+            const row = normalizeProjectDeliveryReportRow(unwrapProjectDeliveryPayload(payload, "report"));
+            setProjectDeliveryPreviewRow(row);
+        } catch (apiError) {
+            console.warn("Project Delivery report preview could not be loaded.", apiError);
+            setProjectDeliveryMessage(apiError?.message || "Project Delivery report preview could not be loaded.");
+        } finally {
+            setIsProjectDeliveryLoading(false);
+        }
+    };
+
+    const saveProjectDeliverySnapshot = async () => {
+        if (!selectedProjectId) {
+            setProjectDeliveryMessage("Select a project before saving a report snapshot.");
+            return;
+        }
+        setIsProjectDeliveryLoading(true);
+        setProjectDeliveryMessage("");
+        try {
+            const payload = await apiRequest(`/reports/project_delivery/${encodeURIComponent(selectedProjectId)}/save`, { method: "POST" });
+            const row = normalizeProjectDeliveryReportRow(unwrapProjectDeliveryPayload(payload, "report"));
+            setProjectDeliveryPreviewRow(row);
+            setProjectDeliveryHistoryRows((currentRows) => [row, ...currentRows.filter((existing) => existing.snapshotId !== row.snapshotId)]);
+            setProjectDeliveryMessage("Project Delivery report snapshot saved.");
+        } catch (apiError) {
+            console.warn("Project Delivery report snapshot could not be saved.", apiError);
+            setProjectDeliveryMessage(apiError?.message || "Project Delivery report snapshot could not be saved.");
+        } finally {
+            setIsProjectDeliveryLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!useLiveProjectDeliveryReport) return;
+        loadProjectDeliveryHistory();
+    }, [useLiveProjectDeliveryReport]);
+
+    useEffect(() => {
+        if (!selectedProjectId && projectSelectOptions.length > 1) {
+            setSelectedProjectId(projectSelectOptions[1].value);
+        }
+    }, [projectSelectOptions, selectedProjectId]);
 
     const employeeOptions = useMemo(() => {
         const values = [
@@ -285,7 +412,9 @@ function ReportsPage({ globalSearch = "" }) {
             filename: "photometrics-project-delivery-report.csv",
             title: "Project Delivery Report",
             columns: REPORT_PROJECT_COLUMNS,
-            rows: reportData.projectReportRows,
+            rows: useLiveProjectDeliveryReport
+                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
+                : reportData.projectReportRows,
             searchKeys: ["name", "client", "dueDate", "status", "dueStatus", "assignedTo"],
         },
         {
@@ -312,7 +441,7 @@ function ReportsPage({ globalSearch = "" }) {
             rows: reportData.assignmentReportRows,
             searchKeys: ["id", "project", "taskType", "assignedTo", "dueDate", "priority", "status", "dueStatus"],
         },
-    ]), [reportData]);
+    ]), [reportData, useLiveProjectDeliveryReport, projectDeliveryPreviewRow, projectDeliveryHistoryRows]);
 
     const activeReport = reportDefinitions.find((report) => report.label === reportType) || reportDefinitions[0];
 
@@ -371,6 +500,56 @@ function ReportsPage({ globalSearch = "" }) {
                 <InsightCard label="Review Queue" value={reportData.summary.reviewQueue} note="Tasks and assignments" icon={Bell} />
                 <InsightCard label="Tracked Time" value={formatDuration(reportData.summary.totalTrackedSeconds)} note={`${reportData.summary.utilizationRate}% of estimate`} icon={Clock} />
             </div>
+
+
+            {useLiveProjectDeliveryReport && reportType === "Project Delivery" && (
+                <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="flex-1">
+                            <label className="mb-2 block text-sm font-bold text-slate-700">Project Delivery API</label>
+                            <select
+                                value={selectedProjectId}
+                                onChange={(event) => setSelectedProjectId(event.target.value)}
+                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-100"
+                            >
+                                {projectSelectOptions.map((option) => (
+                                    <option key={option.value || "empty"} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                            <p className="mt-2 text-xs text-slate-500">Preview uses GET /api/reports/project_delivery/PROJECT UUID. Save uses POST /api/reports/project_delivery/PROJECT UUID/save. History uses GET /api/reports/project_delivery/history.</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => loadProjectDeliveryPreview()}
+                                disabled={isProjectDeliveryLoading || !selectedProjectId}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <Eye size={16} /> Preview Current Report
+                            </button>
+                            <button
+                                type="button"
+                                onClick={saveProjectDeliverySnapshot}
+                                disabled={isProjectDeliveryLoading || !selectedProjectId}
+                                className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <Download size={16} /> Save Snapshot
+                            </button>
+                            <button
+                                type="button"
+                                onClick={loadProjectDeliveryHistory}
+                                disabled={isProjectDeliveryLoading}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                Refresh History
+                            </button>
+                        </div>
+                    </div>
+                    {projectDeliveryMessage && (
+                        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">{projectDeliveryMessage}</p>
+                    )}
+                </div>
+            )}
 
             <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

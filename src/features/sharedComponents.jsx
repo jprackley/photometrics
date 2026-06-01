@@ -135,7 +135,7 @@ function Badge({ value }) {
                     : "bg-violet-100 text-violet-700";
 
     return (
-        <span className={`rounded-md px-3 py-1 text-xs font-medium ${style}`}>
+        <span className={`inline-flex min-h-6 items-center rounded-full px-3 py-1 text-xs font-bold ${style}`}>
             {value}
         </span>
     );
@@ -158,7 +158,7 @@ function PriorityBadge({ value }) {
                     : "bg-slate-100 text-slate-700";
 
     return (
-        <span className={`rounded-md px-3 py-1 text-xs font-medium ${style}`}>
+        <span className={`inline-flex min-h-6 items-center rounded-full px-3 py-1 text-xs font-bold ${style}`}>
             {value}
         </span>
     );
@@ -171,9 +171,9 @@ function PriorityBadge({ value }) {
 function ProgressBar({ value, compact = false }) {
     return (
         <div className={`${compact ? "gap-1.5" : "gap-3"} flex items-center`}>
-            <div className="h-3 min-w-0 flex-1 rounded-full border border-slate-300 bg-white">
+            <div className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
                 <div
-                    className="h-full rounded-full bg-violet-600"
+                    className="h-full rounded-full bg-violet-600 shadow-sm"
                     style={{ width: `${value}%` }}
                 />
             </div>
@@ -191,25 +191,25 @@ function ProgressBar({ value, compact = false }) {
  */
 function RowActions({ onEdit, onDelete }) {
     return (
-        <div className="flex items-center justify-center gap-3 text-slate-700">
+        <div className="flex items-center justify-center gap-2 text-slate-700">
             <button
                 type="button"
                 onClick={onEdit}
-                className="rounded-md p-1 hover:bg-slate-100"
+                className="rounded-lg border border-transparent p-1.5 hover:border-slate-200 hover:bg-slate-100"
                 aria-label="Edit row"
                 title="Edit"
             >
-                <Pencil size={18} />
+                <Pencil size={17} />
             </button>
 
             <button
                 type="button"
                 onClick={onDelete}
-                className="rounded-md p-1 hover:bg-red-50 hover:text-red-700"
+                className="rounded-lg border border-transparent p-1.5 hover:border-red-100 hover:bg-red-50 hover:text-red-700"
                 aria-label="Delete row"
                 title="Delete"
             >
-                <Trash2 size={18} />
+                <Trash2 size={17} />
             </button>
         </div>
     );
@@ -222,7 +222,7 @@ function RowActions({ onEdit, onDelete }) {
 function FilterSelect({ value, onChange, options }) {
     return (
         <select
-            className="h-10 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none hover:bg-slate-50 sm:w-auto sm:min-w-[150px]"
+            className="h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 sm:w-auto sm:min-w-[150px]"
             value={value}
             onChange={(event) => onChange(event.target.value)}
         >
@@ -243,7 +243,7 @@ function SortableHeader({ column, sortConfig, onSort }) {
         : "↕";
 
     return (
-        <th className="border border-slate-300 px-4 py-3 text-left font-bold">
+        <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-bold text-slate-700">
             <button
                 type="button"
                 onClick={() => onSort(column.key)}
@@ -267,15 +267,15 @@ function TableFooter({ text, currentPage, totalPages, onPageChange }) {
     const pages = buildPageNumbers(totalPages);
 
     return (
-        <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-            <span>{text}</span>
+        <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/70 px-4 py-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+            <span className="font-semibold">{text}</span>
 
             <div className="flex items-center gap-2">
                 <button
                     type="button"
                     disabled={currentPage === 1}
                     onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                    className="rounded-md p-1 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-lg border border-transparent p-1 hover:border-slate-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Previous page"
                 >
                     <ChevronLeft size={16} />
@@ -286,10 +286,10 @@ function TableFooter({ text, currentPage, totalPages, onPageChange }) {
                         key={pageNumber}
                         type="button"
                         onClick={() => onPageChange(pageNumber)}
-                        className={`h-7 w-7 rounded-md text-xs font-semibold ${
+                        className={`h-7 w-7 rounded-lg text-xs font-bold ${
                             pageNumber === currentPage
                                 ? "bg-violet-600 text-white"
-                                : "text-slate-700 hover:bg-slate-100"
+                                : "border border-transparent text-slate-700 hover:border-slate-200 hover:bg-white"
                         }`}
                     >
                         {pageNumber}
@@ -300,7 +300,7 @@ function TableFooter({ text, currentPage, totalPages, onPageChange }) {
                     type="button"
                     disabled={currentPage === totalPages}
                     onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-                    className="rounded-md p-1 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-lg border border-transparent p-1 hover:border-slate-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Next page"
                 >
                     <ChevronRight size={16} />
@@ -315,7 +315,7 @@ function TableFooter({ text, currentPage, totalPages, onPageChange }) {
  */
 function FormField({ label, children }) {
     return (
-        <label className="space-y-1 text-sm font-semibold text-slate-700">
+        <label className="space-y-1.5 text-sm font-semibold text-slate-700">
             <span>{label}</span>
             {children}
         </label>
@@ -333,7 +333,7 @@ function TextInput({ value, onChange, placeholder, type = "text", ...inputProps 
             onChange={(event) => onChange(event.target.value)}
             placeholder={placeholder}
             {...inputProps}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:bg-slate-50 read-only:bg-slate-50"
         />
     );
 }
@@ -343,14 +343,14 @@ function TextInput({ value, onChange, placeholder, type = "text", ...inputProps 
  */
 function Modal({ title, children, onClose }) {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
-            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+            <div className="pm-elevated max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-slate-200 bg-white">
                 <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                     <h3 className="text-xl font-bold">{title}</h3>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-lg px-3 py-1 text-2xl leading-none hover:bg-slate-100"
+                        className="rounded-lg border border-transparent px-3 py-1 text-2xl leading-none hover:border-slate-200 hover:bg-slate-100"
                         aria-label="Close modal"
                     >
                         ×
@@ -368,13 +368,13 @@ function Modal({ title, children, onClose }) {
  */
 function InsightCard({ label, value, note, icon: Icon = BarChart3 }) {
     return (
-        <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
+        <div className="pm-surface rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
             <div className="flex items-center justify-between gap-3">
                 <div>
                     <div className="text-sm font-bold text-slate-600">{label}</div>
                     <div className="mt-3 text-3xl font-bold text-slate-950">{value}</div>
                 </div>
-                <div className="rounded-xl bg-violet-50 p-3 text-violet-700">
+                <div className="rounded-lg bg-violet-50 p-3 text-violet-700">
                     <Icon size={24} />
                 </div>
             </div>
@@ -398,7 +398,7 @@ function DueStatusBadge({ value }) {
                         ? "bg-emerald-100 text-emerald-700"
                         : "bg-slate-100 text-slate-700";
 
-    return <span className={`rounded-md px-3 py-1 text-xs font-medium ${style}`}>{value}</span>;
+    return <span className={`inline-flex min-h-6 items-center rounded-full px-3 py-1 text-xs font-bold ${style}`}>{value}</span>;
 }
 
 export {

@@ -10,10 +10,10 @@
 import React, { useMemo, useState } from "react";
 import {
     Bell,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     LogOut,
-    Search,
     Settings,
     Users,
 } from "lucide-react";
@@ -33,11 +33,11 @@ import { assignments, projects } from "../data/mockData";
  */
 function Logo() {
     return (
-        <div className="flex items-center justify-start">
+        <div className="flex items-center justify-start rounded-xl bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200/80">
             <img
                 src="https://chambermaster.blob.core.windows.net/images/customers/2243/members/7487/logos/MEMBER_PAGE_HEADER/CM_final_logo_(2).jpg"
                 alt="Company Logo"
-                className="h-[56px] w-auto max-w-[230px] object-contain md:h-[70px]"
+                className="h-[42px] w-auto max-w-[190px] object-contain md:h-[48px]"
             />
         </div>
     );
@@ -49,12 +49,12 @@ function Logo() {
 function Sidebar({ isCollapsed, activePage, onPageChange, onLogout, currentUser }) {
     return (
         <aside
-            className={`flex w-full shrink-0 flex-col border-b border-slate-200 bg-white transition-all duration-300 md:border-b-0 md:border-r ${
+            className={`flex w-full shrink-0 flex-col border-b border-slate-200/80 bg-white/95 shadow-sm transition-all duration-300 md:border-b-0 md:border-r ${
                 isCollapsed ? "md:w-[84px]" : "md:w-[260px]"
             }`}
         >
             {/* Navigation buttons */}
-            <nav className="flex gap-2 overflow-x-auto p-3 md:flex-1 md:flex-col md:space-y-3 md:overflow-visible md:p-4 md:pt-6">
+            <nav className="flex gap-2 overflow-x-auto p-3 md:flex-1 md:flex-col md:gap-1.5 md:overflow-visible md:p-4 md:pt-5">
                 {getAllowedNavItems(currentUser).map(({ label, page, icon: Icon }) => (
                     <button
                         key={label}
@@ -63,15 +63,18 @@ function Sidebar({ isCollapsed, activePage, onPageChange, onLogout, currentUser 
                         onClick={() => onPageChange(page)}
 
                         // Highlight active page button
-                        className={`flex min-w-max items-center rounded-xl px-3 py-3 text-sm transition hover:bg-slate-100 md:w-full md:text-lg ${
+                        className={`relative flex min-w-max items-center rounded-lg px-3 py-2.5 text-sm transition hover:bg-slate-100 md:w-full md:text-sm ${
                             isCollapsed ? "gap-2 md:justify-center md:px-0" : "gap-2 md:gap-4 md:px-4 md:text-left"
                         } ${
                             activePage === page
-                                ? "bg-slate-100 font-semibold text-violet-700"
-                                : "font-medium text-slate-800"
+                                ? "bg-violet-50 font-bold text-violet-700 shadow-sm ring-1 ring-violet-100"
+                                : "font-semibold text-slate-700"
                         }`}
                     >
-                        <Icon size={24} strokeWidth={2} />
+                        {activePage === page && !isCollapsed && (
+                            <span className="absolute left-0 top-2 h-7 w-1 rounded-r-full bg-violet-600" />
+                        )}
+                        <Icon size={21} strokeWidth={2} />
                         <span className={isCollapsed ? "md:hidden" : ""}>{label}</span>
                     </button>
                 ))}
@@ -82,11 +85,11 @@ function Sidebar({ isCollapsed, activePage, onPageChange, onLogout, currentUser 
                 type="button"
                 title={isCollapsed ? "Logout" : undefined}
                 onClick={onLogout}
-                className={`m-3 flex min-w-max items-center rounded-xl px-3 py-3 text-sm font-semibold hover:bg-slate-100 md:m-4 md:text-lg ${
+                className={`m-3 flex min-w-max items-center rounded-lg border border-transparent px-3 py-2.5 text-sm font-bold text-slate-700 hover:border-slate-200 hover:bg-slate-50 md:m-4 ${
                     isCollapsed ? "gap-2 md:justify-center md:px-0" : "gap-2 md:gap-4 md:px-4"
                 }`}
             >
-                <LogOut size={24} />
+                <LogOut size={21} />
                 <span className={isCollapsed ? "md:hidden" : ""}>Logout</span>
             </button>
         </aside>
@@ -133,11 +136,24 @@ function pluralize(count, singular, plural = `${singular}s`) {
     return count === 1 ? singular : plural;
 }
 
+function getUserInitials(user) {
+    const displayName = user?.name || user?.employeeName || user?.email || "User";
+    const nameParts = String(displayName)
+        .replace(/@.*/, "")
+        .split(/[\s._-]+/)
+        .filter(Boolean);
+
+    return nameParts
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join("") || "U";
+}
+
 // Top header bar
 /**
  * Renders the application header, global search input, notification menu, and user menu.
  */
-function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, currentUser, globalSearch, onGlobalSearchChange }) {
+function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, currentUser }) {
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [isManagerMenuOpen, setIsManagerMenuOpen] = useState(false);
 
@@ -194,8 +210,10 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
         onPageChange?.(nextPage);
     };
 
+    const displayName = currentUser?.name || currentUser?.employeeName || currentUser?.email || "Manager";
+
     return (
-        <header className="relative z-30 flex flex-col gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm md:min-h-[86px] md:px-6 lg:flex-row lg:items-center lg:justify-between lg:py-0">
+        <header className="pm-surface relative z-30 flex flex-col gap-3 border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur md:min-h-[76px] md:px-6 lg:flex-row lg:items-center lg:justify-between lg:py-0">
 
             {/* Brand area now stays in the top bar instead of the collapsible sidebar */}
             <div className="flex w-full flex-col gap-3 md:flex-row md:items-center lg:w-auto lg:flex-1">
@@ -207,7 +225,7 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
                         type="button"
                         onClick={onToggleSidebar}
                         aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                        className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white shadow-sm transition hover:bg-slate-100 md:flex"
+                        className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 md:flex"
                     >
                         {isSidebarCollapsed
                             ? <ChevronRight size={22} />
@@ -215,16 +233,6 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
                     </button>
                 </div>
 
-                {/* Search bar */}
-                <div className="flex w-full items-center gap-3 rounded-xl border border-slate-300 px-4 py-3 shadow-sm md:max-w-[380px] lg:ml-4">
-                    <Search size={20} className="text-slate-500" />
-                    <input
-                        value={globalSearch}
-                        onChange={(event) => onGlobalSearchChange?.(event.target.value)}
-                        className="w-full text-base outline-none"
-                        placeholder="Search current page"
-                    />
-                </div>
             </div>
 
             {/* User info area */}
@@ -236,19 +244,19 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
                             setIsNotificationsOpen((value) => !value);
                             setIsManagerMenuOpen(false);
                         }}
-                        className="relative rounded-xl p-2 transition hover:bg-slate-100"
+                        className="relative rounded-lg border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-100"
                         aria-label="Open notifications"
                         title="Notifications"
                     >
-                        <Bell size={24} />
+                        <Bell size={21} />
                         {notifications.length > 0 && (
-                            <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-violet-600" />
+                            <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-white bg-violet-600" />
                         )}
                     </button>
 
                     {isNotificationsOpen && (
-                        <div className="absolute right-0 z-40 mt-3 w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl sm:w-80">
-                            <div className="border-b border-slate-200 px-4 py-3 font-bold">
+                        <div className="pm-elevated absolute right-0 z-40 mt-3 w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-slate-200 bg-white sm:w-80">
+                            <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 font-bold">
                                 Notifications
                             </div>
 
@@ -287,24 +295,23 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
                             setIsManagerMenuOpen((value) => !value);
                             setIsNotificationsOpen(false);
                         }}
-                        className="flex items-center gap-4 rounded-xl px-2 py-1 transition hover:bg-slate-100"
+                        className="pm-user-menu-button flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white px-2 py-2 shadow-sm transition hover:bg-slate-50"
                         aria-label="Open manager menu"
                         title="Manager menu"
                     >
-                        {/* User profile image */}
-                        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-2 border-slate-300 bg-slate-100 shadow-sm sm:h-12 sm:w-12">
-                            <img
-                                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQI6QNyB22A2rTJfdHWecRsPWOH4OlbAUGIhQ&s"
-                                alt="Logged in manager"
-                                className="h-full w-full object-cover"
-                            />
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 text-sm font-bold text-violet-700 shadow-sm sm:h-10 sm:w-10">
+                            {getUserInitials(currentUser)}
                         </div>
 
-                        <span className="hidden text-lg font-bold sm:inline">{currentUser?.name || "Manager"}⌄</span>
+                        <span className="hidden max-w-[220px] truncate text-sm font-bold text-slate-900 sm:inline">
+                            {displayName}
+                        </span>
+                        <ChevronDown size={16} className="hidden shrink-0 text-slate-500 sm:block" />
+
                     </button>
 
                     {isManagerMenuOpen && (
-                        <div className="absolute right-0 z-40 mt-3 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                        <div className="pm-elevated absolute right-0 z-40 mt-3 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white">
                             {canManageContent(currentUser) && (
                                 <>
                                     <button
