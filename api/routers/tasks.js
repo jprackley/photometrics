@@ -89,7 +89,49 @@ router.get('/:id',
         res.status(C_HTTP.STATUS.OK).json({tasks: rows[0]});
     })
 )
+router.get('/:id/time-entries',
+    asyncHandler(async (req, res) => {
+        validationErrorHandler(req, 'READ Task:id Time Entries - ');
+        const {id} = req.params;
+        const {rows} = await query(`
+            SELECT 
+                project_id,
+                task_id,
+                assigned_to,
+                start_time,
+                stop_time,
+                total_time,
+                estimated_hours,
+                completed_at
+            FROM tasks 
+            WHERE task_id = $1
+            GROUP BY project_id, task_id, assigned_to
+        `, [id]);
 
+        res.status(C_HTTP.STATUS.OK).json({timeEntries: rows});
+    })
+)
+
+router.get('/time-entries',
+    asyncHandler(async (req, res) => {
+        validationErrorHandler(req, 'READ Task:id Time Entries - ');
+        const {rows} = await query(`
+            SELECT 
+                project_id,
+                task_id,
+                assigned_to,
+                start_time,
+                stop_time,
+                total_time,
+                estimated_hours,
+                completed_at
+            FROM tasks 
+            GROUP BY project_id, task_id, assigned_to
+        `);
+
+        res.status(C_HTTP.STATUS.OK).json({timeEntries: rows});
+    })
+)
 //----------------------------------------------------------------------------------
 // READ Tasks
 // 1. All tasks
