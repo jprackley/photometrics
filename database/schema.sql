@@ -549,6 +549,7 @@ FROM tasks t
 -- HARDCODED LOGIN USERS
 ---------------------------------------------------------------------------
 INSERT INTO users (
+    user_id,
     first_name,
     last_name,
     display_name,
@@ -562,6 +563,7 @@ INSERT INTO users (
     department
 )
 VALUES (
+           '00000000-0000-4000-8000-000000000010',
            'Test',
            'Manager',
            'Test Manager',
@@ -589,6 +591,7 @@ ON CONFLICT (email)
                   updated_at = now();
 
 INSERT INTO users (
+    user_id,
     first_name,
     last_name,
     display_name,
@@ -602,6 +605,7 @@ INSERT INTO users (
     department
 )
 VALUES (
+           '00000000-0000-4000-8000-000000000011',
            'Test',
            'Employee',
            'Test Employee',

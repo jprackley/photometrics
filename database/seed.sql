@@ -1,15 +1,5 @@
 BEGIN;
 
-TRUNCATE TABLE
-    time_entries,
-    images,
-    tasks,
-    projects,
-    clients,
-    users,
-    addresses
-RESTART IDENTITY CASCADE;
-
 INSERT INTO users (
     user_id,
     employee_id,
@@ -32,33 +22,33 @@ VALUES
     (
         '00000000-0000-4000-8000-000000000001',
         'EMP-001',
-        'Test',
-        'Manager',
-        'Test Manager',
-        'Operations Manager',
-        'Photometrics',
-        'Operations',
-        'Remote',
-        'Active',
-        'muser@gmail.com',
-        '555-0101',
-        '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
-        'Manager',
-        true,
-        true
-    ),
-    (
-        '00000000-0000-4000-8000-000000000002',
-        'EMP-002',
-        'Test',
-        'Employee',
-        'Test Employee',
+        'Robin',
+        'Williams',
+        'Employee 01',
         'Photo Editor',
         'Photometrics',
         'Editing',
         'Remote',
         'Active',
-        'euser@gmail.com',
+        'r.williams@gmail.com',
+        '555-0102',
+        '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
+        'Employee',
+        false,
+        true
+    ),
+    (
+        '00000000-0000-4000-8000-000000000002',
+        'EMP-002',
+        'Bob',
+        'Sagget',
+        'Employee 02',
+        'Photo Editor',
+        'Photometrics',
+        'Editing',
+        'Remote',
+        'Active',
+        'b.sagget@gmail.com',
         '555-0102',
         '$2b$10$B69IPafcRhsTFwnKcN/iyutVmN7rE2K0EXRa9p76zwT/fr4vaNvJy',
         'Employee',
@@ -124,43 +114,43 @@ VALUES
 
 INSERT INTO projects (
     project_id,
+    project_name,
     client_id,
     managed_by,
-    project_name,
     description,
     status,
     priority,
-    notes,
     start_time,
     shoot_time,
-    due_time
+    due_time,
+    notes
 )
 VALUES
     (
-        '00000000-0000-4000-8000-000000000201',
+        '10000000-0000-4000-8000-000000000101',
+        'Wedding Album Editing',
         '00000000-0000-4000-8000-000000000101',
-        '00000000-0000-4000-8000-000000000001',
-        'Rivera Wedding Photo Edit',
-        'Full editing workflow for wedding photo delivery',
+        '00000000-0000-4000-8000-000000000010',
+        'Post production workflow for a wedding photography project.',
         'In Progress',
         'High',
-        'Client requested warm color grading',
-        '2026-05-01 09:00:00-06',
-        '2026-05-02 14:00:00-06',
-        '2026-05-15 17:00:00-06'
+        now(),
+        now() - INTERVAL '2 days',
+        now() + INTERVAL '7 days',
+        'Seed project for testing task progress and dashboard views.'
     ),
     (
-        '00000000-0000-4000-8000-000000000202',
-        '00000000-0000-4000-8000-000000000102',
-        '00000000-0000-4000-8000-000000000001',
-        'Morgan Realty Listing Photos',
-        'Edit and deliver real estate listing images',
+        '10000000-0000-4000-8000-000000000102',
+        'Product Photography Retouching',
+        '00000000-0000-4000-8000-000000000101',
+        '00000000-0000-4000-8000-000000000010',
+        'Editing and export workflow for product photography deliverables.',
         'To-Do',
         'Normal',
-        'Standard real estate editing package',
-        '2026-05-03 09:00:00-06',
-        '2026-05-04 10:00:00-06',
-        '2026-05-10 17:00:00-06'
+        now(),
+        now() - INTERVAL '1 day',
+        now() + INTERVAL '10 days',
+        'Seed project for testing task lists and project reporting.'
     );
 
 INSERT INTO tasks (
@@ -181,7 +171,7 @@ INSERT INTO tasks (
 VALUES
     (
         '00000000-0000-4000-8000-000000000301',
-        '00000000-0000-4000-8000-000000000201',
+        '10000000-0000-4000-8000-000000000101',
         'Import wedding gallery',
         'Import',
         'Normal',
@@ -196,7 +186,7 @@ VALUES
     ),
     (
         '00000000-0000-4000-8000-000000000302',
-        '00000000-0000-4000-8000-000000000201',
+        '10000000-0000-4000-8000-000000000101',
         'Cull wedding gallery',
         'Cull',
         'High',
@@ -211,7 +201,7 @@ VALUES
     ),
     (
         '00000000-0000-4000-8000-000000000303',
-        '00000000-0000-4000-8000-000000000201',
+        '10000000-0000-4000-8000-000000000101',
         'Quality review wedding gallery',
         'Quality Review',
         'High',
@@ -226,7 +216,7 @@ VALUES
     ),
     (
         '00000000-0000-4000-8000-000000000304',
-        '00000000-0000-4000-8000-000000000202',
+        '10000000-0000-4000-8000-000000000102',
         'Edit listing images',
         'Edit',
         'Normal',
@@ -238,90 +228,6 @@ VALUES
         NULL,
         '00000000-0000-4000-8000-000000000001',
         '00000000-0000-4000-8000-000000000003'
-    );
-
-INSERT INTO images (
-    image_id,
-    project_id,
-    task_id,
-    name,
-    description,
-    url,
-    status,
-    completed_at
-)
-VALUES
-    (
-        '00000000-0000-4000-8000-000000000401',
-        '00000000-0000-4000-8000-000000000201',
-        '00000000-0000-4000-8000-000000000301',
-        'wedding_001.jpg',
-        'Bride and groom portrait',
-        'https://example.com/images/wedding_001.jpg',
-        'Completed',
-        '2026-05-01 11:30:00-06'
-    ),
-    (
-        '00000000-0000-4000-8000-000000000402',
-        '00000000-0000-4000-8000-000000000201',
-        '00000000-0000-4000-8000-000000000302',
-        'wedding_002.jpg',
-        'Reception detail shot',
-        'https://example.com/images/wedding_002.jpg',
-        'In Progress',
-        NULL
-    ),
-    (
-        '00000000-0000-4000-8000-000000000403',
-        '00000000-0000-4000-8000-000000000202',
-        '00000000-0000-4000-8000-000000000304',
-        'listing_001.jpg',
-        'Front exterior listing photo',
-        'https://example.com/images/listing_001.jpg',
-        'Pending',
-        NULL
-    );
-
-INSERT INTO time_entries (
-    time_entry_id,
-    task_id,
-    employee_id,
-    start_time,
-    end_time,
-    total_time
-)
-VALUES
-    (
-        '00000000-0000-4000-8000-000000000501',
-        '00000000-0000-4000-8000-000000000301',
-        '00000000-0000-4000-8000-000000000002',
-        '2026-05-01 09:00:00-06',
-        '2026-05-01 11:30:00-06',
-        150
-    ),
-    (
-        '00000000-0000-4000-8000-000000000502',
-        '00000000-0000-4000-8000-000000000302',
-        '00000000-0000-4000-8000-000000000002',
-        '2026-05-02 09:00:00-06',
-        '2026-05-02 13:00:00-06',
-        240
-    ),
-    (
-        '00000000-0000-4000-8000-000000000503',
-        '00000000-0000-4000-8000-000000000302',
-        '00000000-0000-4000-8000-000000000002',
-        '2026-05-03 10:00:00-06',
-        '2026-05-03 12:00:00-06',
-        120
-    ),
-    (
-        '00000000-0000-4000-8000-000000000504',
-        '00000000-0000-4000-8000-000000000304',
-        '00000000-0000-4000-8000-000000000003',
-        '2026-05-04 09:00:00-06',
-        '2026-05-04 10:30:00-06',
-        90
     );
 
 COMMIT;
