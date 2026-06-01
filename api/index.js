@@ -49,6 +49,7 @@ app.use('/api/dashboard/employee-activity', require('./routers/dashboard/employe
 app.use('/api/dashboard/project-progress', require('./routers/dashboard/projectProgressKPI'));
 
 app.use('/api/reports/project_delivery', require('./routers/reports/project_delivery_report'));
+app.use('/api/reports/task_time', require('./routers/reports/task_time_report'));
 
 //app.use('/api/auth/refresh', require('./routers/auth/refresh'));
 
