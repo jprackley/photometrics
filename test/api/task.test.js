@@ -59,10 +59,6 @@ describe('Testing /api/tasks', () => {
 
     after(async () => {
         try {
-            console.log(JSON.stringify(users, null, 2));
-            console.log(JSON.stringify(clients, null, 2));
-            console.log(JSON.stringify(projects, null, 2));
-            console.log(JSON.stringify(tasks, null, 2));
             console.log('[POST] Deleting Test Data...');
             //----------------------------------------------------------------------------------
             // Delete Tasks
@@ -100,6 +96,15 @@ describe('Testing /api/tasks', () => {
                 {
                     project_id: projects[0].project_id,
                     task_name: `Test Task ${Date.now()}`,
+                    category: C_TASK.CATEGORY.IMPORT,
+                    priority: C_TASK.PRIORITY.HIGH,
+                    description: 'Test Description',
+                    status: C_TASK.STATUS.COMPLETED,
+                    progress: 100.00,
+                    due_time: new Date().toISOString(),
+                    estimated_hours: 2.00,
+                    assigned_to: users[1].user_id,
+                    assigned_by: users[0].user_id,
                 }
             );
             assertEqual(response, C_HTTP.STATUS.CREATED);

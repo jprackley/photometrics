@@ -39,6 +39,7 @@ const MUTABLE_COLUMNS = {
     START: 'start_time',
     STOP: 'stop_time',
     TOTAL: 'total_time',
+    ESTIMATED: 'estimated_hours',
     DUE: 'due_time',
     COMPLETED: 'completed_at',
     ASSIGNED_TO: 'assigned_to',

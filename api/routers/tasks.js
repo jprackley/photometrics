@@ -43,6 +43,7 @@ router.post(
         body('start_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid start time format'),
         body('due_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid due time format'),
         body('completed_at').optional({ values: 'null' }).isISO8601().withMessage('Invalid completed time format'),
+        body('estimated_hours').optional( { values: 'null' }).isDecimal().withMessage('Invalid estimated hours'),
         body('assigned_by').optional({ values: 'null' }).isUUID().withMessage('Invalid assigned_by UUID'),
         body('assigned_to').optional({ values: 'null' }).isUUID().withMessage('Invalid assigned_to UUID')
     ],
@@ -186,6 +187,7 @@ router.patch(
         body('start_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid start time format'),
         body('due_time').optional({ values: 'null' }).isISO8601().withMessage('Invalid due time format'),
         body('completed_at').optional({ values: 'null' }).isISO8601().withMessage('Invalid completed time format'),
+        body('estimated_hours').optional( { values: 'null' }).isDecimal().withMessage('Invalid estimated hours'),
         body('assigned_by').optional({ values: 'null' }).isUUID().withMessage('Invalid assigned_by UUID'),
         body('assigned_to').optional({ values: 'null' }).isUUID().withMessage('Invalid assigned_to UUID')
     ],
