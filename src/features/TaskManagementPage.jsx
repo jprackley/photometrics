@@ -134,6 +134,38 @@ import {
     Modal,
 } from "./sharedComponents";
 
+const TASK_TYPE_OPTIONS = ["Import", "Cull", "Edit", "Quality Review", "Export", "Delivery", "Other"];
+
+function getEmployeeOptionId(employee) {
+    if (!employee || typeof employee === "string") return employee || "";
+    return employee.userId || employee.backendId || employee.employeeId || employee.id || employee.name || employee.displayName || employee.email || "";
+}
+
+function getEmployeeOptionName(employee) {
+    if (!employee || typeof employee === "string") return employee || "";
+    return employee.name || employee.displayName || employee.email || employee.employeeName || "";
+}
+
+function buildEmployeeSelectOptions(employeeRows = [], taskRows = []) {
+    const optionMap = new Map();
+
+    employeeRows.forEach((employee) => {
+        const name = getEmployeeOptionName(employee);
+        if (!name) return;
+        const id = getEmployeeOptionId(employee) || name;
+        optionMap.set(id, { id, name });
+    });
+
+    taskRows.forEach((task) => {
+        const name = task.assignedTo;
+        if (!name || name === "Unassigned") return;
+        const id = task.assignedToId || name;
+        if (!optionMap.has(id)) optionMap.set(id, { id, name });
+    });
+
+    return Array.from(optionMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /**
  * Create/edit form for task records, including estimated and tracked time fields.
  */
@@ -148,8 +180,10 @@ function TaskForm({ initialTask, projectOptions, employeeOptions, onCancel, onSa
         event.preventDefault();
         onSave({
             ...form,
-            taskName: form.taskName.trim() || "Untitled Task",
-            assignedTo: form.assignedTo.trim() || "Unassigned",
+            taskName: String(form.taskName || "").trim() || "Untitled Task",
+            taskType: form.taskType || form.taskName || "Other",
+            category: form.category || form.taskType || form.taskName || "Other",
+            assignedTo: String(form.assignedTo || "").trim() || "Unassigned",
             estimatedHours: normalizeNumber(form.estimatedHours),
             trackedSeconds: normalizeNumber(form.trackedSeconds),
         });
@@ -159,7 +193,21 @@ function TaskForm({ initialTask, projectOptions, employeeOptions, onCancel, onSa
         <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="Task Name">
-                    <TextInput value={form.taskName} onChange={(value) => updateField("taskName", value)} placeholder="Photo Editing Batch 1" />
+                    <select
+                        value={TASK_TYPE_OPTIONS.includes(form.taskName) ? form.taskName : ""}
+                        onChange={(event) => {
+                            updateField("taskName", event.target.value);
+                            updateField("taskType", event.target.value);
+                            updateField("category", event.target.value);
+                        }}
+                        required
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    >
+                        <option value="">Select task type</option>
+                        {TASK_TYPE_OPTIONS.map((taskType) => (
+                            <option key={taskType} value={taskType}>{taskType}</option>
+                        ))}
+                    </select>
                 </FormField>
 
                 <FormField label="Project">
@@ -175,18 +223,21 @@ function TaskForm({ initialTask, projectOptions, employeeOptions, onCancel, onSa
                 </FormField>
 
                 <FormField label="Assigned To">
-                    <input
-                        list="task-employee-options"
-                        value={form.assignedTo}
-                        onChange={(event) => updateField("assignedTo", event.target.value)}
-                        placeholder="Employee name"
+                    <select
+                        value={form.assignedToId || ""}
+                        onChange={(event) => {
+                            const selectedEmployee = employeeOptions.find((employee) => String(employee.id) === event.target.value);
+                            updateField("assignedToId", selectedEmployee?.id || "");
+                            updateField("assignedTo", selectedEmployee?.name || "");
+                        }}
+                        required
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                    />
-                    <datalist id="task-employee-options">
+                    >
+                        <option value="">Select employee</option>
                         {employeeOptions.map((employee) => (
-                            <option key={employee} value={employee} />
+                            <option key={employee.id || employee.name} value={employee.id}>{employee.name}</option>
                         ))}
-                    </datalist>
+                    </select>
                 </FormField>
 
                 <FormField label="Due Date">
@@ -441,8 +492,11 @@ function TaskManagementPage() {
             data: {
                 id: generateNextId("TSK", taskRows),
                 taskName: "",
+                taskType: "",
+                category: "",
                 project: projectNames[0] || "Unassigned Project",
                 assignedTo: "",
+                assignedToId: "",
                 dueDate: "May 30, 2026",
                 priority: "Normal",
                 estimatedHours: 1,
@@ -460,14 +514,18 @@ function TaskManagementPage() {
         return [...new Set([...masterProjects, ...taskProjects])].sort();
     };
 
+    const employeeRowsForTasks = () => buildEmployeeSelectOptions(taskEmployeeRows, taskRows);
+
     const saveTask = async (task) => {
         const cleanTask = {
             ...task,
             id: task.id || generateNextId("TSK", taskRows),
             projectId: resolveProjectIdForTask(task, taskProjectRows, taskRows),
             assignedToId: resolveEmployeeIdForTask(task, taskEmployeeRows, taskRows),
-            taskName: task.taskName.trim() || "Untitled Task",
-            assignedTo: task.assignedTo.trim() || "Unassigned",
+            taskName: String(task.taskName || "").trim() || "Untitled Task",
+            taskType: task.taskType || task.taskName || "Other",
+            category: task.category || task.taskType || task.taskName || "Other",
+            assignedTo: String(task.assignedTo || "").trim() || "Unassigned",
             timerStartedAt: task.timerStartedAt || null,
             trackedSeconds: normalizeNumber(task.trackedSeconds),
         };
@@ -810,7 +868,7 @@ function TaskManagementPage() {
                     <TaskForm
                         initialTask={taskModal.data}
                         projectOptions={projectRowsForTasks()}
-                        employeeOptions={employeeOptions.filter((option) => option !== "All Employees")}
+                        employeeOptions={employeeRowsForTasks()}
                         onCancel={() => setTaskModal(null)}
                         onSave={saveTask}
                     />
@@ -977,6 +1035,8 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
         return [...new Set([...masterProjects, ...taskProjects])].sort();
     };
 
+    const employeeRowsForTasks = () => buildEmployeeSelectOptions(taskEmployeeRows, taskRows);
+
     const openNewTaskModal = () => {
         if (!hasManagerAccess) return;
         const projectNames = projectRowsForTasks();
@@ -985,8 +1045,11 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             data: {
                 id: generateNextId("TSK", taskRows),
                 taskName: "",
+                taskType: "",
+                category: "",
                 project: projectNames[0] || "Unassigned Project",
                 assignedTo: "",
+                assignedToId: "",
                 dueDate: "May 30, 2026",
                 priority: "Normal",
                 estimatedHours: 1,
@@ -1006,8 +1069,10 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             id: task.id || generateNextId("TSK", taskRows),
             projectId: resolveProjectIdForTask(task, taskProjectRows, taskRows),
             assignedToId: resolveEmployeeIdForTask(task, taskEmployeeRows, taskRows),
-            taskName: task.taskName.trim() || "Untitled Task",
-            assignedTo: task.assignedTo.trim() || "Unassigned",
+            taskName: String(task.taskName || "").trim() || "Untitled Task",
+            taskType: task.taskType || task.taskName || "Other",
+            category: task.category || task.taskType || task.taskName || "Other",
+            assignedTo: String(task.assignedTo || "").trim() || "Unassigned",
             trackedSeconds: normalizeNumber(task.trackedSeconds),
         });
 
@@ -1257,7 +1322,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
 
             {taskModal && (
                 <Modal title={taskModal.mode === "create" ? "New Task" : "Edit Task"} onClose={() => setTaskModal(null)}>
-                    <TaskForm initialTask={taskModal.data} projectOptions={projectRowsForTasks()} employeeOptions={employeeOptions.filter((option) => option !== "All Employees")} onCancel={() => setTaskModal(null)} onSave={saveTask} />
+                    <TaskForm initialTask={taskModal.data} projectOptions={projectRowsForTasks()} employeeOptions={employeeRowsForTasks()} onCancel={() => setTaskModal(null)} onSave={saveTask} />
                 </Modal>
             )}
         </section>
