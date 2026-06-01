@@ -360,17 +360,19 @@ SELECT u.user_id,
        u.middle_name,
        u.last_name,
        u.display_name,
-       concat(u.first_name, ' ', u.last_name, ' updated Task for Project ', p.project_name,
-              E'.\n', t.task_name, ' updated at: ', t.updated_at,
+       concat(u.first_name, ' ', u.last_name, ' is assigned ', t.task_name,' for Project ', p.project_name,'.',
+              E'.\nAssigned Task updated at: ', t.updated_at,
               E'.\nStatus: ', t.status) AS description,
        t.updated_at
 FROM users u
          LEFT JOIN tasks t ON t.assigned_to = u.user_id
          LEFT JOIN projects p ON p.project_id = t.project_id
+WHERE u.account_role = 'Employee'
 GROUP BY u.user_id,
          t.task_id,
          t.updated_at,
          t.task_name,
+         t.category,
          t.status,
          p.project_name,
          p.project_id
