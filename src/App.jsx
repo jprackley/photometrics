@@ -19,7 +19,6 @@ import {
 import { getPublicUser, mockUsers, placeholderPages, settingsData } from "./data/mockData";
 import { canAccessPage, canManageContent } from "./utils/accessControl";
 import {
-    AnalyticsPage,
     Dashboard,
     EmployeeSettingsPage,
     EmployeesPage,
@@ -421,7 +420,6 @@ export default function App() {
                             {page === "employees" && canManageContent(currentUser) && <EmployeesPage globalSearch={globalSearch} />}
                             {page === "tasks" && <TaskManagementPageSecure currentUser={currentUser} globalSearch={globalSearch} />}
                             {page === "reports" && canManageContent(currentUser) && <ReportsPage globalSearch={globalSearch} />}
-                            {page === "analytics" && canManageContent(currentUser) && <AnalyticsPage globalSearch={globalSearch} />}
                             {page === "settings" && (canManageContent(currentUser)
                                 ? <SettingsPage currentUser={currentUser} />
                                 : <EmployeeSettingsPage currentUser={currentUser} onUserUpdate={updateCurrentUser} />
