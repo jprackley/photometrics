@@ -186,7 +186,7 @@ function downloadProjectsReport(projectRows) {
 
     downloadTextFile(
         "photometrics-projects-report.csv",
-        `Projects\n${projectCsv}\n\nAssignments\n${assignmentCsv}`
+        `Projects\n${projectCsv}`
     );
 }
 
