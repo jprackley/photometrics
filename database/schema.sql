@@ -322,6 +322,28 @@ CREATE TABLE project_delivery_report_snapshots
     generated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE task_time_report_snapshots
+(
+    report_snapshot_id UUID PRIMARY KEY         DEFAULT gen_random_uuid(),
+    task_id            UUID         NOT NULL,
+    task_name          VARCHAR(255) NOT NULL,
+    project            VARCHAR(255) NOT NULL,
+
+    assigned_employee  VARCHAR(511) NOT NULL,
+
+    due_date           TIMESTAMPTZ              DEFAULT NULL,
+    priority           TEXT         NOT NULL,
+    estimated_hours    DECIMAL(10, 2)           DEFAULT NULL,
+
+    tracked_time       DECIMAL(10, 2)           DEFAULT NULL,
+
+    utilization        DECIMAL(10, 2)           DEFAULT NULL,
+    status             TEXT                     DEFAULT NULL,
+    due_status         TEXT                     DEFAULT NULL,
+
+    generated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 ---------------------------------------------------------------------------
 -- Views
 ---------------------------------------------------------------------------
