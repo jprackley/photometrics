@@ -21,11 +21,10 @@ import { getAllowedNavItems, canManageContent } from "../utils/accessControl";
 import {
     API_ENDPOINTS,
     getUseApiDataSetting,
-    normalizeAssignmentRows,
     normalizeProjectRows,
     useApiPlaceholder,
 } from "../services/api";
-import { assignments, projects } from "../data/mockData";
+import { projects } from "../data/mockData";
 
 // Company logo component
 /**
@@ -158,21 +157,12 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
     const [isManagerMenuOpen, setIsManagerMenuOpen] = useState(false);
 
     const localProjectFallback = getUseApiDataSetting() ? [] : projects;
-    const localAssignmentFallback = getUseApiDataSetting() ? [] : assignments;
-
     const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projectsList, localProjectFallback, {
         transformPayload: normalizeProjectRows,
     });
-    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
-        transformPayload: normalizeAssignmentRows,
-    });
-
     const notifications = useMemo(() => {
         const projectRows = Array.isArray(loadedProjectRows) ? loadedProjectRows : [];
-        const assignmentRows = Array.isArray(loadedAssignmentRows) ? loadedAssignmentRows : [];
         const projectsDueThisWeek = projectRows.filter((project) => isDateThisWeek(project.dueDate)).length;
-        const assignmentsReadyForReview = assignmentRows.filter((assignment) => isReviewReadyStatus(assignment.status)).length;
-
         const nextNotifications = [];
 
         if (projectsDueThisWeek > 0) {
@@ -183,14 +173,6 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
             });
         }
 
-        if (assignmentsReadyForReview > 0) {
-            nextNotifications.push({
-                key: "assignments-review",
-                page: "projects",
-                message: `${assignmentsReadyForReview} ${pluralize(assignmentsReadyForReview, "assignment")} ${assignmentsReadyForReview === 1 ? "is" : "are"} ready for review`,
-            });
-        }
-
         nextNotifications.push({
             key: "project-export",
             page: "projects",
@@ -198,7 +180,7 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
         });
 
         return nextNotifications;
-    }, [loadedProjectRows, loadedAssignmentRows]);
+    }, [loadedProjectRows]);
 
     const closeMenus = () => {
         setIsNotificationsOpen(false);
