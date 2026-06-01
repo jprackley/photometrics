@@ -17,29 +17,10 @@ router.get(
         validationErrorHandler(req, 'GET Employee Activity KPI - ');
         const {id: param} = req.params;
         const sql = `
-            SELECT u.user_id,
-                   t.task_id,
-                   u.first_name,
-                   u.middle_name,
-                   u.last_name,
-                   u.display_name,
-                   concat(u.first_name, ' ', u.last_name, ' updated Task for Project ', p.project_name,
-                          E'.\\n', t.task_name, ' updated at: ', t.updated_at,
-                          E'.\\nStatus: ', t.status) AS description,
-                   t.updated_at
-            FROM users u
-                     LEFT JOIN tasks t ON t.assigned_to = u.user_id
-                     LEFT JOIN projects p ON p.project_id = t.project_id
-            WHERE u.user_id = $1
-            GROUP BY u.user_id,
-                     t.task_id,
-                     t.updated_at,
-                     t.task_name,
-                     t.status,
-                     p.project_name
-
-            ORDER BY t.updated_at DESC;
-         `;
+            SELECT *
+            FROM employee_activity_view
+            WHERE user_id = $1;
+        `;
         const { rows } = await query(sql, [param]);
 
         res.status(C_HTTP.STATUS.OK).json(rows);
@@ -52,27 +33,8 @@ router.get(
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Employee Activity KPI - ');
         const sql = `
-            SELECT u.user_id,
-                   t.task_id,
-                   u.first_name,
-                   u.middle_name,
-                   u.last_name,
-                   u.display_name,
-                   concat(u.first_name, ' ', u.last_name, ' updated Task for Project ', p.project_name,
-                          E'.\\n', t.task_name, ' updated at: ', t.updated_at,
-                          E'.\\nStatus: ', t.status) AS description,
-                   t.updated_at
-            FROM users u
-                     LEFT JOIN tasks t ON t.assigned_to = u.user_id
-                     LEFT JOIN projects p ON p.project_id = t.project_id
-            GROUP BY u.user_id,
-                     t.task_id,
-                     t.updated_at,
-                     t.task_name,
-                     t.status,
-                     p.project_name
-
-            ORDER BY t.updated_at DESC;
+            SELECT *
+            FROM employee_activity_view
          `;
         const { rows } = await query(sql);
 

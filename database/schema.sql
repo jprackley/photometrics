@@ -2,6 +2,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 DROP VIEW IF EXISTS task_progress_view CASCADE;
 DROP VIEW IF EXISTS project_progress_view CASCADE;
+DROP VIEW IF EXISTS employee_activity_view CASCADE;
 DROP VIEW IF EXISTS assignments CASCADE;
 DROP VIEW IF EXISTS project_delivery_report CASCADE;
 DROP VIEW IF EXISTS task_time_report CASCADE;
@@ -347,6 +348,34 @@ CREATE TABLE task_time_report_snapshots
 ---------------------------------------------------------------------------
 -- Views
 ---------------------------------------------------------------------------
+CREATE or REPLACE VIEW employee_activity_view AS
+SELECT u.user_id,
+       p.project_id,
+       p.project_name,
+       t.task_id,
+       t.task_name,
+       t.status,
+       t.category,
+       u.first_name,
+       u.middle_name,
+       u.last_name,
+       u.display_name,
+       concat(u.first_name, ' ', u.last_name, ' updated Task for Project ', p.project_name,
+              E'.\n', t.task_name, ' updated at: ', t.updated_at,
+              E'.\nStatus: ', t.status) AS description,
+       t.updated_at
+FROM users u
+         LEFT JOIN tasks t ON t.assigned_to = u.user_id
+         LEFT JOIN projects p ON p.project_id = t.project_id
+GROUP BY u.user_id,
+         t.task_id,
+         t.updated_at,
+         t.task_name,
+         t.status,
+         p.project_name,
+         p.project_id
+
+ORDER BY t.updated_at DESC;
 
 CREATE OR REPLACE VIEW project_progress_view AS
 SELECT
