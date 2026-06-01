@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // Reporting and Analytics Utilities
 // -----------------------------------------------------------------------------
-// Builds normalized report models from projects, assignments, tasks, and employee
+// Builds normalized report models from projects, tasks, and employee
 // records. The Reports and Analytics pages use these helpers for summaries, CSV
 // exports, risk views, and chart-ready datasets.
 // -----------------------------------------------------------------------------
@@ -21,7 +21,6 @@ import {
  */
 function buildOperationsReportData(projectRows = [], assignmentRows = [], taskRows = [], employeeRows = []) {
     const safeProjects = Array.isArray(projectRows) ? projectRows : [];
-    const safeAssignments = Array.isArray(assignmentRows) ? assignmentRows : [];
     const safeTasks = Array.isArray(taskRows) ? taskRows : [];
     const safeEmployees = Array.isArray(employeeRows) ? employeeRows : [];
 
@@ -35,7 +34,7 @@ function buildOperationsReportData(projectRows = [], assignmentRows = [], taskRo
     const completedProjects = safeProjects.filter((project) => project.status === "Completed").length;
     const completedTasks = safeTasks.filter((task) => task.status === "Completed").length;
     const openTasks = safeTasks.filter((task) => task.status !== "Completed").length;
-    const reviewQueue = safeTasks.filter((task) => task.status === "Review").length + safeAssignments.filter((assignment) => assignment.status === "Review").length;
+    const reviewQueue = safeTasks.filter((task) => task.status === "Review").length;
     const totalTrackedSeconds = safeTasks.reduce((total, task) => total + normalizeNumber(task.trackedSeconds), 0);
     const estimatedSeconds = safeTasks.reduce((total, task) => total + normalizeNumber(task.estimatedHours) * 3600, 0);
     const averageEfficiency = safeEmployees.length
@@ -44,11 +43,10 @@ function buildOperationsReportData(projectRows = [], assignmentRows = [], taskRo
 
     const projectReportRows = safeProjects.map((project) => {
         const projectTasks = safeTasks.filter((task) => task.project === project.name);
-        const projectAssignments = safeAssignments.filter((assignment) => assignment.project === project.name);
         const imageCount = normalizeNumber(project.images);
         const progress = formatPercent(normalizeNumber(project.progress));
         const projectCompletedImages = Math.round(imageCount * (progress / 100));
-        const assignedNames = [...new Set([...projectTasks, ...projectAssignments].map((row) => row.assignedTo).filter(Boolean))];
+        const assignedNames = [...new Set(projectTasks.map((row) => row.assignedTo).filter(Boolean))];
 
         return {
             id: project.id,
@@ -62,7 +60,7 @@ function buildOperationsReportData(projectRows = [], assignmentRows = [], taskRo
             status: project.status,
             dueStatus: getDueStatus(project),
             openTasks: projectTasks.filter((task) => task.status !== "Completed").length,
-            reviewItems: projectTasks.filter((task) => task.status === "Review").length + projectAssignments.filter((assignment) => assignment.status === "Review").length,
+            reviewItems: projectTasks.filter((task) => task.status === "Review").length,
             assignedTo: assignedNames.length ? assignedNames.join(", ") : "Unassigned",
         };
     });
@@ -89,7 +87,6 @@ function buildOperationsReportData(projectRows = [], assignmentRows = [], taskRo
 
     const employeeReportRows = safeEmployees.map((employee) => {
         const employeeTasks = safeTasks.filter((task) => task.assignedTo === employee.name);
-        const employeeAssignments = safeAssignments.filter((assignment) => assignment.assignedTo === employee.name);
         const employeeTrackedSeconds = employeeTasks.reduce((total, task) => total + normalizeNumber(task.trackedSeconds), 0);
 
         return {
@@ -98,27 +95,15 @@ function buildOperationsReportData(projectRows = [], assignmentRows = [], taskRo
             role: employee.role,
             status: employee.status,
             activeTasks: employee.activeTasks,
-            assignedTasks: employeeTasks.length + employeeAssignments.length,
-            completedTasks: employeeTasks.filter((task) => task.status === "Completed").length + employeeAssignments.filter((assignment) => assignment.status === "Completed").length,
-            reviewItems: employeeTasks.filter((task) => task.status === "Review").length + employeeAssignments.filter((assignment) => assignment.status === "Review").length,
+            assignedTasks: employeeTasks.length,
+            completedTasks: employeeTasks.filter((task) => task.status === "Completed").length,
+            reviewItems: employeeTasks.filter((task) => task.status === "Review").length,
             trackedTime: formatDuration(employeeTrackedSeconds),
             hoursToday: employee.hoursToday,
             efficiency: normalizeNumber(employee.efficiency),
-            availability: employee.availability,
         };
     });
 
-    const assignmentReportRows = safeAssignments.map((assignment) => ({
-        id: assignment.id,
-        project: assignment.project,
-        taskType: assignment.taskType,
-        assignedTo: assignment.assignedTo,
-        assignedDate: assignment.assignedDate,
-        dueDate: assignment.dueDate,
-        priority: assignment.priority,
-        status: assignment.status,
-        dueStatus: getDueStatus(assignment),
-    }));
 
     const taskStatusData = ["Completed", "Review", "In Progress", "Not Started"].map((status) => ({
         name: status,
@@ -127,7 +112,7 @@ function buildOperationsReportData(projectRows = [], assignmentRows = [], taskRo
 
     const priorityData = ["High", "Medium", "Low"].map((priority) => ({
         name: priority,
-        value: safeTasks.filter((task) => task.priority === priority).length + safeAssignments.filter((assignment) => assignment.priority === priority).length,
+        value: safeTasks.filter((task) => task.priority === priority).length,
     })).filter((item) => item.value > 0);
 
     const projectAnalyticsRows = safeProjects.map((project) => ({
@@ -170,7 +155,6 @@ function buildOperationsReportData(projectRows = [], assignmentRows = [], taskRo
         projectReportRows,
         timeReportRows,
         employeeReportRows,
-        assignmentReportRows,
         taskStatusData,
         priorityData,
         projectAnalyticsRows,
@@ -193,7 +177,7 @@ function downloadReportTable(filename, title, columns, rows) {
 }
 
 /**
- * Exports a complete operations report with project, assignment, time, and employee sections.
+ * Exports a complete operations report with project, task time, and employee sections.
  */
 function downloadFullOperationsReport(reportData) {
     const sections = [
@@ -201,11 +185,6 @@ function downloadFullOperationsReport(reportData) {
             title: "Project Delivery Report",
             columns: REPORT_PROJECT_COLUMNS,
             rows: reportData.projectReportRows,
-        },
-        {
-            title: "Assignment Status Report",
-            columns: REPORT_ASSIGNMENT_COLUMNS,
-            rows: reportData.assignmentReportRows,
         },
         {
             title: "Task Time Report",
@@ -264,17 +243,9 @@ const REPORT_EMPLOYEE_COLUMNS = [
     { label: "Status", key: "status", align: "center" },
 ];
 
-const REPORT_ASSIGNMENT_COLUMNS = [
-    { label: "Assignment", key: "id" },
-    { label: "Project", key: "project" },
-    { label: "Task Type", key: "taskType" },
-    { label: "Assigned To", key: "assignedTo" },
-    { label: "Assigned Date", key: "assignedDate" },
-    { label: "Due Date", key: "dueDate" },
-    { label: "Priority", key: "priority", align: "center" },
-    { label: "Status", key: "status", align: "center" },
-    { label: "Due Status", key: "dueStatus", align: "center" },
-];
+
+// Kept as an empty compatibility export while assignment-specific frontend screens/reports are removed.
+const REPORT_ASSIGNMENT_COLUMNS = [];
 
 const ANALYTICS_COLORS = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444", "#14b8a6"];
 

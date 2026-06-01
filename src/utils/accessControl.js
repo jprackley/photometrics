@@ -2,12 +2,12 @@
 // Role-Based Access Utilities
 // -----------------------------------------------------------------------------
 // Keeps manager/employee permission checks outside of page components so the UI
-// can consistently filter navigation items, projects, assignments, and tasks.
+// can consistently filter navigation items, projects and tasks.
 // Backend authorization should still protect production API routes.
 // -----------------------------------------------------------------------------
 
 import { navItems } from "../config/navigation";
-import { assignments, projects, taskItems } from "../data/mockData";
+import { projects, taskItems } from "../data/mockData";
 
 /**
  * Returns true when the current user should receive manager-level UI permissions.
@@ -32,7 +32,7 @@ function getAllowedNavItems(user) {
 }
 
 /**
- * Checks whether a task or assignment belongs to the current employee.
+ * Checks whether a task belongs to the current employee.
  */
 function isAssignedToUser(row, user) {
     if (canManageContent(user)) return true;
@@ -42,22 +42,18 @@ function isAssignedToUser(row, user) {
 }
 
 /**
- * Finds projects connected to the current user through assignments or tasks.
+ * Finds projects connected to the current user through tasks.
  */
-function getAssignedProjectNames(user, assignmentRows = assignments, taskRows = taskItems) {
+function getAssignedProjectNames(user, taskRows = taskItems) {
     if (canManageContent(user)) {
         return projects.map((project) => project.name);
     }
-
-    const fromAssignments = assignmentRows
-        .filter((assignment) => isAssignedToUser(assignment, user))
-        .map((assignment) => assignment.project);
 
     const fromTasks = taskRows
         .filter((task) => isAssignedToUser(task, user))
         .map((task) => task.project);
 
-    return [...new Set([...fromAssignments, ...fromTasks].filter(Boolean))];
+    return [...new Set(fromTasks.filter(Boolean))];
 }
 
 /**
@@ -66,7 +62,7 @@ function getAssignedProjectNames(user, assignmentRows = assignments, taskRows = 
 function filterRowsByAccess(rows, user, type) {
     if (canManageContent(user)) return rows;
 
-    if (type === "tasks" || type === "assignments") {
+    if (type === "tasks") {
         return rows.filter((row) => isAssignedToUser(row, user));
     }
 

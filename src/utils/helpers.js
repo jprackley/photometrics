@@ -175,19 +175,13 @@ function downloadTextFile(filename, contents, mimeType = "text/csv;charset=utf-8
 }
 
 /**
- * Exports project and assignment data into a combined CSV report.
+ * Exports project data into a CSV report.
  */
-function downloadProjectsReport(projectRows, assignmentRows) {
+function downloadProjectsReport(projectRows) {
     const projectCsv = createCsv(
         ["Project ID", "Project Name", "Client", "Start Date", "Due Date", "Images", "Progress", "Status"],
         projectRows,
         ["id", "name", "client", "startDate", "dueDate", "images", "progress", "status"]
-    );
-
-    const assignmentCsv = createCsv(
-        ["Assignment ID", "Project", "Task Type", "Assigned To", "Assigned Date", "Due Date", "Priority", "Status"],
-        assignmentRows,
-        ["id", "project", "taskType", "assignedTo", "assignedDate", "dueDate", "priority", "status"]
     );
 
     downloadTextFile(
