@@ -76,17 +76,26 @@ router.post(
 )
 
 //----------------------------------------------------------------------------------
-// READ Task:id
+// READ Time Entries
 //----------------------------------------------------------------------------------
-router.get('/:id',
-    verifyAuthentication,
-    [param('id').isUUID().withMessage('Invalid Task UUID.')],
+router.get('/time-entries',
     asyncHandler(async (req, res) => {
-        validationErrorHandler(req, 'READ Task:id - ');
-        const {id} = req.params;
-        const {rows} = await query('SELECT * FROM tasks WHERE task_id = $1', [id]);
+        validationErrorHandler(req, 'READ Task Time Entries - ');
+        const {rows} = await query(`
+            SELECT 
+                project_id,
+                task_id,
+                assigned_to,
+                start_time,
+                stop_time,
+                total_time,
+                estimated_hours,
+                completed_at
+            FROM tasks 
+            GROUP BY project_id, task_id, assigned_to
+        `);
 
-        res.status(C_HTTP.STATUS.OK).json({tasks: rows[0]});
+        res.status(C_HTTP.STATUS.OK).json({timeEntries: rows});
     })
 )
 router.get('/:id/time-entries',
@@ -112,24 +121,18 @@ router.get('/:id/time-entries',
     })
 )
 
-router.get('/time-entries',
+//----------------------------------------------------------------------------------
+// READ Task:id
+//----------------------------------------------------------------------------------
+router.get('/:id',
+    verifyAuthentication,
+    [param('id').isUUID().withMessage('Invalid Task UUID.')],
     asyncHandler(async (req, res) => {
-        validationErrorHandler(req, 'READ Task Time Entries - ');
-        const {rows} = await query(`
-            SELECT 
-                project_id,
-                task_id,
-                assigned_to,
-                start_time,
-                stop_time,
-                total_time,
-                estimated_hours,
-                completed_at
-            FROM tasks 
-            GROUP BY project_id, task_id, assigned_to
-        `);
+        validationErrorHandler(req, 'READ Task:id - ');
+        const {id} = req.params;
+        const {rows} = await query('SELECT * FROM tasks WHERE task_id = $1', [id]);
 
-        res.status(C_HTTP.STATUS.OK).json({timeEntries: rows});
+        res.status(C_HTTP.STATUS.OK).json({tasks: rows[0]});
     })
 )
 //----------------------------------------------------------------------------------
