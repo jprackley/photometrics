@@ -503,7 +503,7 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const visibleProjectProgressData = hasManagerAccess
         ? projectProgressRows
         : projectProgressRows.filter((row) => assignedProjectNames.includes(row[0]));
-    const assignedAssignments = assignedTasks.map((task) => ({
+    const assignedTaskRows = assignedTasks.map((task) => ({
         id: task.id,
         project: task.project,
         taskType: task.taskName || task.category,
@@ -541,11 +541,11 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const projectLabel = projectRows.length === 1 ? "project" : "projects";
     const openTaskLabel = openTaskCount === 1 ? "open task" : "open tasks";
     const reviewItemLabel = reviewQueueCount === 1 ? "review item" : "review items";
-    const assignmentLabel = assignedTasks.length === 1 ? "assignment" : "assignments";
+    const assignmentLabel = assignedTasks.length === 1 ? "assignment" : "tasks";
     const dashboardTitle = hasManagerAccess ? "Studio Overview" : "My Dashboard";
     const dashboardSubtitle = hasManagerAccess
         ? `${projectRows.length} ${projectLabel}, ${openTaskCount} ${openTaskLabel}, ${reviewQueueCount} ${reviewItemLabel}`
-        : `${assignedTasks.length} ${assignmentLabel} connected to ${employeeName || "your login"}`;
+        : `${assignedTasks.length} ${taskLabel} connected to ${employeeName || "your login"}`;
 
     return (
         <section className="min-h-full px-3 py-4 sm:px-5 lg:px-6 lg:py-6">
@@ -655,7 +655,7 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
                 ) : (
                     <EmployeeDashboardInsights
                         assignedTasks={assignedTasks}
-                        assignedAssignments={assignedAssignments}
+                        assignedTaskRows={assignedTaskRows}
                         onPageChange={onPageChange}
                     />
                 )}
@@ -673,8 +673,8 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                        <EmployeeAssignmentsPanel
-                            rows={assignedAssignments}
+                        <EmployeeTasksPanel
+                            rows={assignedTaskRows}
                             onViewAll={() => onPageChange?.("projects")}
                         />
                         <ProjectProgressPanel
@@ -777,7 +777,7 @@ function DashboardPanelHeader({ title, subtitle, count, actionLabel, onAction })
 /**
  * Employee-only dashboard section that avoids exposing other employees' productivity data.
  */
-function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [], onPageChange }) {
+function EmployeeDashboardInsights({ assignedTasks = [], assignedTaskRows = [], onPageChange }) {
     const openTasks = assignedTasks.filter((task) => task.status !== "Completed");
     const completedTasks = assignedTasks.filter((task) => task.status === "Completed");
     const reviewTasks = assignedTasks.filter((task) => task.category === "Quality Review");
@@ -802,7 +802,7 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [
                     <div>
                         <h2 className="text-xl font-bold sm:text-2xl">My Work Queue</h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            Your next assigned tasks only. Other employees' assignments are hidden.
+                            Your next assigned tasks only. Other employees' tasks are hidden.
                         </p>
                     </div>
                     <button
@@ -897,7 +897,7 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [
                     </div>
 
                     <div className="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800">
-                        You have {assignedAssignments.length} assignment records connected to your login.
+                        You have {assignedTaskRows.length} task records connected to your login.
                     </div>
                 </div>
             </div>
@@ -908,17 +908,17 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedAssignments = [
 /**
  * Shows the current employee's most recent assignment records.
  */
-function EmployeeAssignmentsPanel({ rows = [], onViewAll }) {
+function EmployeeTasksPanel({ rows = [], onViewAll }) {
     const visibleRows = rows.slice(0, 5);
 
     return (
         <section className="pm-surface rounded-lg border border-slate-200 bg-white">
             <div className="p-4 pb-3 sm:p-5 sm:pb-4">
                 <DashboardPanelHeader
-                    title="My Assignments"
+                    title="My Tasks"
                     subtitle="Current work connected to your login"
                     count={`${rows.length} records`}
-                    actionLabel={onViewAll ? "Assignments" : undefined}
+                    actionLabel={onViewAll ? "Tasks" : undefined}
                     onAction={onViewAll}
                 />
             </div>
@@ -928,7 +928,7 @@ function EmployeeAssignmentsPanel({ rows = [], onViewAll }) {
                     <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                         {[
-                            "Assignment",
+                            "Task",
                             "Project",
                             "Task Type",
                             "Due Date",
@@ -954,7 +954,7 @@ function EmployeeAssignmentsPanel({ rows = [], onViewAll }) {
                     )) : (
                         <tr>
                             <td className="px-3 py-8 text-center text-slate-500" colSpan={6}>
-                                No assignments are currently assigned to your login.
+                                No tasks are currently assigned to your login.
                             </td>
                         </tr>
                     )}
@@ -999,7 +999,7 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
                 {/* Table header */}
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                    {["Employee", "Assignment", "Updated", "Status"]
+                    {["Employee", "Task", "Updated", "Status"]
                         .map((h) => (
                             <th
                                 key={h}

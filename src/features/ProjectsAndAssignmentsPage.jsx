@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// Projects and Assignments Page.
+// Projects Page.
 // -----------------------------------------------------------------------------
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -51,7 +51,6 @@ import {
     getUseApiDataSetting,
     normalizeBackendUser,
     normalizeProjectRows,
-    normalizeAssignmentRows,
     normalizeEmployeeRows,
     projectToApi,
     saveUseApiDataSetting,
@@ -59,7 +58,6 @@ import {
     useApiPlaceholder,
 } from "../services/api";
 import {
-    assignments,
     employees,
     employeeActivity,
     findMockUserByEmail,
@@ -75,8 +73,6 @@ import {
     workflow,
 } from "../data/mockData";
 import {
-    ASSIGNMENTS_PAGE_SIZE,
-    ASSIGNMENT_COLUMNS,
     EMPLOYEES_PAGE_SIZE,
     EMPLOYEE_COLUMNS,
     PROJECTS_PAGE_SIZE,
@@ -107,7 +103,6 @@ import {
 } from "../utils/helpers";
 import {
     ANALYTICS_COLORS,
-    REPORT_ASSIGNMENT_COLUMNS,
     REPORT_EMPLOYEE_COLUMNS,
     REPORT_PROJECT_COLUMNS,
     REPORT_TIME_COLUMNS,
@@ -455,24 +450,20 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
     );
 }
 
-// Projects + assignments page
+// Projects page
 /**
  * Manager project and assignment management page with sorting, filtering, pagination, export, and modals.
  */
 function ProjectsAndAssignments() {
-    const localAssignmentFallback = getUseApiDataSetting() ? [] : assignments;
     const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projectsList, projects, {
         transformPayload: normalizeProjectRows,
-    });
-    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
-        transformPayload: normalizeAssignmentRows,
     });
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.usersList, employees, {
         transformPayload: normalizeEmployeeRows,
     });
 
     const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
-    const [assignmentRows, setAssignmentRows] = useState(() => localAssignmentFallback);
+    const assignmentRows = [];
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);
@@ -488,12 +479,6 @@ function ProjectsAndAssignments() {
             setProjectRows(loadedProjectRows);
         }
     }, [loadedProjectRows]);
-
-    useEffect(() => {
-        if (Array.isArray(loadedAssignmentRows)) {
-            setAssignmentRows(loadedAssignmentRows);
-        }
-    }, [loadedAssignmentRows]);
 
     const projectOptions = useMemo(
         () => getUniqueOptions(projectRows, "name", "All Projects"),
@@ -810,111 +795,6 @@ function ProjectsAndAssignments() {
                 />
             </div>
 
-            {/* Assignments table */}
-            <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
-                <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                    <h2 className="flex items-center gap-3 text-xl font-bold sm:text-2xl">
-                        <ListChecks size={26} /> Assignments
-                    </h2>
-
-                    <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
-                        <FilterSelect
-                            value={projectFilter}
-                            onChange={(value) => {
-                                setProjectFilter(value);
-                                setAssignmentPage(1);
-                            }}
-                            options={projectOptions}
-                        />
-                        <FilterSelect
-                            value={employeeFilter}
-                            onChange={(value) => {
-                                setEmployeeFilter(value);
-                                setAssignmentPage(1);
-                            }}
-                            options={employeeOptions}
-                        />
-                        <FilterSelect
-                            value={statusFilter}
-                            onChange={(value) => {
-                                setStatusFilter(value);
-                                setAssignmentPage(1);
-                            }}
-                            options={statusOptions}
-                        />
-
-                        <button
-                            type="button"
-                            onClick={openNewAssignmentModal}
-                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 sm:w-auto"
-                        >
-                            <Plus size={16} /> New Assignment
-                        </button>
-                    </div>
-                </div>
-
-                <table className="min-w-[900px] w-full border-collapse text-sm">
-                    <thead className="bg-slate-200 text-slate-800">
-                    <tr>
-                        {ASSIGNMENT_COLUMNS.map((column) => (
-                            <SortableHeader
-                                key={column.key}
-                                column={column}
-                                sortConfig={assignmentSort}
-                                onSort={handleAssignmentSort}
-                            />
-                        ))}
-                        <th className="border border-slate-300 px-4 py-3 text-center font-bold">Actions</th>
-                    </tr>
-                    </thead>
-
-                    <tbody>
-                    {visibleAssignmentRows.map((assignment) => (
-                        <tr key={assignment.backendId || assignment.id} className="hover:bg-slate-50">
-                            <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">
-                                {assignment.id}
-                            </td>
-                            <td className="border border-slate-300 px-4 py-3">{assignment.project}</td>
-                            <td className="border border-slate-300 px-4 py-3">{assignment.taskType}</td>
-                            <td className="border border-slate-300 px-4 py-3">{assignment.assignedTo}</td>
-                            <td className="border border-slate-300 px-4 py-3">{assignment.assignedDate}</td>
-                            <td className="border border-slate-300 px-4 py-3">{assignment.dueDate}</td>
-
-                            <td className="border border-slate-300 px-4 py-3 text-center">
-                                <PriorityBadge value={assignment.priority} />
-                            </td>
-
-                            <td className="border border-slate-300 px-4 py-3 text-center">
-                                <Badge value={assignment.status} />
-                            </td>
-
-                            <td className="border border-slate-300 px-4 py-3">
-                                <RowActions
-                                    onEdit={() => setAssignmentModal({ mode: "edit", data: assignment })}
-                                    onDelete={() => deleteAssignment(assignment)}
-                                />
-                            </td>
-                        </tr>
-                    ))}
-
-                    {visibleAssignmentRows.length === 0 && (
-                        <tr>
-                            <td colSpan={9} className="border border-slate-300 px-4 py-8 text-center text-slate-500">
-                                No assignments found for the selected filters.
-                            </td>
-                        </tr>
-                    )}
-                    </tbody>
-                </table>
-
-                <TableFooter
-                    text={getRangeText(assignmentPage, ASSIGNMENTS_PAGE_SIZE, sortedAssignmentRows.length, "assignments")}
-                    currentPage={assignmentPage}
-                    totalPages={assignmentTotalPages}
-                    onPageChange={setAssignmentPage}
-                />
-            </div>
-
             {projectModal && (
                 <Modal
                     title={projectModal.mode === "create" ? "New Project" : "Edit Project"}
@@ -927,42 +807,23 @@ function ProjectsAndAssignments() {
                     />
                 </Modal>
             )}
-
-            {assignmentModal && (
-                <Modal
-                    title={assignmentModal.mode === "create" ? "New Assignment" : "Edit Assignment"}
-                    onClose={() => setAssignmentModal(null)}
-                >
-                    <AssignmentForm
-                        initialAssignment={assignmentModal.data}
-                        projectOptions={projectSelectOptions}
-                        employeeOptions={employeeSelectOptions}
-                        onCancel={() => setAssignmentModal(null)}
-                        onSave={saveAssignment}
-                    />
-                </Modal>
-            )}
         </section>
     );
 }
 
 /**
- * Role-aware projects page that limits employee users to their assigned projects and assignments.
+ * Role-aware projects page that limits employee users to their assigned projects.
  */
 function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
-    const localAssignmentFallback = getUseApiDataSetting() ? [] : assignments;
     const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projectsList, projects, {
         transformPayload: normalizeProjectRows,
-    });
-    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.assignments, localAssignmentFallback, {
-        transformPayload: normalizeAssignmentRows,
     });
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.usersList, employees, {
         transformPayload: normalizeEmployeeRows,
     });
 
     const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
-    const [assignmentRows, setAssignmentRows] = useState(() => localAssignmentFallback);
+    const assignmentRows = [];
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);
@@ -980,20 +841,14 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
         }
     }, [loadedProjectRows]);
 
-    useEffect(() => {
-        if (Array.isArray(loadedAssignmentRows)) {
-            setAssignmentRows(loadedAssignmentRows);
-        }
-    }, [loadedAssignmentRows]);
-
     const accessibleProjectRows = useMemo(
         () => filterRowsByAccess(projectRows, currentUser, "projects"),
         [projectRows, currentUser]
     );
 
     const accessibleAssignmentRows = useMemo(
-        () => filterRowsByAccess(assignmentRows, currentUser, "assignments"),
-        [assignmentRows, currentUser]
+        () => [],
+        []
     );
 
     const projectOptions = useMemo(
@@ -1234,7 +1089,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
         <section className="space-y-5 bg-slate-50 p-3 sm:p-4 lg:p-6">
             {!hasManagerAccess && (
                 <div className="rounded-xl border border-violet-200 bg-violet-50 px-5 py-4 text-sm font-semibold text-violet-800">
-                    Employee view: only projects and assignments connected to your login are shown.
+                    Employee view: only projects connected to your login are shown.
                 </div>
             )}
 
@@ -1314,78 +1169,9 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                 <TableFooter text={getRangeText(projectPage, PROJECTS_PAGE_SIZE, sortedProjectRows.length, "projects")} currentPage={projectPage} totalPages={projectTotalPages} onPageChange={setProjectPage} />
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
-                <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                    <h2 className="flex items-center gap-3 text-xl font-bold sm:text-2xl">
-                        <ListChecks size={26} /> Assignments
-                    </h2>
-                    {hasManagerAccess && (
-                        <button
-                            type="button"
-                            onClick={openNewAssignmentModal}
-                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 sm:w-auto"
-                        >
-                            <Plus size={16} /> New Assignment
-                        </button>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 border-b border-slate-200 px-5 py-4 md:grid-cols-[auto_auto_auto] md:items-center">
-                    <FilterSelect value={projectFilter} onChange={(value) => { setProjectFilter(value); setAssignmentPage(1); }} options={projectOptions} />
-                    {hasManagerAccess && (
-                        <FilterSelect value={employeeFilter} onChange={(value) => { setEmployeeFilter(value); setAssignmentPage(1); }} options={employeeOptions} />
-                    )}
-                    <FilterSelect value={statusFilter} onChange={(value) => { setStatusFilter(value); setAssignmentPage(1); }} options={statusOptions} />
-                </div>
-
-                <table className="min-w-[900px] w-full border-collapse text-sm">
-                    <thead className="bg-slate-200 text-slate-800">
-                    <tr>
-                        {ASSIGNMENT_COLUMNS.map((column) => (
-                            <SortableHeader key={column.key} column={column} sortConfig={assignmentSort} onSort={handleAssignmentSort} />
-                        ))}
-                        {hasManagerAccess && <th className="border border-slate-300 px-4 py-3 text-center font-bold">Actions</th>}
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {visibleAssignmentRows.map((assignment) => (
-                        <tr key={assignment.backendId || assignment.id} className="hover:bg-slate-50">
-                            <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">{assignment.id}</td>
-                            <td className="border border-slate-300 px-4 py-3">{assignment.project}</td>
-                            <td className="border border-slate-300 px-4 py-3">{assignment.taskType}</td>
-                            <td className="border border-slate-300 px-4 py-3">{assignment.assignedTo}</td>
-                            <td className="border border-slate-300 px-4 py-3">{assignment.assignedDate}</td>
-                            <td className="border border-slate-300 px-4 py-3">{assignment.dueDate}</td>
-                            <td className="border border-slate-300 px-4 py-3 text-center"><PriorityBadge value={assignment.priority} /></td>
-                            <td className="border border-slate-300 px-4 py-3 text-center"><Badge value={assignment.status} /></td>
-                            {hasManagerAccess && (
-                                <td className="border border-slate-300 px-4 py-3">
-                                    <RowActions onEdit={() => setAssignmentModal({ mode: "edit", data: assignment })} onDelete={() => deleteAssignment(assignment)} />
-                                </td>
-                            )}
-                        </tr>
-                    ))}
-                    {visibleAssignmentRows.length === 0 && (
-                        <tr>
-                            <td colSpan={hasManagerAccess ? 9 : 8} className="border border-slate-300 px-4 py-8 text-center text-slate-500">
-                                No assignments found for the selected filters.
-                            </td>
-                        </tr>
-                    )}
-                    </tbody>
-                </table>
-                <TableFooter text={getRangeText(assignmentPage, ASSIGNMENTS_PAGE_SIZE, sortedAssignmentRows.length, "assignments")} currentPage={assignmentPage} totalPages={assignmentTotalPages} onPageChange={setAssignmentPage} />
-            </div>
-
             {projectModal && (
                 <Modal title={projectModal.mode === "create" ? "New Project" : "Edit Project"} onClose={() => setProjectModal(null)}>
                     <ProjectForm initialProject={projectModal.data} onCancel={() => setProjectModal(null)} onSave={saveProject} />
-                </Modal>
-            )}
-
-            {assignmentModal && (
-                <Modal title={assignmentModal.mode === "create" ? "New Assignment" : "Edit Assignment"} onClose={() => setAssignmentModal(null)}>
-                    <AssignmentForm initialAssignment={assignmentModal.data} projectOptions={projectSelectOptions} employeeOptions={employeeSelectOptions} onCancel={() => setAssignmentModal(null)} onSave={saveAssignment} />
                 </Modal>
             )}
         </section>

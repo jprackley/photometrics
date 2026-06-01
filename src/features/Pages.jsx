@@ -8,7 +8,6 @@
 export { LoginPage } from "./LoginPage";
 export { Dashboard } from "./DashboardPage";
 export { ReportsPage } from "./ReportsPage";
-export { AnalyticsPage } from "./AnalyticsPage";
 export {
     ProjectsAndAssignments,
     ProjectsAndAssignmentsSecure,
