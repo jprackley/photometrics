@@ -19,6 +19,9 @@ DROP TABLE IF EXISTS settings CASCADE;
 DROP TABLE IF EXISTS user_refresh_tokens CASCADE;
 
 DROP TABLE IF EXISTS project_delivery_report_snapshots CASCADE;
+DROP TABLE IF EXISTS task_time_report_snapshots CASCADE;
+DROP TABLE IF EXISTS employee_productivity_report_snapshots CASCADE;
+DROP TABLE IF EXISTS assignment_status_report_snapshots CASCADE;
 
 DROP TYPE IF EXISTS image_status CASCADE;
 DROP TYPE IF EXISTS task_priority CASCADE;
@@ -220,23 +223,24 @@ CREATE TABLE projects
 
 CREATE TABLE tasks
 (
-    task_id      UUID PRIMARY KEY       DEFAULT gen_random_uuid(),
-    project_id   UUID          NOT NULL,
-    task_name    VARCHAR(255)  NOT NULL,
-    category     task_category          DEFAULT 'Other',
-    priority     task_priority          DEFAULT 'Normal',
-    description  TEXT                   DEFAULT NULL,
-    status       task_status            DEFAULT 'Assigned',
-    progress     DECIMAL                DEFAULT 0,
-    start_time   TIMESTAMPTZ            DEFAULT null,
-    stop_time    TIMESTAMPTZ            DEFAULT null,
-    total_time   DECIMAL                DEFAULT 0,
-    due_time     TIMESTAMPTZ            DEFAULT NULL,
-    completed_at TIMESTAMPTZ            DEFAULT NULL,
-    assigned_by  UUID                   DEFAULT NULL REFERENCES users (user_id) ON DELETE SET NULL,
-    assigned_to  UUID                   DEFAULT NULL REFERENCES users (user_id) ON DELETE SET NULL,
-    created_at   TIMESTAMPTZ   NOT NULL DEFAULT now(),
-    updated_at   TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    task_id         UUID PRIMARY KEY      DEFAULT gen_random_uuid(),
+    project_id      UUID         NOT NULL,
+    task_name       VARCHAR(255) NOT NULL,
+    category        task_category         DEFAULT 'Other',
+    priority        task_priority         DEFAULT 'Normal',
+    description     TEXT                  DEFAULT NULL,
+    status          task_status           DEFAULT 'Assigned',
+    progress        DECIMAL               DEFAULT 0,
+    start_time      TIMESTAMPTZ           DEFAULT null,
+    stop_time       TIMESTAMPTZ           DEFAULT null,
+    total_time      DECIMAL               DEFAULT 0,
+    due_time        TIMESTAMPTZ           DEFAULT NULL,
+    estimated_hours DECIMAL               DEFAULT 0,
+    completed_at    TIMESTAMPTZ           DEFAULT NULL,
+    assigned_by     UUID                  DEFAULT NULL REFERENCES users (user_id) ON DELETE SET NULL,
+    assigned_to     UUID                  DEFAULT NULL REFERENCES users (user_id) ON DELETE SET NULL,
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     CONSTRAINT fk_tasks_project
         FOREIGN KEY (project_id)
             REFERENCES projects (project_id)
@@ -450,6 +454,47 @@ FROM projects p
                    ON p.project_id = ae.project_id
 
 ORDER BY due_date DESC;
+
+CREATE OR REPLACE VIEW task_time_report AS
+SELECT
+    t.task_id,
+    t.task_name,
+    p.project_name AS project,
+
+    CASE
+        WHEN u.account_role = 'Employee'
+            THEN CONCAT_WS(' ', u.first_name, u.last_name)
+        END AS assigned_employee,
+
+    t.due_time AS due_date,
+    t.priority,
+    t.estimated_hours,
+
+    COALESCE(t.total_time, 0) AS tracked_time,
+
+    CASE
+        WHEN t.estimated_hours IS NULL OR t.estimated_hours = 0 THEN NULL
+        ELSE ROUND(
+                (COALESCE(t.total_time, 0)::numeric / t.estimated_hours::numeric) * 100,
+                2
+             )
+        END AS utilization,
+
+    t.status,
+
+    CASE
+        WHEN t.status = 'Completed' THEN 'Completed'
+        WHEN t.due_time IS NULL THEN NULL
+        WHEN t.due_time < NOW() THEN 'Overdue'
+        WHEN t.due_time <= NOW() + INTERVAL '7 days' THEN 'Due Soon'
+        ELSE 'On Track'
+        END AS due_status
+
+FROM tasks t
+         LEFT JOIN projects p
+                   ON t.project_id = p.project_id
+         LEFT JOIN users u
+                   ON t.assigned_to = u.user_id;
 
 ---------------------------------------------------------------------------
 -- HARDCODED LOGIN USERS
