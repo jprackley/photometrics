@@ -92,7 +92,7 @@ router.get('/time-entries',
                 estimated_hours,
                 completed_at
             FROM tasks 
-            GROUP BY project_id, task_id, assigned_to
+            GROUP BY task_id, assigned_to
         `);
 
         res.status(C_HTTP.STATUS.OK).json({timeEntries: rows});
