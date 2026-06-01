@@ -74,6 +74,7 @@ import {
 } from "../data/mockData";
 import {
     EMPLOYEES_PAGE_SIZE,
+    ASSIGNMENTS_PAGE_SIZE,
     EMPLOYEE_COLUMNS,
     PROJECTS_PAGE_SIZE,
     PROJECT_COLUMNS,
