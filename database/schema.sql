@@ -245,11 +245,7 @@ CREATE TABLE tasks
     CONSTRAINT fk_tasks_project
         FOREIGN KEY (project_id)
             REFERENCES projects (project_id)
-            ON DELETE CASCADE,
-    CONSTRAINT chk_task_due_after_start
-        CHECK (due_time IS NULL
-            OR start_time IS NULL
-            OR due_time >= start_time)
+            ON DELETE CASCADE
 );
 
 CREATE TABLE images
