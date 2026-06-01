@@ -6,8 +6,10 @@ const {param} = require("express-validator");
 const {query} = require("../../db");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
+const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
 
 router.post('/:id/save',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid Project UUID')
     ],
@@ -55,6 +57,7 @@ router.post('/:id/save',
 )
 
 router.get('/history',
+    verifyAuthentication,
     asyncHandler(async (req, res) => {
 
         const result = await query(
@@ -70,6 +73,7 @@ router.get('/history',
 )
 
 router.get('/:id',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid Project UUID')
     ],
