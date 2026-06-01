@@ -11,7 +11,6 @@ import {
     LayoutDashboard,
     ListChecks,
     Settings,
-    Sparkles,
     Users,
 } from "lucide-react";
 
@@ -23,7 +22,6 @@ const navItems = [
     { label: "Employees", page: "employees", icon: Users },
     { label: "Tasks", page: "tasks", icon: ListChecks },
     { label: "Reports", page: "reports", icon: BarChart3 },
-    { label: "Analytics", page: "analytics", icon: Sparkles },
     { label: "Settings", page: "settings", icon: Settings },
 ];
 
