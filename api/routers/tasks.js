@@ -114,7 +114,7 @@ router.get('/:id/time-entries',
 
 router.get('/time-entries',
     asyncHandler(async (req, res) => {
-        validationErrorHandler(req, 'READ Task:id Time Entries - ');
+        validationErrorHandler(req, 'READ Task Time Entries - ');
         const {rows} = await query(`
             SELECT 
                 project_id,
