@@ -52,6 +52,7 @@ import {
     normalizeBackendUser,
     normalizeProjectRows,
     normalizeEmployeeRows,
+    normalizeTaskRows,
     projectToApi,
     saveUseApiDataSetting,
     unwrapApiPayload,
@@ -462,9 +463,12 @@ function ProjectsAndAssignments() {
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.usersList, employees, {
         transformPayload: normalizeEmployeeRows,
     });
+    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
+        transformPayload: normalizeTaskRows,
+    });
 
     const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
-    const assignmentRows = [];
+    const [assignmentRows, setAssignmentRows] = useState([]);
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);
@@ -476,10 +480,44 @@ function ProjectsAndAssignments() {
     const [assignmentModal, setAssignmentModal] = useState(null);
 
     useEffect(() => {
-        if (Array.isArray(loadedProjectRows)) {
-            setProjectRows(loadedProjectRows);
-        }
-    }, [loadedProjectRows]);
+        if (!Array.isArray(loadedProjectRows)) return;
+
+        const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
+        setProjectRows(loadedProjectRows.map((project) => {
+            const projectId = project.backendId || project.id;
+            const projectTasks = taskRows.filter((task) => String(task.projectId || "").toLowerCase() === String(projectId || "").toLowerCase() || task.project === project.name);
+            const completedTasks = projectTasks.filter((task) => String(task.status || "").toLowerCase() === "completed").length;
+            const progress = projectTasks.length ? Math.round((completedTasks / projectTasks.length) * 100) : project.progress;
+            return {
+                ...project,
+                progress,
+                status: project.status || (progress >= 100 ? "Completed" : progress > 0 ? "In Progress" : "To-Do"),
+            };
+        }));
+    }, [loadedProjectRows, loadedTaskRows]);
+
+    useEffect(() => {
+        const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
+        const employeeRows = Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [];
+        setAssignmentRows(taskRows.map((task) => {
+            const project = loadedProjectRows?.find?.((row) => String(row.backendId || row.id || "").toLowerCase() === String(task.projectId || "").toLowerCase());
+            const employee = employeeRows.find((row) => [row.userId, row.backendId, row.employeeId, row.id].some((id) => String(id || "").toLowerCase() === String(task.assignedToId || "").toLowerCase()));
+            return {
+                id: task.displayId || task.id,
+                backendId: task.backendId || task.id,
+                taskId: task.backendId || task.id,
+                projectId: task.projectId,
+                project: project?.name || task.project,
+                taskType: task.taskName || task.category || "Assigned Task",
+                assignedToId: task.assignedToId,
+                assignedTo: employee?.name || employee?.displayName || task.assignedTo,
+                assignedDate: task.assignedDate || task.startDate || "",
+                dueDate: task.dueDate,
+                priority: task.priority,
+                status: task.status,
+            };
+        }));
+    }, [loadedTaskRows, loadedEmployeeRows, loadedProjectRows]);
 
     const projectOptions = useMemo(
         () => getUniqueOptions(projectRows, "name", "All Projects"),
@@ -826,9 +864,12 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.usersList, employees, {
         transformPayload: normalizeEmployeeRows,
     });
+    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
+        transformPayload: normalizeTaskRows,
+    });
 
     const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
-    const assignmentRows = [];
+    const [assignmentRows, setAssignmentRows] = useState([]);
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);
@@ -841,10 +882,44 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
     const hasManagerAccess = canManageContent(currentUser);
 
     useEffect(() => {
-        if (Array.isArray(loadedProjectRows)) {
-            setProjectRows(loadedProjectRows);
-        }
-    }, [loadedProjectRows]);
+        if (!Array.isArray(loadedProjectRows)) return;
+
+        const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
+        setProjectRows(loadedProjectRows.map((project) => {
+            const projectId = project.backendId || project.id;
+            const projectTasks = taskRows.filter((task) => String(task.projectId || "").toLowerCase() === String(projectId || "").toLowerCase() || task.project === project.name);
+            const completedTasks = projectTasks.filter((task) => String(task.status || "").toLowerCase() === "completed").length;
+            const progress = projectTasks.length ? Math.round((completedTasks / projectTasks.length) * 100) : project.progress;
+            return {
+                ...project,
+                progress,
+                status: project.status || (progress >= 100 ? "Completed" : progress > 0 ? "In Progress" : "To-Do"),
+            };
+        }));
+    }, [loadedProjectRows, loadedTaskRows]);
+
+    useEffect(() => {
+        const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
+        const employeeRows = Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [];
+        setAssignmentRows(taskRows.map((task) => {
+            const project = loadedProjectRows?.find?.((row) => String(row.backendId || row.id || "").toLowerCase() === String(task.projectId || "").toLowerCase());
+            const employee = employeeRows.find((row) => [row.userId, row.backendId, row.employeeId, row.id].some((id) => String(id || "").toLowerCase() === String(task.assignedToId || "").toLowerCase()));
+            return {
+                id: task.displayId || task.id,
+                backendId: task.backendId || task.id,
+                taskId: task.backendId || task.id,
+                projectId: task.projectId,
+                project: project?.name || task.project,
+                taskType: task.taskName || task.category || "Assigned Task",
+                assignedToId: task.assignedToId,
+                assignedTo: employee?.name || employee?.displayName || task.assignedTo,
+                assignedDate: task.assignedDate || task.startDate || "",
+                dueDate: task.dueDate,
+                priority: task.priority,
+                status: task.status,
+            };
+        }));
+    }, [loadedTaskRows, loadedEmployeeRows, loadedProjectRows]);
 
     const accessibleProjectRows = useMemo(
         () => filterRowsByAccess(projectRows, currentUser, "projects"),

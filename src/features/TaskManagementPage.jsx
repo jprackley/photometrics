@@ -166,6 +166,24 @@ function buildEmployeeSelectOptions(employeeRows = [], taskRows = []) {
     return Array.from(optionMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function matchesBackendId(left, right) {
+    if (!left || !right) return false;
+    return String(left).toLowerCase() === String(right).toLowerCase();
+}
+
+function enrichTasksWithProjectAndEmployeeNames(taskRows = [], projectRows = [], employeeRows = []) {
+    return taskRows.map((task) => {
+        const project = projectRows.find((row) => matchesBackendId(row.backendId || row.id, task.projectId));
+        const employee = employeeRows.find((row) => [row.userId, row.backendId, row.employeeId, row.id].some((id) => matchesBackendId(id, task.assignedToId)));
+
+        return {
+            ...task,
+            project: project?.name || task.project,
+            assignedTo: employee?.name || employee?.displayName || employee?.email || task.assignedTo,
+        };
+    });
+}
+
 /**
  * Create/edit form for task records, including estimated and tracked time fields.
  */
@@ -938,9 +956,9 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
 
     useEffect(() => {
         if (Array.isArray(loadedTaskRows)) {
-            setTaskRows(loadedTaskRows.map(normalizeTaskForTimers));
+            setTaskRows(enrichTasksWithProjectAndEmployeeNames(loadedTaskRows.map(normalizeTaskForTimers), taskProjectRows, taskEmployeeRows));
         }
-    }, [loadedTaskRows]);
+    }, [loadedTaskRows, taskProjectRows, taskEmployeeRows]);
 
     useEffect(() => {
         const currentUserKey = getTimerUserKey(currentUser);

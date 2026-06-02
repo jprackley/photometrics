@@ -67,6 +67,7 @@ import {
     normalizeProjectRows,
     normalizeProductivityKpiRows,
     normalizeTaskRows,
+    normalizeEmployeeRows,
     normalizeWorkflowKpiRows,
     normalizeEmployeeActivityKpiRows,
     normalizeProjectProgressKpiRows,
@@ -424,6 +425,9 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const { data: liveProjectData } = useApiPlaceholder(API_ENDPOINTS.projectsList, projects, {
         transformPayload: normalizeProjectRows,
     });
+    const { data: liveEmployeeData } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
+        transformPayload: normalizeEmployeeRows,
+    });
     const showDashboardTips = appSettings?.appearance?.showDashboardTips !== false;
     const employeeName = currentUser?.employeeName || currentUser?.name;
     const employeeActivityRows = Array.isArray(employeeActivityData) ? employeeActivityData : [];
@@ -465,7 +469,20 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
             x: { grid: { display: false } },
         },
     }), []);
-    const taskRows = Array.isArray(liveTaskData) ? liveTaskData.map(normalizeTaskForTimers) : taskItems.map(normalizeTaskForTimers);
+    const projectRows = Array.isArray(liveProjectData) ? liveProjectData : projects;
+    const employeeRows = Array.isArray(liveEmployeeData) ? liveEmployeeData : employees;
+    const projectNameById = new Map(projectRows.flatMap((project) => [[project.id, project.name], [project.backendId, project.name]]));
+    const employeeNameById = new Map(employeeRows.flatMap((employee) => ([
+        [employee.id, employee.name],
+        [employee.userId, employee.name],
+        [employee.backendId, employee.name],
+        [employee.employeeId, employee.name],
+    ])));
+    const taskRows = (Array.isArray(liveTaskData) ? liveTaskData : taskItems).map((task) => normalizeTaskForTimers({
+        ...task,
+        project: projectNameById.get(task.projectId) || task.project,
+        assignedTo: employeeNameById.get(task.assignedToId) || task.assignedTo,
+    }));
     const workflowRows = useMemo(() => {
         const rowsFromTasks = buildWorkflowRowsFromTasks(taskRows);
         return rowsFromTasks.length > 0 ? rowsFromTasks : rawWorkflowRows;
@@ -490,19 +507,32 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
             tooltip: { callbacks: { label: (context) => `${context.label}: ${context.parsed}%` } },
         },
     }), []);
+    const taskActivityRows = taskRows.map((task) => ([
+        task.assignedTo || "Unassigned",
+        `${task.taskName || task.category || "Task"} - ${task.project || "Unassigned Project"}`,
+        task.lastStoppedAt || task.dueDate || "",
+        task.status || "To-Do",
+    ]));
+    const activitySourceRows = taskActivityRows.length >= employeeActivityRows.length ? taskActivityRows : employeeActivityRows;
     const visibleEmployeeActivityData = hasManagerAccess
-        ? employeeActivityRows
-        : employeeActivityRows.filter((row) => row[0] === employeeName);
-    const projectRows = Array.isArray(liveProjectData) ? liveProjectData : projects;
+        ? activitySourceRows
+        : activitySourceRows.filter((row) => row[0] === employeeName);
     const assignedTasks = taskRows.filter((task) => isAssignedToUser(task, currentUser));
     const assignedProjectNames = Array.from(new Set(
         assignedTasks
             .map((task) => task.project)
             .filter(Boolean)
     ));
+    const taskDerivedProjectProgressRows = projectRows.map((project) => {
+        const projectTasks = taskRows.filter((task) => task.project === project.name || String(task.projectId || "").toLowerCase() === String(project.backendId || project.id || "").toLowerCase());
+        const completedTasks = projectTasks.filter((task) => String(task.status || "").toLowerCase() === "completed").length;
+        const progress = projectTasks.length ? Math.round((completedTasks / projectTasks.length) * 100) : normalizeNumber(project.progress);
+        return [project.name, projectTasks.length, completedTasks, Math.max(0, projectTasks.length - completedTasks), progress, project.status, project.dueDate];
+    });
+    const projectProgressSourceRows = taskDerivedProjectProgressRows.length ? taskDerivedProjectProgressRows : projectProgressRows;
     const visibleProjectProgressData = hasManagerAccess
-        ? projectProgressRows
-        : projectProgressRows.filter((row) => assignedProjectNames.includes(row[0]));
+        ? projectProgressSourceRows
+        : projectProgressSourceRows.filter((row) => assignedProjectNames.includes(row[0]));
     const assignedTaskRows = assignedTasks.map((task) => ({
         id: task.id,
         project: task.project,

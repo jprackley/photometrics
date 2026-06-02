@@ -51,6 +51,7 @@ import {
     getUseApiDataSetting,
     normalizeBackendUser,
     normalizeEmployeeRows,
+    normalizeTaskRows,
     saveUseApiDataSetting,
     unwrapApiPayload,
     useApiPlaceholder,
@@ -375,6 +376,9 @@ function EmployeesPage({ globalSearch = "" }) {
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
         transformPayload: normalizeEmployeeRows,
     });
+    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
+        transformPayload: normalizeTaskRows,
+    });
 
     const [employeeRows, setEmployeeRows] = useState(employees);
     const [employeeSort, setEmployeeSort] = useState({ key: "name", direction: "asc" });
@@ -385,10 +389,50 @@ function EmployeesPage({ globalSearch = "" }) {
     const [employeeModal, setEmployeeModal] = useState(null);
 
     useEffect(() => {
-        if (Array.isArray(loadedEmployeeRows)) {
-            setEmployeeRows(loadedEmployeeRows);
-        }
-    }, [loadedEmployeeRows]);
+        if (!Array.isArray(loadedEmployeeRows)) return;
+
+        const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
+        const today = new Date().toDateString();
+        const isOpenStatus = (status) => !["completed", "complete", "cancelled"].includes(String(status || "").toLowerCase());
+
+        setEmployeeRows(loadedEmployeeRows.map((employee) => {
+            const employeeKeys = new Set([
+                employee.userId,
+                employee.backendId,
+                employee.employeeId,
+                employee.id,
+                employee.name,
+                employee.displayName,
+                employee.email,
+            ].filter(Boolean).map((value) => String(value).toLowerCase()));
+
+            const employeeTasks = taskRows.filter((task) => {
+                const taskKeys = [task.assignedToId, task.employeeId, task.assignedTo, task.assigned_to_email]
+                    .filter(Boolean)
+                    .map((value) => String(value).toLowerCase());
+                return taskKeys.some((value) => employeeKeys.has(value));
+            });
+
+            const openTasks = employeeTasks.filter((task) => isOpenStatus(task.status));
+            const completedToday = employeeTasks.filter((task) => {
+                if (String(task.status || "").toLowerCase() !== "completed") return false;
+                const dateValue = task.completedAt || task.completed_at || task.lastStoppedAt || task.dueDate;
+                const parsed = new Date(dateValue);
+                return !Number.isNaN(parsed.getTime()) && parsed.toDateString() === today;
+            }).length;
+            const trackedSeconds = employeeTasks.reduce((total, task) => total + Number(task.trackedSeconds || 0), 0);
+            const completedTasks = employeeTasks.filter((task) => String(task.status || "").toLowerCase() === "completed").length;
+
+            return {
+                ...employee,
+                currentTask: openTasks[0]?.taskName || employee.currentTask || "No active task",
+                activeTasks: openTasks.length,
+                completedToday: completedToday || employee.completedToday || 0,
+                hoursToday: trackedSeconds ? Number((trackedSeconds / 3600).toFixed(2)) : employee.hoursToday || 0,
+                efficiency: employeeTasks.length ? Math.round((completedTasks / employeeTasks.length) * 100) : employee.efficiency || 0,
+            };
+        }));
+    }, [loadedEmployeeRows, loadedTaskRows]);
 
     const roleOptions = useMemo(() => {
         const existingTitles = employeeRows
@@ -665,7 +709,7 @@ function EmployeesPage({ globalSearch = "" }) {
                             <tr key={employee.id} className="hover:bg-slate-50">
                                 <td className="border border-slate-300 px-4 py-3">
                                     <div className="font-semibold text-slate-900">{employee.name}</div>
-                                    <div className="text-xs text-slate-500">{employee.id}</div>
+                                    <div className="text-xs text-slate-500">{employee.displayId || employee.id}</div>
                                     <div className="text-xs text-slate-500">{employee.email}</div>
                                 </td>
                                 <td className="border border-slate-300 px-4 py-3 font-medium">{getEmployeeJobTitle(employee)}</td>
