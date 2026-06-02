@@ -181,6 +181,13 @@ function shortBackendId(value, fallback = "Unassigned") {
     return String(value).slice(0, 8);
 }
 
+function lastSixBackendId(value, prefix = "ID") {
+    if (!value) return "";
+    const compact = String(value).replace(/[^0-9a-z]/gi, "");
+    const source = compact || String(value);
+    return `${prefix}-${source.slice(-6).toUpperCase()}`;
+}
+
 function isSeedRecord(record) {
     const searchable = [
         record?.email,
@@ -420,7 +427,13 @@ function projectFromApi(project) {
     const { visibleNotes, imageMetrics } = splitProjectNotesAndImageMetrics(project.notes, project);
     const totalImages = imageMetrics.totalImages || toMetricNumber(project.image_count ?? project.images, 0);
     const completedImages = imageMetrics.completedImages || toMetricNumber(project.completed_images, 0);
-    const progress = project.progress ?? project.percent_complete ?? (totalImages > 0 ? Math.round((completedImages / totalImages) * 100) : 0);
+    const totalTasks = toMetricNumber(project.total_tasks ?? project.totalTasks, 0);
+    const completedTasks = toMetricNumber(project.completed_tasks ?? project.completedTasks, 0);
+    const progress = project.progress
+        ?? project.progress_percent
+        ?? project.percent_complete
+        ?? (totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : undefined)
+        ?? (totalImages > 0 ? Math.round((completedImages / totalImages) * 100) : 0);
 
     return {
         id: project.project_id || project.id,
@@ -428,8 +441,11 @@ function projectFromApi(project) {
         name: project.project_name || project.name || "Untitled Project",
         clientId: project.client_id || project.clientId || null,
         client: project.client_name
+            || project.customer_name
             || project.company_name
             || project.client
+            || project.clientName
+            || project.client_display_name
             || (project.client_id ? `Client ${String(project.client_id).slice(0, 8)}` : "Unassigned Client"),
         startDate: formatApiDateForDisplay(project.start_time || project.startDate),
         dueDate: formatApiDateForDisplay(project.due_time || project.dueDate),
@@ -453,16 +469,24 @@ function taskFromApi(task) {
     return {
         id: task.task_id || task.id,
         backendId: task.task_id || task.id,
+        displayId: lastSixBackendId(task.task_id || task.id, "TID"),
         taskName: task.task_name || task.taskName || "Untitled Task",
         projectId: task.project_id || task.projectId || null,
         project: task.project_name || task.project || (task.project_id ? `Project ${String(task.project_id).slice(0, 8)}` : "Unassigned Project"),
         category: task.category || "Other",
-        assignedToId: task.assigned_to || task.assignedToId || null,
-        assignedTo: task.assigned_to_name || task.assigned_to_email || task.assignedTo || (task.assigned_to ? `Employee ${String(task.assigned_to).slice(0, 8)}` : "Unassigned"),
+        assignedToId: task.assigned_to || task.assignedToId || task.employee_id || task.employeeId || null,
+        assignedTo: task.assigned_to_name
+            || task.employee_name
+            || task.display_name
+            || task.assigned_to_display_name
+            || task.assigned_to_email
+            || task.assignedTo
+            || (task.assigned_to ? `Employee ${String(task.assigned_to).slice(0, 8)}` : "Unassigned"),
         dueDate: formatApiDateForDisplay(task.due_time || task.dueDate),
         priority: task.priority || "Normal",
         estimatedHours: Number(task.estimated_hours ?? task.estimatedHours ?? 0) || 0,
-        trackedSeconds: Number(task.tracked_seconds ?? task.trackedSeconds ?? task.totalTrackedSeconds ?? 0) || 0,
+        trackedSeconds: Number(task.tracked_seconds ?? task.trackedSeconds ?? task.totalTrackedSeconds ?? 0)
+            || Math.round(toMetricNumber(task.total_time ?? task.totalTime ?? task.total_hours ?? task.totalHours, 0) * 3600),
         status: task.status || "To-Do",
         timerStartedAt: task.timerStartedAt || null,
         lastStoppedAt: formatApiDateForDisplay(task.last_stopped_at || task.lastStoppedAt),
@@ -477,6 +501,7 @@ function employeeFromApi(employee) {
         id: employee.user_id || employee.id,
         backendId: employee.user_id || employee.id,
         employeeId: employee.employee_id || employee.employeeId || employee.user_id || employee.id,
+        displayId: lastSixBackendId(employee.employee_id || employee.employeeId || employee.user_id || employee.id, "EMP"),
         userId: employee.user_id || employee.id,
         firstName: employee.first_name || "",
         middleName: employee.middle_name || "",
