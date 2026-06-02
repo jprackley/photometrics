@@ -357,6 +357,14 @@ function getTaskBackendId(task = {}) {
     return task.backendId || task.taskId || task.id;
 }
 
+function isTaskCompleted(task = {}) {
+    return String(task.status || "").toLowerCase() === "completed";
+}
+
+function isAlreadyCompletedTimerError(error) {
+    return Number(error?.status) === 400 && String(error?.message || "").toLowerCase().includes("already completed");
+}
+
 function getSavedTaskFromApiResponse(response, fallbackTask) {
     const savedTask = normalizeTaskRows(response)[0];
     return normalizeTaskForTimers(savedTask || fallbackTask);
@@ -364,19 +372,20 @@ function getSavedTaskFromApiResponse(response, fallbackTask) {
 
 function TimerControl({ task, currentTime, onStart, onStop, isAnotherTimerRunning }) {
     const isRunning = Boolean(task.timerStartedAt);
+    const isCompleted = isTaskCompleted(task);
 
     return (
         <div className="flex items-center justify-center gap-2">
             <button
                 type="button"
                 onClick={() => isRunning ? onStop(task) : onStart(task)}
-                disabled={!isRunning && isAnotherTimerRunning}
+                disabled={(!isRunning && isAnotherTimerRunning) || (!isRunning && isCompleted)}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
                     isRunning
                         ? "bg-red-600 text-white hover:bg-red-700"
                         : "bg-violet-600 text-white hover:bg-violet-700"
                 }`}
-                title={isRunning ? "Stop timer" : "Start timer"}
+                title={isCompleted && !isRunning ? "Completed tasks cannot be restarted" : isRunning ? "Stop timer" : "Start timer"}
             >
                 {isRunning ? <Square size={14} /> : <Play size={14} />}
                 {isRunning ? "Stop" : "Start"}
@@ -596,6 +605,11 @@ function TaskManagementPage() {
     };
 
     const startTimer = async (task) => {
+        if (isTaskCompleted(task)) {
+            window.alert("This task is already completed, so its timer cannot be restarted.");
+            return;
+        }
+
         const taskId = getTaskBackendId(task);
         if (activeTimerTaskId && activeTimerTaskId !== taskId) {
             window.alert("Please stop the active timer before starting another task.");
@@ -608,7 +622,9 @@ function TaskManagementPage() {
             try {
                 await apiPlaceholders.startTaskTimer(taskId, new Date(startedAt).toISOString());
             } catch (apiError) {
-                console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
+                console.warn("Start timer API request failed. Timer was not started locally to avoid desyncing from the backend.", apiError);
+                window.alert(apiError?.message?.includes("already completed") ? "This task is already completed, so its timer cannot be restarted." : "The timer could not be started. Please refresh the page and try again.");
+                return;
             }
         }
 
@@ -643,13 +659,17 @@ function TaskManagementPage() {
                     totalTrackedSeconds: nextTrackedSeconds,
                 });
             } catch (apiError) {
-                console.warn("Stop timer API endpoint is not connected yet. Stopping locally.", apiError);
+                console.warn("Stop timer API request failed.", apiError);
+                if (!isAlreadyCompletedTimerError(apiError)) {
+                    window.alert("The timer could not be stopped. Please refresh the page and try again.");
+                    return;
+                }
             }
         }
 
         setTaskRows((currentRows) => currentRows.map((row) => (
             getTaskBackendId(row) === getTaskBackendId(task)
-                ? { ...row, trackedSeconds: nextTrackedSeconds, timerStartedAt: null, lastStoppedAt }
+                ? { ...row, trackedSeconds: nextTrackedSeconds, timerStartedAt: null, lastStoppedAt, status: "Completed" }
                 : row
         )));
         setActiveTimerTaskId(null);
@@ -902,19 +922,20 @@ function TaskManagementPage() {
 function TimerControlSecure({ task, currentTime, currentUser, onStart, onStop, isAnotherTimerRunning, canUseTimer }) {
     const session = getTaskTimerSession(task, currentUser);
     const isRunning = Boolean(session.startedAt);
+    const isCompleted = isTaskCompleted(task);
 
     return (
         <div className="flex items-center justify-center gap-2">
             <button
                 type="button"
                 onClick={() => isRunning ? onStop(task) : onStart(task)}
-                disabled={!canUseTimer || (!isRunning && isAnotherTimerRunning)}
+                disabled={!canUseTimer || (!isRunning && isAnotherTimerRunning) || (!isRunning && isCompleted)}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
                     isRunning
                         ? "bg-red-600 text-white hover:bg-red-700"
                         : "bg-violet-600 text-white hover:bg-violet-700"
                 }`}
-                title={isRunning ? "Stop your timer" : "Start your timer"}
+                title={isCompleted && !isRunning ? "Completed tasks cannot be restarted" : isRunning ? "Stop your timer" : "Start your timer"}
             >
                 {isRunning ? <Square size={14} /> : <Play size={14} />}
                 {isRunning ? "Stop" : "Start"}
@@ -1132,6 +1153,11 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
     };
 
     const startTimer = async (task) => {
+        if (isTaskCompleted(task)) {
+            window.alert("This task is already completed, so its timer cannot be restarted.");
+            return;
+        }
+
         if (!hasManagerAccess && !isAssignedToUser(task, currentUser)) {
             window.alert("You can only start timers on tasks assigned to your login.");
             return;
@@ -1156,7 +1182,9 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             try {
                 await apiPlaceholders.startTaskTimer(taskId, new Date(startedAt).toISOString(), currentUser);
             } catch (apiError) {
-                console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
+                console.warn("Start timer API request failed. Timer was not started locally to avoid desyncing from the backend.", apiError);
+                window.alert(apiError?.message?.includes("already completed") ? "This task is already completed, so its timer cannot be restarted." : "The timer could not be started. Please refresh the page and try again.");
+                return;
             }
         }
 
@@ -1207,13 +1235,18 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                     userTrackedSeconds: nextTrackedSeconds,
                 });
             } catch (apiError) {
-                console.warn("Stop timer API endpoint is not connected yet. Stopping locally.", apiError);
+                console.warn("Stop timer API request failed.", apiError);
+                if (!isAlreadyCompletedTimerError(apiError)) {
+                    window.alert("The timer could not be stopped. Please refresh the page and try again.");
+                    return;
+                }
             }
         }
 
         setTaskRows((currentRows) => currentRows.map((row) => getTaskBackendId(row) === getTaskBackendId(task)
             ? {
                 ...row,
+                status: "Completed",
                 lastStoppedAt,
                 timersByUser: {
                     ...(row.timersByUser || {}),
