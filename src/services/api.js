@@ -1716,6 +1716,7 @@ const apiPlaceholders = {
     }),
     startTaskTimer: (taskId, startedAt, user) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}/timer/start`, {
         method: "PATCH",
+        suppressApiError: true,
         body: JSON.stringify({
             startedAt,
             userId: user?.id,
@@ -1725,6 +1726,7 @@ const apiPlaceholders = {
     }),
     stopTaskTimer: (taskId, timeEntry) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}/timer/stop`, {
         method: "PATCH",
+        suppressApiError: true,
         body: JSON.stringify(timeEntry),
     }),
 };
