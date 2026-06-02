@@ -605,7 +605,11 @@ function ProjectsAndAssignments() {
                 const savedProject = projectModal.mode === "create"
                     ? await apiPlaceholders.createProject(projectToApi(cleanProject))
                     : await apiPlaceholders.updateProject(cleanProject.backendId || cleanProject.id, projectToApi(cleanProject));
-                cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
+                cleanProject = { ...cleanProject, ...(normalizeProjectRows([savedProject])[0] || {}) };
+
+                if (projectModal.mode === "create") {
+                    await apiPlaceholders.createImagesForProjectMetrics(cleanProject);
+                }
             } catch (apiError) {
                 console.warn("Project API request failed. The project list was not changed.", apiError);
                 window.alert(apiError?.message || "Project could not be saved. Please try again.");
@@ -994,7 +998,11 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                 const savedProject = projectModal.mode === "create"
                     ? await apiPlaceholders.createProject(projectToApi(cleanProject))
                     : await apiPlaceholders.updateProject(cleanProject.backendId || cleanProject.id, projectToApi(cleanProject));
-                cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
+                cleanProject = { ...cleanProject, ...(normalizeProjectRows([savedProject])[0] || {}) };
+
+                if (projectModal.mode === "create") {
+                    await apiPlaceholders.createImagesForProjectMetrics(cleanProject);
+                }
             } catch (apiError) {
                 console.warn("Project API request failed. The project list was not changed.", apiError);
                 window.alert(apiError?.message || "Project could not be saved. Please try again.");
