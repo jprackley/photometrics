@@ -683,6 +683,67 @@ function projectToApi(project) {
     return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""));
 }
 
+
+function getProjectImageCreationBatches(project = {}) {
+    const projectId = project.backendId || project.project_id || project.id;
+    if (!isUuid(projectId)) return [];
+
+    const statusCounts = [
+        { status: "Pending", count: project.pendingImages ?? project.pending_images },
+        { status: "In Progress", count: project.inProgressImages ?? project.in_progress_images },
+        { status: "Completed", count: project.completedImages ?? project.completed_images },
+        // The backend image status enum does not currently include Rejected.
+        // Use Cancelled so rejected/manual counts are still represented as image rows.
+        { status: "Cancelled", count: project.rejectedImages ?? project.rejected_images },
+    ];
+
+    return statusCounts
+        .map(({ status, count }) => ({ status, count: Math.max(0, Math.trunc(toMetricNumber(count, 0))) }))
+        .filter(({ count }) => count > 0)
+        .map(({ status, count }) => ({ project_id: projectId, projectId, status, count, number: count }));
+}
+
+async function createImagesForProjectMetrics(project = {}) {
+    const batches = getProjectImageCreationBatches(project);
+    if (batches.length === 0) return [];
+
+    const createdImages = [];
+
+    for (const batch of batches) {
+        try {
+            // Preferred MVP bulk shape requested by backend: number/count, project id, and status.
+            const bulkResponse = await apiRequest(`${API_ENDPOINTS.images}/bulk`, {
+                method: "POST",
+                body: JSON.stringify(batch),
+                suppressApiError: true,
+            });
+            createdImages.push(...toArrayPayload(bulkResponse));
+            continue;
+        } catch (bulkError) {
+            if (![404, 405].includes(Number(bulkError.status))) {
+                throw bulkError;
+            }
+        }
+
+        // Backward-compatible fallback for the current image route.
+        for (let imageIndex = 1; imageIndex <= batch.count; imageIndex += 1) {
+            const singleResponse = await apiRequest(API_ENDPOINTS.images, {
+                method: "POST",
+                body: JSON.stringify({
+                    project_id: batch.project_id,
+                    status: batch.status,
+                    name: `${batch.status} Image ${imageIndex}`,
+                    completed: batch.status === "Completed",
+                    completed_at: batch.status === "Completed" ? new Date().toISOString() : undefined,
+                }),
+            });
+            createdImages.push(...toArrayPayload(singleResponse));
+        }
+    }
+
+    return createdImages;
+}
+
 function employeeToApiPayload(employee = {}) {
     const splitName = splitFullName(employee.name || employee.displayName || employee.display_name || "");
     const firstName = String(employee.firstName || employee.first_name || splitName.firstName || "").trim();
@@ -868,8 +929,10 @@ const API_ENDPOINTS = {
     // Expected fields:
     // employeeId, taskId, startTime, endTime, duration
     //-----------------------------------------------------------------------
-    timeEntries: "/time-entries",
-    timeEntriesList: "/time-entries?all=true",
+    // New backend routes: all time entries live under /tasks/time-entries,
+    // and task-specific entries under /tasks/:task_id/time-entries.
+    timeEntries: "/tasks/time-entries",
+    timeEntriesList: "/tasks/time-entries",
 
     //-----------------------------------------------------------------------
     // Generated reports endpoint.
@@ -1516,6 +1579,8 @@ const apiPlaceholders = {
     deleteProject: (projectId) => apiRequest(`${API_ENDPOINTS.projects}/${projectId}`, {
         method: "DELETE",
     }),
+    createImagesForProjectMetrics,
+    getTaskTimeEntries: (taskId) => apiRequest(`${API_ENDPOINTS.tasks}/${encodeURIComponent(taskId)}/time-entries`),
     createAssignment: (assignment) => apiPlaceholders.createTask(assignment),
     updateAssignment: (assignmentId, assignment) => apiPlaceholders.updateTask(assignmentId, assignment),
     deleteAssignment: (assignmentId) => apiPlaceholders.deleteTask(assignmentId),
@@ -1669,6 +1734,7 @@ export {
     projectToApi,
     employeeToApiPayload,
     taskToApiPayload,
+    createImagesForProjectMetrics,
     unwrapApiPayload,
     normalizeDashboardKpis,
     normalizeBackendUser,
