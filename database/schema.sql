@@ -344,16 +344,16 @@ CREATE TABLE task_time_report_snapshots
 CREATE TABLE employee_productivity_report_snapshots
 (
     report_snapshot_id UUID PRIMARY KEY     DEFAULT gen_random_uuid(),
-    --employee_name,
-    --role,
-    --assigned_items,
-    --completed_items,
-    --review_items,
-    --tracked_time,
+    user_id            UUID,
+    employee_name      TEXT,
+    role               TEXT,
+    assigned_items     INTEGER,
+    completed_items    INTEGER,
+    review_items       INTEGER,
+    tracked_time       DECIMAL,
     --hours_today,
-    --efficiency,
-    --availability,
-    --status,
+    efficiency         DECIMAL,
+    status             TEXT,
 
     generated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
