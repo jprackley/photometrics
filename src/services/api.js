@@ -181,6 +181,13 @@ function shortBackendId(value, fallback = "Unassigned") {
     return String(value).slice(0, 8);
 }
 
+function lastSixBackendId(value, prefix = "ID") {
+    if (!value) return "";
+    const compact = String(value).replace(/[^0-9a-z]/gi, "");
+    const source = compact || String(value);
+    return `${prefix}-${source.slice(-6).toUpperCase()}`;
+}
+
 function isSeedRecord(record) {
     const searchable = [
         record?.email,
@@ -420,7 +427,13 @@ function projectFromApi(project) {
     const { visibleNotes, imageMetrics } = splitProjectNotesAndImageMetrics(project.notes, project);
     const totalImages = imageMetrics.totalImages || toMetricNumber(project.image_count ?? project.images, 0);
     const completedImages = imageMetrics.completedImages || toMetricNumber(project.completed_images, 0);
-    const progress = project.progress ?? project.percent_complete ?? (totalImages > 0 ? Math.round((completedImages / totalImages) * 100) : 0);
+    const totalTasks = toMetricNumber(project.total_tasks ?? project.totalTasks, 0);
+    const completedTasks = toMetricNumber(project.completed_tasks ?? project.completedTasks, 0);
+    const progress = project.progress
+        ?? project.progress_percent
+        ?? project.percent_complete
+        ?? (totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : undefined)
+        ?? (totalImages > 0 ? Math.round((completedImages / totalImages) * 100) : 0);
 
     return {
         id: project.project_id || project.id,
@@ -428,8 +441,11 @@ function projectFromApi(project) {
         name: project.project_name || project.name || "Untitled Project",
         clientId: project.client_id || project.clientId || null,
         client: project.client_name
+            || project.customer_name
             || project.company_name
             || project.client
+            || project.clientName
+            || project.client_display_name
             || (project.client_id ? `Client ${String(project.client_id).slice(0, 8)}` : "Unassigned Client"),
         startDate: formatApiDateForDisplay(project.start_time || project.startDate),
         dueDate: formatApiDateForDisplay(project.due_time || project.dueDate),
@@ -453,16 +469,24 @@ function taskFromApi(task) {
     return {
         id: task.task_id || task.id,
         backendId: task.task_id || task.id,
+        displayId: lastSixBackendId(task.task_id || task.id, "TID"),
         taskName: task.task_name || task.taskName || "Untitled Task",
         projectId: task.project_id || task.projectId || null,
         project: task.project_name || task.project || (task.project_id ? `Project ${String(task.project_id).slice(0, 8)}` : "Unassigned Project"),
         category: task.category || "Other",
-        assignedToId: task.assigned_to || task.assignedToId || null,
-        assignedTo: task.assigned_to_name || task.assigned_to_email || task.assignedTo || (task.assigned_to ? `Employee ${String(task.assigned_to).slice(0, 8)}` : "Unassigned"),
+        assignedToId: task.assigned_to || task.assignedToId || task.employee_id || task.employeeId || null,
+        assignedTo: task.assigned_to_name
+            || task.employee_name
+            || task.display_name
+            || task.assigned_to_display_name
+            || task.assigned_to_email
+            || task.assignedTo
+            || (task.assigned_to ? `Employee ${String(task.assigned_to).slice(0, 8)}` : "Unassigned"),
         dueDate: formatApiDateForDisplay(task.due_time || task.dueDate),
         priority: task.priority || "Normal",
         estimatedHours: Number(task.estimated_hours ?? task.estimatedHours ?? 0) || 0,
-        trackedSeconds: Number(task.tracked_seconds ?? task.trackedSeconds ?? task.totalTrackedSeconds ?? 0) || 0,
+        trackedSeconds: Number(task.tracked_seconds ?? task.trackedSeconds ?? task.totalTrackedSeconds ?? 0)
+            || Math.round(toMetricNumber(task.total_time ?? task.totalTime ?? task.total_hours ?? task.totalHours, 0) * 3600),
         status: task.status || "To-Do",
         timerStartedAt: task.timerStartedAt || null,
         lastStoppedAt: formatApiDateForDisplay(task.last_stopped_at || task.lastStoppedAt),
@@ -477,6 +501,7 @@ function employeeFromApi(employee) {
         id: employee.user_id || employee.id,
         backendId: employee.user_id || employee.id,
         employeeId: employee.employee_id || employee.employeeId || employee.user_id || employee.id,
+        displayId: lastSixBackendId(employee.employee_id || employee.employeeId || employee.user_id || employee.id, "EMP"),
         userId: employee.user_id || employee.id,
         firstName: employee.first_name || "",
         middleName: employee.middle_name || "",
@@ -683,6 +708,67 @@ function projectToApi(project) {
     return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""));
 }
 
+
+function getProjectImageCreationBatches(project = {}) {
+    const projectId = project.backendId || project.project_id || project.id;
+    if (!isUuid(projectId)) return [];
+
+    const statusCounts = [
+        { status: "Pending", count: project.pendingImages ?? project.pending_images },
+        { status: "In Progress", count: project.inProgressImages ?? project.in_progress_images },
+        { status: "Completed", count: project.completedImages ?? project.completed_images },
+        // The backend image status enum does not currently include Rejected.
+        // Use Cancelled so rejected/manual counts are still represented as image rows.
+        { status: "Cancelled", count: project.rejectedImages ?? project.rejected_images },
+    ];
+
+    return statusCounts
+        .map(({ status, count }) => ({ status, count: Math.max(0, Math.trunc(toMetricNumber(count, 0))) }))
+        .filter(({ count }) => count > 0)
+        .map(({ status, count }) => ({ project_id: projectId, projectId, status, count, number: count }));
+}
+
+async function createImagesForProjectMetrics(project = {}) {
+    const batches = getProjectImageCreationBatches(project);
+    if (batches.length === 0) return [];
+
+    const createdImages = [];
+
+    for (const batch of batches) {
+        try {
+            // Preferred MVP bulk shape requested by backend: number/count, project id, and status.
+            const bulkResponse = await apiRequest(`${API_ENDPOINTS.images}/bulk`, {
+                method: "POST",
+                body: JSON.stringify(batch),
+                suppressApiError: true,
+            });
+            createdImages.push(...toArrayPayload(bulkResponse));
+            continue;
+        } catch (bulkError) {
+            if (![404, 405].includes(Number(bulkError.status))) {
+                throw bulkError;
+            }
+        }
+
+        // Backward-compatible fallback for the current image route.
+        for (let imageIndex = 1; imageIndex <= batch.count; imageIndex += 1) {
+            const singleResponse = await apiRequest(API_ENDPOINTS.images, {
+                method: "POST",
+                body: JSON.stringify({
+                    project_id: batch.project_id,
+                    status: batch.status,
+                    name: `${batch.status} Image ${imageIndex}`,
+                    completed: batch.status === "Completed",
+                    completed_at: batch.status === "Completed" ? new Date().toISOString() : undefined,
+                }),
+            });
+            createdImages.push(...toArrayPayload(singleResponse));
+        }
+    }
+
+    return createdImages;
+}
+
 function employeeToApiPayload(employee = {}) {
     const splitName = splitFullName(employee.name || employee.displayName || employee.display_name || "");
     const firstName = String(employee.firstName || employee.first_name || splitName.firstName || "").trim();
@@ -868,8 +954,10 @@ const API_ENDPOINTS = {
     // Expected fields:
     // employeeId, taskId, startTime, endTime, duration
     //-----------------------------------------------------------------------
-    timeEntries: "/time-entries",
-    timeEntriesList: "/time-entries?all=true",
+    // New backend routes: all time entries live under /tasks/time-entries,
+    // and task-specific entries under /tasks/:task_id/time-entries.
+    timeEntries: "/tasks/time-entries",
+    timeEntriesList: "/tasks/time-entries",
 
     //-----------------------------------------------------------------------
     // Generated reports endpoint.
@@ -1516,6 +1604,8 @@ const apiPlaceholders = {
     deleteProject: (projectId) => apiRequest(`${API_ENDPOINTS.projects}/${projectId}`, {
         method: "DELETE",
     }),
+    createImagesForProjectMetrics,
+    getTaskTimeEntries: (taskId) => apiRequest(`${API_ENDPOINTS.tasks}/${encodeURIComponent(taskId)}/time-entries`),
     createAssignment: (assignment) => apiPlaceholders.createTask(assignment),
     updateAssignment: (assignmentId, assignment) => apiPlaceholders.updateTask(assignmentId, assignment),
     deleteAssignment: (assignmentId) => apiPlaceholders.deleteTask(assignmentId),
@@ -1626,6 +1716,7 @@ const apiPlaceholders = {
     }),
     startTaskTimer: (taskId, startedAt, user) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}/timer/start`, {
         method: "PATCH",
+        suppressApiError: true,
         body: JSON.stringify({
             startedAt,
             userId: user?.id,
@@ -1635,6 +1726,7 @@ const apiPlaceholders = {
     }),
     stopTaskTimer: (taskId, timeEntry) => apiRequest(`${API_ENDPOINTS.tasks}/${taskId}/timer/stop`, {
         method: "PATCH",
+        suppressApiError: true,
         body: JSON.stringify(timeEntry),
     }),
 };
@@ -1669,6 +1761,7 @@ export {
     projectToApi,
     employeeToApiPayload,
     taskToApiPayload,
+    createImagesForProjectMetrics,
     unwrapApiPayload,
     normalizeDashboardKpis,
     normalizeBackendUser,
