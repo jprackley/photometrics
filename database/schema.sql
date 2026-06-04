@@ -535,16 +535,8 @@ SELECT DISTINCT u.user_id,
        --hours_today,
 
        ROUND( COALESCE(
-                  NULLIF(SUM(t.estimated_hours)::numeric, 0) /
-                      SUM(
-                        CASE
-                        WHEN t.start_time IS NOT NULL
-                            AND t.stop_time IS NULL
-                            AND COALESCE(t.total_time, 0) = 0
-                            THEN EXTRACT(EPOCH FROM (NOW() - t.start_time)) / 3600 --Hours
-                        ELSE COALESCE(t.total_time, 0)
-                        END
-                      ) * 100,
+                  SUM(t.estimated_hours)::numeric /
+                      NULLIF(SUM( COALESCE(t.total_time, 0) ), 0) * 100,
        0 ), 2 ) AS efficiency,
 
        u.status
