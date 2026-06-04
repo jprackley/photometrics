@@ -270,7 +270,7 @@ CREATE TABLE images
             ON DELETE SET NULL
 );
 
-CREATE TABLE time_entries
+/*CREATE TABLE time_entries
 (
     time_entry_id UUID PRIMARY KEY     DEFAULT gen_random_uuid(),
     task_id       UUID        NOT NULL,
@@ -289,7 +289,7 @@ CREATE TABLE time_entries
             ON DELETE CASCADE,
     CONSTRAINT chk_time_entry_end_after_start
         CHECK (end_time IS NULL OR end_time >= start_time)
-);
+);*/
 ---------------------------------------------------------------------------
 -- Report Snapshots
 ---------------------------------------------------------------------------
@@ -361,6 +361,17 @@ CREATE TABLE employee_productivity_report_snapshots
 CREATE TABLE assignment_status_report_snapshots
 (
     report_snapshot_id UUID PRIMARY KEY     DEFAULT gen_random_uuid(),
+
+    task_id            UUID        NOT NULL,
+    project            TEXT        NOT NULL,
+    category           TEXT        NOT NULL,
+    assigned_employee  TEXT        NOT NULL,
+    assigned_date      TIMESTAMPTZ NOT NULL,
+    due_date           TIMESTAMPTZ NOT NULL,
+    priority           TEXT        NOT NULL,
+    status             TEXT        NOT NULL,
+    due_status         TEXT        NOT NULL,
+
     generated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -546,18 +557,28 @@ FROM users u
 WHERE u.account_role = 'Employee'
 GROUP BY user_id;
 
---CREATE OR REPLACE assignment_status_report AS
---                  SELECT
---                      task_id,
---                      project,
---                      category,
---                      assigned_employee,
---                      assigned_date,
---                    due_date,
---                      priority,
---                      status,
---                      due_status
---                  FROM;
+CREATE OR REPLACE VIEW
+    assignment_status_report AS
+SELECT t.task_id,
+       p.project_name                         AS project,
+       t.category,
+       CONCAT(u.first_name, ' ', u.last_name) AS assigned_employee,
+       t.created_at                           AS assigned_date,
+       t.due_time                             AS due_date,
+       t.priority,
+       t.status,
+       CASE
+           WHEN t.status = 'Completed' THEN 'Completed'
+           WHEN t.due_time IS NULL THEN NULL
+           WHEN t.due_time < NOW() THEN 'Overdue'
+           WHEN t.due_time <= NOW() + INTERVAL '7 days' THEN 'Due Soon'
+           ELSE 'On Track'
+           END                                AS due_status
+FROM tasks t
+         LEFT JOIN projects p
+                   ON t.project_id = p.project_id
+         LEFT JOIN users u
+                   ON t.assigned_to = u.user_id;
 
 ---------------------------------------------------------------------------
 -- Views

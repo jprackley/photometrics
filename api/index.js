@@ -29,7 +29,7 @@ app.use('/api/clients', require('./routers/clients'));
 app.use('/api/projects', require('./routers/projects'));
 app.use('/api/tasks', require('./routers/tasks'));
 app.use('/api/images', require('./routers/images'));
-app.use('/api/time-entries', require('./routers/time.entries'));
+//app.use('/api/time-entries', require('./routers/time.entries'));
 app.use('/api/users', require('./routers/users'));
 app.use('/api/employees', require('./routers/read-only/employees'));
 
@@ -51,6 +51,7 @@ app.use('/api/dashboard/project-progress', require('./routers/dashboard/projectP
 app.use('/api/reports/project_delivery', require('./routers/reports/project_delivery_report'));
 app.use('/api/reports/task_time', require('./routers/reports/task_time_report'));
 app.use('/api/reports/employee_productivity', require('./routers/reports/employee_productivity_report'));
+app.use('/api/reports/assignment_status', require('./routers/reports/assignment_status_report'));
 
 //app.use('/api/auth/refresh', require('./routers/auth/refresh'));
 
