@@ -6,12 +6,16 @@ const {param} = require("express-validator");
 const {query} = require("../../db");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
+const {validationErrorHandler} = require("../../handlers/expressHandlers");
+const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
 
 router.post('/:id/save',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid Task UUID')
     ],
     asyncHandler(async (req, res) => {
+        validationErrorHandler(req, 'POST Assignment Status Report -')
 
         const {id} = req.params;
         const result = await query(
@@ -42,11 +46,15 @@ router.post('/:id/save',
             `
             , [id])
 
+        if (result.rows.length === 0) {
+            return res.status(C_HTTP.STATUS.NOT_FOUND).json({message: 'No report found for the task'});
+        }
         res.status(C_HTTP.STATUS.OK).json({report: result.rows[0]});
     })
 )
 
 router.get('/history',
+    verifyAuthentication,
     asyncHandler(async (req, res) => {
 
         const result = await query(
@@ -62,10 +70,12 @@ router.get('/history',
 )
 
 router.get('/:id',
+    verifyAuthentication,
     [
         param('id').isUUID().withMessage('Invalid Task UUID')
     ],
     asyncHandler(async (req, res) => {
+        validationErrorHandler(req, 'GET Assignment Status Report -')
 
         const {id} = req.params;
 
@@ -77,6 +87,9 @@ router.get('/:id',
 
         const result = await query(sql, [id]);
 
+        if (result.rows.length === 0) {
+            return res.status(C_HTTP.STATUS.NOT_FOUND).json({message: 'No report found for the task'});
+        }
         res.status(C_HTTP.STATUS.OK).json({report: result.rows[0]});
     })
 )

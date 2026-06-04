@@ -7,6 +7,7 @@ const {query} = require("../../db");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
 const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
+const {validationErrorHandler} = require("../../handlers/expressHandlers");
 
 router.post('/:id/save',
     verifyAuthentication,
@@ -14,6 +15,7 @@ router.post('/:id/save',
         param('id').isUUID().withMessage('Invalid Project UUID')
     ],
     asyncHandler(async (req, res) => {
+        validationErrorHandler(req, 'POST Project Delivery Report - ')
 
         const {id} = req.params;
         const result = await query(
@@ -52,6 +54,9 @@ router.post('/:id/save',
             `
         , [id])
 
+        if (result.rows.length === 0) {
+            return res.status(C_HTTP.STATUS.NOT_FOUND).json({message: 'No report found for the project'});
+        }
         res.status(C_HTTP.STATUS.OK).json({report: result.rows[0]});
     })
 )
@@ -78,6 +83,7 @@ router.get('/:id',
         param('id').isUUID().withMessage('Invalid Project UUID')
     ],
     asyncHandler(async (req, res) => {
+        validationErrorHandler(req, 'GET Project Delivery Report - ')
 
         const {id} = req.params;
 
@@ -89,6 +95,9 @@ router.get('/:id',
 
         const result = await query(sql, [id]);
 
+        if (result.rows.length === 0) {
+            return res.status(C_HTTP.STATUS.NOT_FOUND).json({message: 'No report found for the project'});
+        }
         res.status(C_HTTP.STATUS.OK).json({report: result.rows[0]});
     })
 )
