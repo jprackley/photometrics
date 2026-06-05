@@ -613,6 +613,137 @@ function findMockUserByEmail(email) {
     return mockUsers.find((user) => user.email.toLowerCase() === normalizedEmail) || null;
 }
 
+
+
+// -----------------------------------------------------------------------------
+// Demo/Main Data Contract Alignment
+// -----------------------------------------------------------------------------
+// Keep demo records in the same shape as the live API/main records while
+// preserving the camelCase fields consumed by the current React views. This
+// prevents demo mode from drifting away from database/API mode and removes the
+// need for separate page logic when switching between data sources.
+// -----------------------------------------------------------------------------
+function toIsoDate(value) {
+    if (!value) return null;
+    const parsedDate = new Date(value);
+    return Number.isNaN(parsedDate.getTime()) ? value : parsedDate.toISOString();
+}
+
+function splitNameParts(fullName = "") {
+    const parts = String(fullName || "").trim().replace(/\s+/g, " ").split(" ").filter(Boolean);
+    if (parts.length === 0) return { firstName: "", middleName: "", lastName: "" };
+    if (parts.length === 1) return { firstName: parts[0], middleName: "", lastName: parts[0] };
+    return {
+        firstName: parts[0],
+        middleName: parts.length > 2 ? parts.slice(1, -1).join(" ") : "",
+        lastName: parts[parts.length - 1],
+    };
+}
+
+function alignDemoDataWithMainContract() {
+    const projectIdByName = new Map(projects.map((project) => [project.name, project.id]));
+    const employeeIdByName = new Map(employees.map((employee) => [employee.name, employee.id]));
+
+    projects.forEach((project) => {
+        const imageCount = Number.parseInt(project.images, 10) || 0;
+        const completedImages = Math.round(imageCount * ((Number(project.progress) || 0) / 100));
+        Object.assign(project, {
+            project_id: project.id,
+            project_name: project.name,
+            client_id: project.clientId || `CLI-${String(project.id).slice(-4)}`,
+            client_name: project.client,
+            start_time: toIsoDate(project.startDate),
+            due_time: toIsoDate(project.dueDate),
+            image_count: imageCount,
+            completed_images: completedImages,
+            progress_percent: project.progress,
+            percent_complete: project.progress,
+        });
+    });
+
+    employees.forEach((employee) => {
+        const { firstName, middleName, lastName } = splitNameParts(employee.name);
+        Object.assign(employee, {
+            user_id: employee.id,
+            employee_id: employee.id,
+            first_name: firstName,
+            middle_name: middleName,
+            last_name: lastName,
+            display_name: employee.name,
+            employee_name: employee.name,
+            title: employee.role,
+            account_role: employee.role,
+            phone_number: employee.phone,
+            current_task: employee.currentTask,
+            active_tasks: employee.activeTasks,
+            completed_today: employee.completedToday,
+            hours_today: employee.hoursToday,
+            is_active: employee.status !== "Offline" && employee.status !== "Inactive",
+        });
+    });
+
+    taskItems.forEach((task) => {
+        const projectId = projectIdByName.get(task.project) || null;
+        const employeeId = employeeIdByName.get(task.assignedTo) || null;
+        Object.assign(task, {
+            task_id: task.id,
+            task_name: task.taskName,
+            project_id: projectId,
+            project_name: task.project,
+            assigned_to: employeeId,
+            assigned_to_name: task.assignedTo,
+            employee_id: employeeId,
+            employee_name: task.assignedTo,
+            due_time: toIsoDate(task.dueDate),
+            estimated_hours: task.estimatedHours,
+            tracked_seconds: task.trackedSeconds,
+            total_time: task.trackedSeconds / 3600,
+            total_hours: task.trackedSeconds / 3600,
+            last_stopped_at: toIsoDate(task.lastStoppedAt),
+        });
+    });
+
+    // Assigned Tasks should be task-backed in demo mode, matching the main/API model.
+    assignments.splice(0, assignments.length, ...taskItems.map((task) => ({
+        id: task.id,
+        backendId: task.backendId || task.id,
+        task_id: task.task_id,
+        taskId: task.id,
+        project_id: task.project_id,
+        projectId: task.project_id,
+        project_name: task.project,
+        project: task.project,
+        task_name: task.taskName,
+        taskType: task.taskName,
+        category: task.category || "Assigned Task",
+        assigned_to: task.assigned_to,
+        assignedToId: task.assigned_to,
+        assigned_to_name: task.assignedTo,
+        assignedTo: task.assignedTo,
+        employee_id: task.employee_id,
+        employee_name: task.assignedTo,
+        assigned_date: task.last_stopped_at || task.due_time,
+        assignedDate: task.assignedDate || "",
+        due_time: task.due_time,
+        due_date: task.due_time,
+        dueDate: task.dueDate,
+        priority: task.priority,
+        status: task.status,
+    })));
+
+    mockUsers.forEach((user) => {
+        Object.assign(user, {
+            user_id: user.id,
+            employee_id: user.employeeId,
+            display_name: user.name,
+            account_role: user.accessLevel === "manager" ? "Manager" : "Employee",
+            is_active: true,
+        });
+    });
+}
+
+alignDemoDataWithMainContract();
+
 // Default settings used to populate the Settings page before backend persistence is connected.
 const settingsData = {
     company: {
