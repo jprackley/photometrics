@@ -381,27 +381,27 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
         ? `${API_ENDPOINTS.dashboard.employeeActivity}/${currentUserPathId}`
         : API_ENDPOINTS.dashboard.employeeActivity;
 
-    const { data: activeProjectsKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.active, kpis.slice(0, 1), {
+    const { data: activeProjectsKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.active, [{ key: "activeProjects", label: "Active Projects", value: projects.filter((project) => project.status !== "Completed").length, objects: projects.filter((project) => project.status !== "Completed") }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "activeProjects", label: "Active Projects", value: 0, objects: [] }, ["active"]),
     });
-    const { data: completedProjectsKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.completed, [], {
+    const { data: completedProjectsKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.completed, [{ key: "completedProjects", label: "Completed Projects", value: projects.filter((project) => project.status === "Completed").length, objects: projects.filter((project) => project.status === "Completed") }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "completedProjects", label: "Completed Projects", value: 0, objects: [] }, ["completed"]),
     });
-    const { data: remainingTasksKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.tasks.remaining, [], {
+    const { data: remainingTasksKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.tasks.remaining, [{ key: "remainingTasks", label: "Remaining Tasks", value: taskItems.filter((task) => task.status !== "Completed").length, objects: taskItems.filter((task) => task.status !== "Completed") }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "remainingTasks", label: "Remaining Tasks", value: 0, objects: [] }, ["remaining"]),
     });
-    const { data: completedImagesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.images.completed, [], {
+    const { data: completedImagesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.images.completed, [{ key: "completedImages", label: "Completed Images", value: projects.reduce((total, project) => total + (Number(project.completed_images ?? project.completedImages ?? 0) || 0), 0), objects: projects }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "completedImages", label: "Completed Images", value: 0, objects: [] }, ["completed"]),
     });
-    const { data: totalEmployeesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.employees.total, [], {
+    const { data: totalEmployeesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.employees.total, [{ key: "totalEmployees", label: "Total Employees", value: employees.length, objects: employees }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "totalEmployees", label: "Total Employees", value: 0, objects: [] }, ["total"]),
     });
-    const { data: activeEmployeesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.employees.active, [], {
+    const { data: activeEmployeesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.employees.active, [{ key: "activeEmployees", label: "Active Employees", value: employees.filter((employee) => employee.status !== "Inactive" && employee.status !== "Offline").length, objects: employees.filter((employee) => employee.status !== "Inactive" && employee.status !== "Offline") }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "activeEmployees", label: "Active Employees", value: 0, objects: [] }, ["active"]),
     });
