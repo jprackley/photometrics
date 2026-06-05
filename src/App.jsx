@@ -391,7 +391,7 @@ export default function App() {
     const appearanceClassName = getAppAppearanceClassName(appSettings);
 
     return (
-        <div className={`min-h-screen bg-slate-50 text-slate-950 ${appearanceClassName}`}>
+        <div className={`pm-app-shell min-h-screen bg-slate-50 text-slate-950 ${appearanceClassName}`}>
             <div className="flex min-h-screen flex-col">
                 <Topbar
                     isSidebarCollapsed={isSidebarCollapsed}
