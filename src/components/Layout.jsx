@@ -2,12 +2,13 @@
 // Shared Layout Components
 // -----------------------------------------------------------------------------
 // Contains the reusable page chrome used across the authenticated application:
-// the company logo, responsive sidebar navigation, top search bar, notification
+// the company logo, responsive sidebar navigation, notification
 // control, and user menu. These components are presentation-focused and receive
 // state/action handlers from the application shell.
 // -----------------------------------------------------------------------------
 
 import React, { useMemo, useState } from "react";
+import cherishedMemoriesLogo from "../assets/cherished-memories-logo.png";
 import {
     Bell,
     ChevronDown,
@@ -22,21 +23,34 @@ import {
     API_ENDPOINTS,
     getUseApiDataSetting,
     normalizeProjectRows,
+    normalizeTaskRows,
     useApiPlaceholder,
 } from "../services/api";
-import { projects } from "../data/mockData";
+import { projects, taskItems } from "../data/mockData";
 
 // Company logo component
 /**
  * Renders the shared company logo used on the login page and app header.
  */
-function Logo() {
+function Logo({ variant = "header" }) {
+    const isLogin = variant === "login";
+
     return (
-        <div className="flex items-center justify-start rounded-xl bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200/80">
+        <div
+            className={
+                isLogin
+                    ? "flex w-full items-center justify-center rounded-xl bg-white/95 px-4 py-2 shadow-sm ring-1 ring-slate-200/90"
+                    : "flex h-14 w-[220px] items-center justify-center rounded-xl bg-white px-4 py-2 shadow-sm ring-1 ring-slate-200/80 sm:w-[320px]"
+            }
+        >
             <img
-                src="https://chambermaster.blob.core.windows.net/images/customers/2243/members/7487/logos/MEMBER_PAGE_HEADER/CM_final_logo_(2).jpg"
-                alt="Company Logo"
-                className="h-[42px] w-auto max-w-[190px] object-contain md:h-[48px]"
+                src={cherishedMemoriesLogo}
+                alt="Cherished Memories Photography"
+                className={
+                    isLogin
+                        ? "h-auto max-h-20 w-full max-w-[300px] object-contain"
+                        : "h-auto max-h-10 w-full object-contain"
+                }
             />
         </div>
     );
@@ -157,12 +171,21 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
     const [isManagerMenuOpen, setIsManagerMenuOpen] = useState(false);
 
     const localProjectFallback = getUseApiDataSetting() ? [] : projects;
+    const localTaskFallback = getUseApiDataSetting() ? [] : taskItems;
+
     const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projectsList, localProjectFallback, {
         transformPayload: normalizeProjectRows,
     });
+    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, localTaskFallback, {
+        transformPayload: normalizeTaskRows,
+    });
+
     const notifications = useMemo(() => {
         const projectRows = Array.isArray(loadedProjectRows) ? loadedProjectRows : [];
+        const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
         const projectsDueThisWeek = projectRows.filter((project) => isDateThisWeek(project.dueDate)).length;
+        const tasksReadyForReview = taskRows.filter((task) => isReviewReadyStatus(task.status) || isReviewReadyStatus(task.category)).length;
+
         const nextNotifications = [];
 
         if (projectsDueThisWeek > 0) {
@@ -173,6 +196,14 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
             });
         }
 
+        if (tasksReadyForReview > 0) {
+            nextNotifications.push({
+                key: "tasks-review",
+                page: "tasks",
+                message: `${tasksReadyForReview} ${pluralize(tasksReadyForReview, "task")} ${tasksReadyForReview === 1 ? "is" : "are"} ready for review`,
+            });
+        }
+
         nextNotifications.push({
             key: "project-export",
             page: "projects",
@@ -180,7 +211,7 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
         });
 
         return nextNotifications;
-    }, [loadedProjectRows]);
+    }, [loadedProjectRows, loadedTaskRows]);
 
     const closeMenus = () => {
         setIsNotificationsOpen(false);
@@ -195,30 +226,29 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
     const displayName = currentUser?.name || currentUser?.employeeName || currentUser?.email || "Manager";
 
     return (
-        <header className="pm-surface relative z-30 flex flex-col gap-3 border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur md:min-h-[76px] md:px-6 lg:flex-row lg:items-center lg:justify-between lg:py-0">
+        <header className="pm-surface relative z-30 flex min-h-[78px] items-center justify-center border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur md:px-6">
 
-            {/* Brand area now stays in the top bar instead of the collapsible sidebar */}
-            <div className="flex w-full flex-col gap-3 md:flex-row md:items-center lg:w-auto lg:flex-1">
-                <div className="flex items-center justify-between gap-3 md:justify-start md:gap-4">
-                    <Logo />
+            {/* Centered brand area */}
+            <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
+                <Logo />
+            </div>
 
-                    {/* Collapse menu button only controls the left menu width */}
-                    <button
-                        type="button"
-                        onClick={onToggleSidebar}
-                        aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                        className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 md:flex"
-                    >
-                        {isSidebarCollapsed
-                            ? <ChevronRight size={22} />
-                            : <ChevronLeft size={22} />}
-                    </button>
-                </div>
-
+            <div className="absolute left-4 top-1/2 hidden -translate-y-1/2 md:left-6 md:flex">
+                <button
+                    type="button"
+                    onClick={onToggleSidebar}
+                    aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100"
+                    title={isSidebarCollapsed ? "Expand menu" : "Collapse menu"}
+                >
+                    {isSidebarCollapsed
+                        ? <ChevronRight size={22} />
+                        : <ChevronLeft size={22} />}
+                </button>
             </div>
 
             {/* User info area */}
-            <div className="flex w-full items-center justify-end gap-3 sm:w-auto sm:gap-5 sm:pr-2">
+            <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center justify-end gap-3 md:right-6">
                 <div className="relative">
                     <button
                         type="button"
@@ -285,10 +315,10 @@ function Topbar({ isSidebarCollapsed, onToggleSidebar, onPageChange, onLogout, c
                             {getUserInitials(currentUser)}
                         </div>
 
-                        <span className="hidden max-w-[220px] truncate text-sm font-bold text-slate-900 sm:inline">
+                        <span className="hidden max-w-[220px] truncate text-sm font-bold text-slate-900 lg:inline">
                             {displayName}
                         </span>
-                        <ChevronDown size={16} className="hidden shrink-0 text-slate-500 sm:block" />
+                        <ChevronDown size={16} className="hidden shrink-0 text-slate-500 lg:block" />
 
                     </button>
 
