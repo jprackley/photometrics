@@ -248,3 +248,85 @@ button {
 .pm-theme-dark .hover\:bg-slate-100:hover {
   background-color: #334155 !important;
 }
+
+
+/* Dark mode polish: keep the entire app, topbar, sidebar, cards, tables, and banners readable. */
+.pm-theme-dark.pm-app-shell,
+.pm-theme-dark .pm-app-shell,
+.pm-theme-dark .pm-app-main {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+.pm-theme-dark .bg-slate-50,
+.pm-theme-dark .bg-slate-100,
+.pm-theme-dark .bg-white,
+.pm-theme-dark aside,
+.pm-theme-dark header,
+.pm-theme-dark nav {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+.pm-theme-dark thead,
+.pm-theme-dark .bg-slate-200 {
+  background-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.pm-theme-dark tbody tr:hover,
+.pm-theme-dark .hover\:bg-slate-50:hover,
+.pm-theme-dark .hover\:bg-slate-100:hover {
+  background-color: #334155 !important;
+}
+
+.pm-theme-dark .bg-blue-50,
+.pm-theme-dark .bg-indigo-50,
+.pm-theme-dark .bg-violet-50,
+.pm-theme-dark .bg-cyan-50 {
+  background-color: rgba(37, 99, 235, 0.18) !important;
+}
+
+.pm-theme-dark .bg-green-50,
+.pm-theme-dark .bg-emerald-50 {
+  background-color: rgba(5, 150, 105, 0.18) !important;
+}
+
+.pm-theme-dark .bg-orange-50,
+.pm-theme-dark .bg-amber-50,
+.pm-theme-dark .bg-yellow-50 {
+  background-color: rgba(217, 119, 6, 0.18) !important;
+}
+
+.pm-theme-dark .text-blue-700,
+.pm-theme-dark .text-indigo-700,
+.pm-theme-dark .text-violet-700,
+.pm-theme-dark .text-cyan-700,
+.pm-theme-dark .text-emerald-700,
+.pm-theme-dark .text-green-700,
+.pm-theme-dark .text-orange-700,
+.pm-theme-dark .text-amber-700 {
+  color: #bfdbfe !important;
+}
+
+.pm-theme-dark button:not(.bg-violet-600):not(.bg-blue-600),
+.pm-theme-dark .border,
+.pm-theme-dark table,
+.pm-theme-dark th,
+.pm-theme-dark td {
+  border-color: #475569 !important;
+}
+
+.pm-theme-dark input,
+.pm-theme-dark select,
+.pm-theme-dark textarea,
+.pm-theme-dark option {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #475569 !important;
+}
+
+.pm-theme-dark .text-amber-950,
+.pm-theme-dark .text-amber-900 {
+  color: #fde68a !important;
+}
