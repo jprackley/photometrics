@@ -533,7 +533,8 @@ function TaskManagementPage() {
             try {
                 await apiPlaceholders.startTaskTimer(taskId, new Date(startedAt).toISOString());
             } catch (apiError) {
-                console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
+                window.alert(apiError?.message || "The timer could not be started because the backend rejected the request.");
+                return;
             }
         }
 
@@ -568,7 +569,8 @@ function TaskManagementPage() {
                     totalTrackedSeconds: nextTrackedSeconds,
                 });
             } catch (apiError) {
-                console.warn("Stop timer API endpoint is not connected yet. Stopping locally.", apiError);
+                window.alert(apiError?.message || "The timer could not be stopped because the backend rejected the request.");
+                return;
             }
         }
 
@@ -1069,7 +1071,8 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             try {
                 await apiPlaceholders.startTaskTimer(taskId, new Date(startedAt).toISOString(), currentUser);
             } catch (apiError) {
-                console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
+                window.alert(apiError?.message || "The timer could not be started because the backend rejected the request.");
+                return;
             }
         }
 
@@ -1120,7 +1123,8 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                     userTrackedSeconds: nextTrackedSeconds,
                 });
             } catch (apiError) {
-                console.warn("Stop timer API endpoint is not connected yet. Stopping locally.", apiError);
+                window.alert(apiError?.message || "The timer could not be stopped because the backend rejected the request.");
+                return;
             }
         }
 

@@ -179,6 +179,80 @@ function unwrapProjectDeliveryPayload(payload, key) {
     return payload.report || payload;
 }
 
+
+function formatTrackedTime(value) {
+    if (value === null || value === undefined || value === "") return "0m";
+    if (typeof value === "string") return value;
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return String(value);
+    // Backend report views store tracked_time as hours or formatted text depending on the view.
+    // Treat small decimal values as hours and larger whole values as minutes.
+    if (numericValue > 0 && numericValue < 1000 && !Number.isInteger(numericValue)) {
+        return formatDuration(Math.round(numericValue * 3600));
+    }
+    return formatDuration(Math.round(numericValue * 60));
+}
+
+function normalizeTaskTimeReportRow(report = {}) {
+    return {
+        id: report.report_snapshot_id || report.task_id || report.taskId || report.id,
+        snapshotId: report.report_snapshot_id || report.snapshotId,
+        taskId: report.task_id || report.taskId,
+        taskName: report.task_name || report.taskName || "Untitled Task",
+        project: report.project || report.project_name || report.projectName || "",
+        assignedTo: report.assigned_employee || report.assignedEmployee || report.assignedTo || "Unassigned",
+        dueDate: formatReportDate(report.due_date || report.dueDate),
+        priority: report.priority || "",
+        estimatedHours: Number(report.estimated_hours ?? report.estimatedHours ?? 0) || 0,
+        trackedTime: formatTrackedTime(report.tracked_time ?? report.trackedTime ?? 0),
+        utilization: normalizeNumber(report.utilization),
+        status: report.status || "",
+        dueStatus: report.due_status === null || report.due_status === undefined ? "NULL" : String(report.due_status),
+        generatedAt: report.generated_at || report.generatedAt || "",
+    };
+}
+
+function normalizeEmployeeProductivityReportRow(report = {}) {
+    return {
+        id: report.report_snapshot_id || report.user_id || report.userId || report.employee_id || report.employeeId || report.id,
+        snapshotId: report.report_snapshot_id || report.snapshotId,
+        employeeId: report.user_id || report.userId || report.employee_id || report.employeeId,
+        name: report.employee_name || report.employeeName || report.name || "Unnamed Employee",
+        role: report.role || "Employee",
+        assignedTasks: Number(report.assigned_items ?? report.assignedItems ?? report.assigned_tasks ?? report.assignedTasks ?? 0) || 0,
+        completedTasks: Number(report.completed_items ?? report.completedItems ?? report.completed_tasks ?? report.completedTasks ?? 0) || 0,
+        reviewItems: Number(report.review_items ?? report.reviewItems ?? 0) || 0,
+        trackedTime: formatTrackedTime(report.tracked_time ?? report.trackedTime ?? 0),
+        hoursToday: Number(report.hours_today ?? report.hoursToday ?? 0) || 0,
+        efficiency: normalizeNumber(report.efficiency),
+        status: report.status || "",
+        generatedAt: report.generated_at || report.generatedAt || "",
+    };
+}
+
+function normalizeAssignmentStatusReportRow(report = {}) {
+    return {
+        id: report.report_snapshot_id || report.task_id || report.taskId || report.id,
+        snapshotId: report.report_snapshot_id || report.snapshotId,
+        taskId: report.task_id || report.taskId,
+        project: report.project || report.project_name || report.projectName || "",
+        taskType: report.category || report.task_type || report.taskType || report.task_name || report.taskName || "Task",
+        assignedTo: report.assigned_employee || report.assignedEmployee || report.assignedTo || "Unassigned",
+        assignedDate: formatReportDate(report.assigned_date || report.assignedDate),
+        dueDate: formatReportDate(report.due_date || report.dueDate),
+        priority: report.priority || "",
+        status: report.status || "",
+        dueStatus: report.due_status === null || report.due_status === undefined ? "NULL" : String(report.due_status),
+        generatedAt: report.generated_at || report.generatedAt || "",
+    };
+}
+
+function unwrapReportPayload(payload, key) {
+    if (!payload) return key === "reports" ? [] : null;
+    if (key === "reports") return Array.isArray(payload.reports) ? payload.reports : [];
+    return payload.report || payload;
+}
+
 /**
  * Shared table for report output.
  */
@@ -289,84 +363,136 @@ function ReportsPage({ globalSearch = "" }) {
         [projectRows, taskRows, employeeRows, timeEntryRows]
     );
 
-    // The backend does not currently mount project_delivery report snapshot routes,
-    // so the page uses the normalized project/task data already loaded above.
-    const useLiveProjectDeliveryReport = false;
+    const useLiveReports = getUseApiDataSetting();
 
-    const projectSelectOptions = useMemo(() => ([
-        { value: "", label: "Select a project" },
-        ...projectRows.map((project) => ({
-            value: project.backendId || project.id,
-            label: project.name,
-        })),
-    ]), [projectRows]);
+    const reportApiConfigs = useMemo(() => ({
+        "Project Delivery": {
+            basePath: "/reports/project_delivery",
+            idLabel: "Project",
+            selectLabel: "Select a project",
+            rows: projectRows,
+            getId: (project) => project.backendId || project.projectId || project.id,
+            getLabel: (project) => project.name || project.projectName || "Untitled Project",
+            normalize: normalizeProjectDeliveryReportRow,
+        },
+        "Task Time": {
+            basePath: "/reports/task_time",
+            idLabel: "Task",
+            selectLabel: "Select a task",
+            rows: taskRows,
+            getId: (task) => task.backendId || task.taskId || task.id,
+            getLabel: (task) => task.taskName || task.name || "Untitled Task",
+            normalize: normalizeTaskTimeReportRow,
+        },
+        "Employee Productivity": {
+            basePath: "/reports/employee_productivity",
+            idLabel: "Employee",
+            selectLabel: "Select an employee",
+            rows: employeeRows,
+            getId: (employee) => employee.backendId || employee.userId || employee.employeeId || employee.id,
+            getLabel: (employee) => employee.name || employee.employeeName || "Unnamed Employee",
+            normalize: normalizeEmployeeProductivityReportRow,
+        },
+        "Task Assignment Status": {
+            basePath: "/reports/assignment_status",
+            idLabel: "Task",
+            selectLabel: "Select a task",
+            rows: taskRows,
+            getId: (task) => task.backendId || task.taskId || task.id,
+            getLabel: (task) => task.taskName || task.name || "Untitled Task",
+            normalize: normalizeAssignmentStatusReportRow,
+        },
+    }), [projectRows, taskRows, employeeRows]);
 
-    const loadProjectDeliveryHistory = async () => {
-        if (!useLiveProjectDeliveryReport) return;
+    const activeReportApiConfig = reportApiConfigs[reportType];
+
+    const reportSelectOptions = useMemo(() => ([
+        { value: "", label: activeReportApiConfig?.selectLabel || "Select a row" },
+        ...(activeReportApiConfig?.rows || [])
+            .map((row) => ({
+                value: activeReportApiConfig.getId(row),
+                label: activeReportApiConfig.getLabel(row),
+            }))
+            .filter((option) => option.value),
+    ]), [activeReportApiConfig]);
+
+    const loadReportHistory = async () => {
+        if (!useLiveReports || !activeReportApiConfig) return;
         setIsProjectDeliveryLoading(true);
         setProjectDeliveryMessage("");
         try {
-            const payload = await apiRequest("/reports/project_delivery/history");
-            const rows = unwrapProjectDeliveryPayload(payload, "reports").map(normalizeProjectDeliveryReportRow);
+            const payload = await apiRequest(`${activeReportApiConfig.basePath}/history`);
+            const rows = unwrapReportPayload(payload, "reports").map(activeReportApiConfig.normalize);
             setProjectDeliveryHistoryRows(rows);
         } catch (apiError) {
-            console.warn("Project Delivery report history could not be loaded.", apiError);
-            setProjectDeliveryMessage(apiError?.message || "Project Delivery report history could not be loaded.");
+            console.warn(`${reportType} report history could not be loaded.`, apiError);
+            setProjectDeliveryMessage(apiError?.message || `${reportType} report history could not be loaded.`);
         } finally {
             setIsProjectDeliveryLoading(false);
         }
     };
 
-    const loadProjectDeliveryPreview = async (projectId = selectedProjectId) => {
-        if (!projectId) {
-            setProjectDeliveryMessage("Select a project before generating a report preview.");
+    const loadReportPreview = async (rowId = selectedProjectId) => {
+        if (!rowId) {
+            setProjectDeliveryMessage(`${activeReportApiConfig?.idLabel || "Item"} is required before generating a report preview.`);
             return;
         }
+        if (!activeReportApiConfig) return;
         setIsProjectDeliveryLoading(true);
         setProjectDeliveryMessage("");
         try {
-            const payload = await apiRequest(`/reports/project_delivery/${encodeURIComponent(projectId)}`);
-            const row = normalizeProjectDeliveryReportRow(unwrapProjectDeliveryPayload(payload, "report"));
+            const payload = await apiRequest(`${activeReportApiConfig.basePath}/${encodeURIComponent(rowId)}`);
+            const row = activeReportApiConfig.normalize(unwrapReportPayload(payload, "report"));
             setProjectDeliveryPreviewRow(row);
         } catch (apiError) {
-            console.warn("Project Delivery report preview could not be loaded.", apiError);
-            setProjectDeliveryMessage(apiError?.message || "Project Delivery report preview could not be loaded.");
+            console.warn(`${reportType} report preview could not be loaded.`, apiError);
+            setProjectDeliveryMessage(apiError?.message || `${reportType} report preview could not be loaded.`);
         } finally {
             setIsProjectDeliveryLoading(false);
         }
     };
 
-    const saveProjectDeliverySnapshot = async () => {
+    const saveReportSnapshot = async () => {
         if (!selectedProjectId) {
-            setProjectDeliveryMessage("Select a project before saving a report snapshot.");
+            setProjectDeliveryMessage(`${activeReportApiConfig?.idLabel || "Item"} is required before saving a report snapshot.`);
             return;
         }
+        if (!activeReportApiConfig) return;
         setIsProjectDeliveryLoading(true);
         setProjectDeliveryMessage("");
         try {
-            const payload = await apiRequest(`/reports/project_delivery/${encodeURIComponent(selectedProjectId)}/save`, { method: "POST" });
-            const row = normalizeProjectDeliveryReportRow(unwrapProjectDeliveryPayload(payload, "report"));
+            const payload = await apiRequest(`${activeReportApiConfig.basePath}/${encodeURIComponent(selectedProjectId)}/save`, { method: "POST" });
+            const row = activeReportApiConfig.normalize(unwrapReportPayload(payload, "report"));
             setProjectDeliveryPreviewRow(row);
             setProjectDeliveryHistoryRows((currentRows) => [row, ...currentRows.filter((existing) => existing.snapshotId !== row.snapshotId)]);
-            setProjectDeliveryMessage("Project Delivery report snapshot saved.");
+            setProjectDeliveryMessage(`${reportType} report snapshot saved.`);
         } catch (apiError) {
-            console.warn("Project Delivery report snapshot could not be saved.", apiError);
-            setProjectDeliveryMessage(apiError?.message || "Project Delivery report snapshot could not be saved.");
+            console.warn(`${reportType} report snapshot could not be saved.`, apiError);
+            setProjectDeliveryMessage(apiError?.message || `${reportType} report snapshot could not be saved.`);
         } finally {
             setIsProjectDeliveryLoading(false);
         }
     };
 
     useEffect(() => {
-        if (!useLiveProjectDeliveryReport) return;
-        loadProjectDeliveryHistory();
-    }, [useLiveProjectDeliveryReport]);
+        setProjectDeliveryPreviewRow(null);
+        setProjectDeliveryHistoryRows([]);
+        setProjectDeliveryMessage("");
+    }, [reportType]);
 
     useEffect(() => {
-        if (!selectedProjectId && projectSelectOptions.length > 1) {
-            setSelectedProjectId(projectSelectOptions[1].value);
+        if (!useLiveReports || !activeReportApiConfig) return;
+        loadReportHistory();
+    }, [useLiveReports, activeReportApiConfig]);
+
+    useEffect(() => {
+        if (!selectedProjectId && reportSelectOptions.length > 1) {
+            setSelectedProjectId(reportSelectOptions[1].value);
         }
-    }, [projectSelectOptions, selectedProjectId]);
+        if (selectedProjectId && !reportSelectOptions.some((option) => option.value === selectedProjectId)) {
+            setSelectedProjectId(reportSelectOptions[1]?.value || "");
+        }
+    }, [reportSelectOptions, selectedProjectId]);
 
     const employeeOptions = useMemo(() => {
         const values = [
@@ -397,7 +523,7 @@ function ReportsPage({ globalSearch = "" }) {
             filename: "photometrics-project-delivery-report.csv",
             title: "Project Delivery Report",
             columns: REPORT_PROJECT_COLUMNS,
-            rows: useLiveProjectDeliveryReport
+            rows: useLiveReports && reportType === "Project Delivery"
                 ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
                 : reportData.projectReportRows,
             searchKeys: ["name", "client", "dueDate", "status", "dueStatus", "assignedTo"],
@@ -407,7 +533,9 @@ function ReportsPage({ globalSearch = "" }) {
             filename: "photometrics-task-time-report.csv",
             title: "Task Time Report",
             columns: REPORT_TIME_COLUMNS,
-            rows: reportData.timeReportRows,
+            rows: useLiveReports && reportType === "Task Time"
+                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
+                : reportData.timeReportRows,
             searchKeys: ["taskName", "project", "assignedTo", "dueDate", "priority", "status", "dueStatus"],
         },
         {
@@ -415,7 +543,9 @@ function ReportsPage({ globalSearch = "" }) {
             filename: "photometrics-employee-productivity-report.csv",
             title: "Employee Productivity Report",
             columns: REPORT_EMPLOYEE_COLUMNS,
-            rows: reportData.employeeReportRows,
+            rows: useLiveReports && reportType === "Employee Productivity"
+                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
+                : reportData.employeeReportRows,
             searchKeys: ["name", "role", "status"],
         },
         {
@@ -423,10 +553,12 @@ function ReportsPage({ globalSearch = "" }) {
             filename: "photometrics-task-assignment-status-report.csv",
             title: "Task Assignment Status Report",
             columns: REPORT_ASSIGNMENT_COLUMNS,
-            rows: reportData.taskAssignmentReportRows,
+            rows: useLiveReports && reportType === "Task Assignment Status"
+                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
+                : reportData.taskAssignmentReportRows,
             searchKeys: ["id", "project", "taskType", "assignedTo", "dueDate", "priority", "status", "dueStatus"],
         },
-    ]), [reportData, useLiveProjectDeliveryReport, projectDeliveryPreviewRow, projectDeliveryHistoryRows]);
+    ]), [reportData, useLiveReports, reportType, projectDeliveryPreviewRow, projectDeliveryHistoryRows]);
 
     const activeReport = reportDefinitions.find((report) => report.label === reportType) || reportDefinitions[0];
 
@@ -487,26 +619,26 @@ function ReportsPage({ globalSearch = "" }) {
             </div>
 
 
-            {useLiveProjectDeliveryReport && reportType === "Project Delivery" && (
+            {useLiveReports && activeReportApiConfig && (
                 <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                         <div className="flex-1">
-                            <label className="mb-2 block text-sm font-bold text-slate-700">Project Delivery API</label>
+                            <label className="mb-2 block text-sm font-bold text-slate-700">{reportType} API</label>
                             <select
                                 value={selectedProjectId}
                                 onChange={(event) => setSelectedProjectId(event.target.value)}
                                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-100"
                             >
-                                {projectSelectOptions.map((option) => (
+                                {reportSelectOptions.map((option) => (
                                     <option key={option.value || "empty"} value={option.value}>{option.label}</option>
                                 ))}
                             </select>
-                            <p className="mt-2 text-xs text-slate-500">Preview uses GET /api/reports/project_delivery/PROJECT UUID. Save uses POST /api/reports/project_delivery/PROJECT UUID/save. History uses GET /api/reports/project_delivery/history.</p>
+                            <p className="mt-2 text-xs text-slate-500">Preview uses GET /api{activeReportApiConfig.basePath}/ID. Save uses POST /api{activeReportApiConfig.basePath}/ID/save. History uses GET /api{activeReportApiConfig.basePath}/history.</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                             <button
                                 type="button"
-                                onClick={() => loadProjectDeliveryPreview()}
+                                onClick={() => loadReportPreview()}
                                 disabled={isProjectDeliveryLoading || !selectedProjectId}
                                 className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
@@ -514,7 +646,7 @@ function ReportsPage({ globalSearch = "" }) {
                             </button>
                             <button
                                 type="button"
-                                onClick={saveProjectDeliverySnapshot}
+                                onClick={saveReportSnapshot}
                                 disabled={isProjectDeliveryLoading || !selectedProjectId}
                                 className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
@@ -522,7 +654,7 @@ function ReportsPage({ globalSearch = "" }) {
                             </button>
                             <button
                                 type="button"
-                                onClick={loadProjectDeliveryHistory}
+                                onClick={loadReportHistory}
                                 disabled={isProjectDeliveryLoading}
                                 className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
