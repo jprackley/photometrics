@@ -50,7 +50,6 @@ import {
     normalizeBackendSettings,
 } from "../services/api";
 import {
-    assignments,
     employees,
     employeeActivity,
     findMockUserByEmail,
@@ -124,6 +123,7 @@ import {
     FormField,
     TextInput,
     Modal,
+    InsightCard,
 } from "./sharedComponents";
 
 /**
@@ -252,6 +252,18 @@ function saveSettingsLocally(settings) {
     }
 }
 
+function saveAppearanceLocally(appearance) {
+    const currentSettings = loadSavedSettings();
+
+    saveSettingsLocally({
+        ...currentSettings,
+        appearance: {
+            ...currentSettings.appearance,
+            ...appearance,
+        },
+    });
+}
+
 /**
  * Manager settings page for company, workflow, notification, security, backup, and appearance options.
  */
@@ -262,6 +274,7 @@ function SettingsPage({ currentUser }) {
     const [errorMessage, setErrorMessage] = useState("");
     const [isLoadingSettings, setIsLoadingSettings] = useState(false);
     const [isSavingSettings, setIsSavingSettings] = useState(false);
+    const [hasLocalChanges, setHasLocalChanges] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -302,14 +315,20 @@ function SettingsPage({ currentUser }) {
     const updateSection = (section, field, value) => {
         setSavedMessage("");
         setErrorMessage("");
+        setHasLocalChanges(true);
 
-        setSettings((current) => ({
-            ...current,
-            [section]: {
-                ...current[section],
-                [field]: value,
-            },
-        }));
+        setSettings((current) => {
+            const nextSettings = {
+                ...current,
+                [section]: {
+                    ...current[section],
+                    [field]: value,
+                },
+            };
+
+            saveSettingsLocally(nextSettings);
+            return nextSettings;
+        });
     };
 
     const persistSettings = async (nextSettings, successMessage) => {
@@ -327,11 +346,13 @@ function SettingsPage({ currentUser }) {
 
             setSettings(settingsToStore);
             saveSettingsLocally(settingsToStore);
+            setHasLocalChanges(false);
             setSavedMessage(successMessage);
         } catch (apiError) {
             console.warn("Settings backend save failed. Keeping the local copy so the UI still updates.", apiError);
             setSettings(nextSettings);
             saveSettingsLocally(nextSettings);
+            setHasLocalChanges(false);
             setSavedMessage("Settings were applied locally.");
             setErrorMessage("The backend settings save failed. Check the settings route/method, then save again.");
         } finally {
@@ -402,6 +423,12 @@ function SettingsPage({ currentUser }) {
                     </div>
                 )}
 
+                {hasLocalChanges && !savedMessage && (
+                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                        Changes are applied locally. Save Settings to sync supported fields with the database.
+                    </div>
+                )}
+
                 {errorMessage && (
                     <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                         {errorMessage}
@@ -410,22 +437,22 @@ function SettingsPage({ currentUser }) {
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-xl border border-slate-300 bg-white p-5 text-center shadow-sm">
-                    <div className="text-sm font-bold text-slate-600">Company</div>
-                    <div className="mt-3 text-2xl font-bold text-slate-900">{settings.company.companyName}</div>
-                </div>
-                <div className="rounded-xl border border-slate-300 bg-white p-5 text-center shadow-sm">
-                    <div className="text-sm font-bold text-slate-600">Active Alerts</div>
-                    <div className="mt-3 text-4xl font-semibold text-violet-700">{activeNotificationCount}</div>
-                </div>
-                <div className="rounded-xl border border-slate-300 bg-white p-5 text-center shadow-sm">
-                    <div className="text-sm font-bold text-slate-600">Security Controls</div>
-                    <div className="mt-3 text-4xl font-semibold text-violet-700">{enabledSecurityCount}/3</div>
-                </div>
-                <div className="rounded-xl border border-slate-300 bg-white p-5 text-center shadow-sm">
-                    <div className="text-sm font-bold text-slate-600">Last Backup</div>
-                    <div className="mt-3 text-lg font-bold text-slate-900">{settings.exportBackup.lastBackup}</div>
-                </div>
+                <InsightCard
+                    label="Company"
+                    value={settings.company.companyName}
+                    icon={Users}
+                    tone="blue"
+                    valueClassName="text-[22px] leading-tight"
+                />
+                <InsightCard label="Active Alerts" value={activeNotificationCount} icon={Bell} tone="amber" />
+                <InsightCard label="Security Controls" value={`${enabledSecurityCount}/3`} icon={ShieldCheck} tone="violet" />
+                <InsightCard
+                    label="Last Backup"
+                    value={settings.exportBackup.lastBackup}
+                    icon={Clock}
+                    tone="slate"
+                    valueClassName="text-[17px] leading-tight"
+                />
             </div>
 
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
@@ -461,7 +488,7 @@ function SettingsPage({ currentUser }) {
 
                 <SettingsPanel
                     title="Workflow Defaults"
-                    description="Default rules used when projects, assignments, and tasks are created."
+                    description="Default rules used when projects and tasks are created."
                     icon={ListChecks}
                 >
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -499,7 +526,7 @@ function SettingsPage({ currentUser }) {
                     <div className="space-y-3">
                         <SettingToggle
                             label="Due Date Alerts"
-                            description="Notify managers when projects or assignments are close to the due date."
+                            description="Notify managers when projects or tasks are close to the due date."
                             checked={settings.notifications.dueDateAlerts}
                             onChange={(value) => updateSection("notifications", "dueDateAlerts", value)}
                         />
@@ -641,7 +668,7 @@ function SettingsPage({ currentUser }) {
                 <div>
                     <h2 className="text-lg font-bold">Reset settings</h2>
                     <p className="mt-1 text-sm text-slate-500">
-                        This returns the Settings page to the default values, including the default data source mode.
+                        This returns the company, workflow, notification, security, backup, and appearance settings to their default values.
                     </p>
                 </div>
                 <button
@@ -662,6 +689,7 @@ function SettingsPage({ currentUser }) {
  * Employee self-service settings page for profile and preference updates.
  */
 function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
+    const savedAppearance = useMemo(() => loadSavedSettings().appearance, []);
     const [profile, setProfile] = useState({
         name: currentUser?.name || "",
         email: currentUser?.email || "",
@@ -670,10 +698,10 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
         preferredName: currentUser?.name || "",
     });
     const [appearance, setAppearance] = useState({
-        theme: currentUser?.preferences?.theme || "Light",
-        accentColor: currentUser?.preferences?.accentColor || "Violet",
-        compactTables: currentUser?.preferences?.compactTables || false,
-        showDashboardTips: currentUser?.preferences?.showDashboardTips ?? true,
+        theme: currentUser?.preferences?.theme || savedAppearance.theme || "Light",
+        accentColor: currentUser?.preferences?.accentColor || savedAppearance.accentColor || "Violet",
+        compactTables: currentUser?.preferences?.compactTables ?? savedAppearance.compactTables ?? false,
+        showDashboardTips: currentUser?.preferences?.showDashboardTips ?? savedAppearance.showDashboardTips ?? true,
     });
     const [passwordForm, setPasswordForm] = useState({
         currentPassword: "",
@@ -692,7 +720,12 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
     const updateAppearance = (field, value) => {
         setSavedMessage("");
         setErrorMessage("");
-        setAppearance((current) => ({ ...current, [field]: value }));
+
+        setAppearance((current) => {
+            const nextAppearance = { ...current, [field]: value };
+            saveAppearanceLocally(nextAppearance);
+            return nextAppearance;
+        });
     };
 
     const updatePasswordField = (field, value) => {
@@ -747,14 +780,7 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
         };
         onUserUpdate?.(nextUser);
 
-        const currentSettings = loadSavedSettings();
-        saveSettingsLocally({
-            ...currentSettings,
-            appearance: {
-                ...currentSettings.appearance,
-                ...appearance,
-            },
-        });
+        saveAppearanceLocally(appearance);
         setSavedMessage("Appearance preferences saved locally.");
     };
 
@@ -829,10 +855,10 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
                             <TextInput value={profile.phone} onChange={(value) => updateProfile("phone", formatSettingsPhoneNumber(value))} inputMode="tel" />
                         </FormField>
                         <FormField label="Role">
-                            <TextInput value={profile.role} onChange={(value) => updateProfile("role", value)} />
+                            <TextInput value={profile.role} onChange={() => {}} readOnly />
                         </FormField>
                         <FormField label="Employee ID">
-                            <TextInput value={currentUser?.employeeId || ""} onChange={() => {}} />
+                            <TextInput value={currentUser?.employeeId || ""} onChange={() => {}} readOnly />
                         </FormField>
                     </div>
                     <button
@@ -932,7 +958,7 @@ function EmployeeSettingsPage({ currentUser, onUserUpdate }) {
                             <span>Limited to assigned items</span>
                         </div>
                         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 font-semibold text-amber-800">
-                            Manager-only sections such as Employees, Reports, Analytics, and company Settings are hidden from this login.
+                            Manager-only sections such as Employees, Reports, and company Settings are hidden from this login.
                         </div>
                     </div>
                 </SettingsPanel>

@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// Projects Page.
+// Projects and Assigned Tasks Page.
 // -----------------------------------------------------------------------------
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -74,8 +74,9 @@ import {
     workflow,
 } from "../data/mockData";
 import {
-    EMPLOYEES_PAGE_SIZE,
     ASSIGNMENTS_PAGE_SIZE,
+    ASSIGNMENT_COLUMNS,
+    EMPLOYEES_PAGE_SIZE,
     EMPLOYEE_COLUMNS,
     PROJECTS_PAGE_SIZE,
     PROJECT_COLUMNS,
@@ -89,6 +90,7 @@ import {
     formatDuration,
     formatNumber,
     formatPercent,
+    formatTaskId,
     generateNextId,
     getLiveTrackedSeconds,
     getNextSort,
@@ -105,6 +107,7 @@ import {
 } from "../utils/helpers";
 import {
     ANALYTICS_COLORS,
+    REPORT_ASSIGNMENT_COLUMNS,
     REPORT_EMPLOYEE_COLUMNS,
     REPORT_PROJECT_COLUMNS,
     REPORT_TIME_COLUMNS,
@@ -142,6 +145,36 @@ const calculateProjectProgress = (project = {}) => {
 
     return Math.max(0, Math.min(100, Math.round((completedImages / totalImages) * 100)));
 };
+
+function taskToAssignedTaskRow(task = {}) {
+    const taskId = task.backendId || task.taskId || task.id;
+
+    return {
+        ...task,
+        id: task.id || taskId,
+        backendId: task.backendId || task.taskId || taskId,
+        taskId,
+        projectId: task.projectId,
+        project: task.project,
+        taskType: task.taskName || task.category || task.taskType || "Task",
+        assignedToId: task.assignedToId,
+        assignedTo: task.assignedTo || "Unassigned",
+        assignedDate: task.assignedDate || task.createdAt || "",
+        dueDate: task.dueDate,
+        priority: task.priority || "Normal",
+        status: task.status || "Assigned",
+    };
+}
+
+const ASSIGNED_TASK_COLUMNS = [
+    { label: "Task ID", key: "id" },
+    { label: "Project", key: "project" },
+    { label: "Task Name", key: "taskType" },
+    { label: "Assigned To", key: "assignedTo" },
+    { label: "Due Date", key: "dueDate" },
+    { label: "Priority", key: "priority", align: "center" },
+    { label: "Status", key: "status", align: "center" },
+];
 
 /**
  * Create/edit form for project records.
@@ -318,7 +351,7 @@ function ProjectForm({ initialProject, onCancel, onSave }) {
 }
 
 /**
- * Create/edit form for assignment records.
+ * Create/edit form for assigned task records.
  */
 function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, onCancel, onSave }) {
     const [form, setForm] = useState(initialAssignment);
@@ -334,6 +367,8 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
 
         onSave({
             ...form,
+            taskName: String(form.taskName || form.taskType || "").trim() || "General Task",
+            taskType: String(form.taskName || form.taskType || "").trim() || "General Task",
             projectId: selectedProject?.id || form.projectId,
             project: selectedProject?.name || form.project,
             assignedToId: selectedEmployee?.id || form.assignedToId,
@@ -362,20 +397,15 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
                     </select>
                 </FormField>
 
-                <FormField label="Task Type">
-                    <select
-                        value={form.taskType}
-                        onChange={(event) => updateField("taskType", event.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                    >
-                        <option>Import</option>
-                        <option>Cull</option>
-                        <option>Edit</option>
-                        <option>Quality Review</option>
-                        <option>Export</option>
-                        <option>Delivery</option>
-                        <option>Other</option>
-                    </select>
+                <FormField label="Task Name">
+                    <TextInput
+                        value={form.taskName || form.taskType || ""}
+                        onChange={(value) => {
+                            updateField("taskName", value);
+                            updateField("taskType", value);
+                        }}
+                        placeholder="Cull gallery"
+                    />
                 </FormField>
 
                 <FormField label="Assigned To">
@@ -394,10 +424,6 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
                             <option key={employee.id} value={employee.id}>{employee.name}</option>
                         ))}
                     </select>
-                </FormField>
-
-                <FormField label="Assigned Date">
-                    <TextInput value={form.assignedDate} onChange={(value) => updateField("assignedDate", value)} placeholder="May 01, 2026" />
                 </FormField>
 
                 <FormField label="Due Date">
@@ -445,30 +471,31 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
                     type="submit"
                     className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
                 >
-                    Save Assignment
+                    Save Assigned Task
                 </button>
             </div>
         </form>
     );
 }
 
-// Projects page
+// Projects + assigned tasks page
 /**
- * Manager project and assignment management page with sorting, filtering, pagination, export, and modals.
+ * Manager project and assigned task management page with sorting, filtering, pagination, export, and modals.
  */
 function ProjectsAndAssignments() {
+    const localAssignmentFallback = getUseApiDataSetting() ? [] : taskItems.map(taskToAssignedTaskRow);
     const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projectsList, projects, {
         transformPayload: normalizeProjectRows,
+    });
+    const { data: loadedAssignmentRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, localAssignmentFallback, {
+        transformPayload: (payload) => normalizeTaskRows(payload).map(taskToAssignedTaskRow),
     });
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.usersList, employees, {
         transformPayload: normalizeEmployeeRows,
     });
-    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
-        transformPayload: normalizeTaskRows,
-    });
 
     const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
-    const [assignmentRows, setAssignmentRows] = useState([]);
+    const [assignmentRows, setAssignmentRows] = useState(() => localAssignmentFallback);
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);
@@ -480,44 +507,16 @@ function ProjectsAndAssignments() {
     const [assignmentModal, setAssignmentModal] = useState(null);
 
     useEffect(() => {
-        if (!Array.isArray(loadedProjectRows)) return;
-
-        const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
-        setProjectRows(loadedProjectRows.map((project) => {
-            const projectId = project.backendId || project.id;
-            const projectTasks = taskRows.filter((task) => String(task.projectId || "").toLowerCase() === String(projectId || "").toLowerCase() || task.project === project.name);
-            const completedTasks = projectTasks.filter((task) => String(task.status || "").toLowerCase() === "completed").length;
-            const progress = projectTasks.length ? Math.round((completedTasks / projectTasks.length) * 100) : project.progress;
-            return {
-                ...project,
-                progress,
-                status: project.status || (progress >= 100 ? "Completed" : progress > 0 ? "In Progress" : "To-Do"),
-            };
-        }));
-    }, [loadedProjectRows, loadedTaskRows]);
+        if (Array.isArray(loadedProjectRows)) {
+            setProjectRows(loadedProjectRows);
+        }
+    }, [loadedProjectRows]);
 
     useEffect(() => {
-        const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
-        const employeeRows = Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [];
-        setAssignmentRows(taskRows.map((task) => {
-            const project = loadedProjectRows?.find?.((row) => String(row.backendId || row.id || "").toLowerCase() === String(task.projectId || "").toLowerCase());
-            const employee = employeeRows.find((row) => [row.userId, row.backendId, row.employeeId, row.id].some((id) => String(id || "").toLowerCase() === String(task.assignedToId || "").toLowerCase()));
-            return {
-                id: task.displayId || task.id,
-                backendId: task.backendId || task.id,
-                taskId: task.backendId || task.id,
-                projectId: task.projectId,
-                project: project?.name || task.project,
-                taskType: task.taskName || task.category || "Assigned Task",
-                assignedToId: task.assignedToId,
-                assignedTo: employee?.name || employee?.displayName || task.assignedTo,
-                assignedDate: task.assignedDate || task.startDate || "",
-                dueDate: task.dueDate,
-                priority: task.priority,
-                status: task.status,
-            };
-        }));
-    }, [loadedTaskRows, loadedEmployeeRows, loadedProjectRows]);
+        if (Array.isArray(loadedAssignmentRows)) {
+            setAssignmentRows(loadedAssignmentRows);
+        }
+    }, [loadedAssignmentRows]);
 
     const projectOptions = useMemo(
         () => getUniqueOptions(projectRows, "name", "All Projects"),
@@ -616,13 +615,13 @@ function ProjectsAndAssignments() {
         setAssignmentModal({
             mode: "create",
             data: {
-                id: generateNextId("ASG", assignmentRows),
+                id: generateNextId("TSK", assignmentRows),
                 projectId: firstProject?.backendId || firstProject?.id || "",
                 project: firstProject?.name || "",
                 taskType: "Other",
+                taskName: "Other",
                 assignedToId: firstEmployee?.id || "",
                 assignedTo: firstEmployee?.name || "",
-                assignedDate: "May 01, 2026",
                 dueDate: "May 30, 2026",
                 priority: "Normal",
                 status: "Assigned",
@@ -643,11 +642,7 @@ function ProjectsAndAssignments() {
                 const savedProject = projectModal.mode === "create"
                     ? await apiPlaceholders.createProject(projectToApi(cleanProject))
                     : await apiPlaceholders.updateProject(cleanProject.backendId || cleanProject.id, projectToApi(cleanProject));
-                cleanProject = { ...cleanProject, ...(normalizeProjectRows([savedProject])[0] || {}) };
-
-                if (projectModal.mode === "create") {
-                    await apiPlaceholders.createImagesForProjectMetrics(cleanProject);
-                }
+                cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
             } catch (apiError) {
                 console.warn("Project API request failed. The project list was not changed.", apiError);
                 window.alert(apiError?.message || "Project could not be saved. Please try again.");
@@ -669,7 +664,7 @@ function ProjectsAndAssignments() {
     const saveAssignment = async (assignment) => {
         let cleanAssignment = {
             ...assignment,
-            id: assignment.backendId || assignment.taskId || assignment.id || generateNextId("ASG", assignmentRows),
+            id: assignment.backendId || assignment.taskId || assignment.id || generateNextId("TSK", assignmentRows),
             taskName: assignment.taskName || assignment.taskType || "General Task",
             taskType: String(assignment.taskType || "Other").trim() || "Other",
             category: assignment.category || assignment.taskType || "Other",
@@ -679,12 +674,12 @@ function ProjectsAndAssignments() {
         if (getUseApiDataSetting()) {
             try {
                 const savedAssignment = assignmentModal.mode === "create"
-                    ? await apiPlaceholders.createAssignment(cleanAssignment)
-                    : await apiPlaceholders.updateAssignment(cleanAssignment.backendId || cleanAssignment.taskId || cleanAssignment.id, cleanAssignment);
-                cleanAssignment = normalizeAssignmentRows([savedAssignment])[0] || cleanAssignment;
+                    ? await apiPlaceholders.createTask(cleanAssignment)
+                    : await apiPlaceholders.updateTask(cleanAssignment.backendId || cleanAssignment.taskId || cleanAssignment.id, cleanAssignment);
+                cleanAssignment = taskToAssignedTaskRow(normalizeTaskRows(savedAssignment)[0] || savedAssignment || cleanAssignment);
             } catch (apiError) {
-                console.warn("Assignment API request failed. The assignment list was not changed.", apiError);
-                window.alert(apiError?.message || "Assignment could not be saved. Please try again.");
+                console.warn("Task API request failed. The assigned task list was not changed.", apiError);
+                window.alert(apiError?.message || "Assigned task could not be saved. Please try again.");
                 return;
             }
         }
@@ -717,14 +712,14 @@ function ProjectsAndAssignments() {
     };
 
     const deleteAssignment = async (assignment) => {
-        if (!window.confirm(`Delete ${assignment.id}?`)) return;
+        if (!window.confirm(`Delete ${assignment.taskName || assignment.taskType || assignment.id}?`)) return;
 
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.deleteAssignment(assignment.backendId || assignment.taskId || assignment.id);
+                await apiPlaceholders.deleteTask(assignment.backendId || assignment.taskId || assignment.id);
             } catch (apiError) {
-                console.warn("Assignment delete API request failed. The assignment list was not changed.", apiError);
-                window.alert(apiError?.message || "Assignment could not be deleted. Please try again.");
+                console.warn("Task delete API request failed. The assigned task list was not changed.", apiError);
+                window.alert(apiError?.message || "Assigned task could not be deleted. Please try again.");
                 return;
             }
         }
@@ -838,6 +833,110 @@ function ProjectsAndAssignments() {
                 />
             </div>
 
+            {/* Assigned tasks table */}
+            <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <h2 className="flex items-center gap-3 text-xl font-bold sm:text-2xl">
+                        <ListChecks size={26} /> Assigned Tasks
+                    </h2>
+
+                    <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+                        <FilterSelect
+                            value={projectFilter}
+                            onChange={(value) => {
+                                setProjectFilter(value);
+                                setAssignmentPage(1);
+                            }}
+                            options={projectOptions}
+                        />
+                        <FilterSelect
+                            value={employeeFilter}
+                            onChange={(value) => {
+                                setEmployeeFilter(value);
+                                setAssignmentPage(1);
+                            }}
+                            options={employeeOptions}
+                        />
+                        <FilterSelect
+                            value={statusFilter}
+                            onChange={(value) => {
+                                setStatusFilter(value);
+                                setAssignmentPage(1);
+                            }}
+                            options={statusOptions}
+                        />
+
+                        <button
+                            type="button"
+                            onClick={openNewAssignmentModal}
+                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 sm:w-auto"
+                        >
+                            <Plus size={16} /> New Assigned Task
+                        </button>
+                    </div>
+                </div>
+
+                <table className="min-w-[900px] w-full border-collapse text-sm">
+                    <thead className="bg-slate-200 text-slate-800">
+                    <tr>
+                        {ASSIGNMENT_COLUMNS.map((column) => (
+                            <SortableHeader
+                                key={column.key}
+                                column={column}
+                                sortConfig={assignmentSort}
+                                onSort={handleAssignmentSort}
+                            />
+                        ))}
+                        <th className="border border-slate-300 px-4 py-3 text-center font-bold">Actions</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    {visibleAssignmentRows.map((assignment) => (
+                        <tr key={assignment.backendId || assignment.id} className="hover:bg-slate-50">
+                            <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">
+                                {formatTaskId(assignment.displayId || assignment.id)}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.project}</td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.taskType}</td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.assignedTo}</td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.dueDate}</td>
+
+                            <td className="border border-slate-300 px-4 py-3 text-center">
+                                <PriorityBadge value={assignment.priority} />
+                            </td>
+
+                            <td className="border border-slate-300 px-4 py-3 text-center">
+                                <Badge value={assignment.status} />
+                            </td>
+
+                            <td className="border border-slate-300 px-4 py-3">
+                                <RowActions
+                                    onEdit={() => setAssignmentModal({ mode: "edit", data: assignment })}
+                                    onDelete={() => deleteAssignment(assignment)}
+                                />
+                            </td>
+                        </tr>
+                    ))}
+
+                    {visibleAssignmentRows.length === 0 && (
+                        <tr>
+                            <td colSpan={8} className="border border-slate-300 px-4 py-8 text-center text-slate-500">
+                                No assigned tasks found for the selected filters.
+                            </td>
+                        </tr>
+                    )}
+                    </tbody>
+                </table>
+
+                <TableFooter
+                    text={getRangeText(assignmentPage, ASSIGNMENTS_PAGE_SIZE, sortedAssignmentRows.length, "assigned tasks")}
+                    currentPage={assignmentPage}
+                    totalPages={assignmentTotalPages}
+                    onPageChange={setAssignmentPage}
+                />
+            </div>
+
             {projectModal && (
                 <Modal
                     title={projectModal.mode === "create" ? "New Project" : "Edit Project"}
@@ -850,26 +949,42 @@ function ProjectsAndAssignments() {
                     />
                 </Modal>
             )}
+
+            {assignmentModal && (
+                <Modal
+                    title={assignmentModal.mode === "create" ? "New Assigned Task" : "Edit Assigned Task"}
+                    onClose={() => setAssignmentModal(null)}
+                >
+                    <AssignmentForm
+                        initialAssignment={assignmentModal.data}
+                        projectOptions={projectSelectOptions}
+                        employeeOptions={employeeSelectOptions}
+                        onCancel={() => setAssignmentModal(null)}
+                        onSave={saveAssignment}
+                    />
+                </Modal>
+            )}
         </section>
     );
 }
 
 /**
- * Role-aware projects page that limits employee users to their assigned projects.
+ * Role-aware projects page that limits employee users to projects connected to directly assigned tasks.
  */
 function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
+    const localTaskFallback = getUseApiDataSetting() ? [] : taskItems;
     const { data: loadedProjectRows } = useApiPlaceholder(API_ENDPOINTS.projectsList, projects, {
         transformPayload: normalizeProjectRows,
+    });
+    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, localTaskFallback, {
+        transformPayload: normalizeTaskRows,
     });
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.usersList, employees, {
         transformPayload: normalizeEmployeeRows,
     });
-    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
-        transformPayload: normalizeTaskRows,
-    });
 
     const [projectRows, setProjectRows] = useState(() => (getUseApiDataSetting() ? [] : projects));
-    const [assignmentRows, setAssignmentRows] = useState([]);
+    const [assignmentRows, setAssignmentRows] = useState(() => localTaskFallback.map(taskToAssignedTaskRow));
     const [projectSort, setProjectSort] = useState({ key: "name", direction: "asc" });
     const [assignmentSort, setAssignmentSort] = useState({ key: "id", direction: "asc" });
     const [projectPage, setProjectPage] = useState(1);
@@ -882,54 +997,28 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
     const hasManagerAccess = canManageContent(currentUser);
 
     useEffect(() => {
-        if (!Array.isArray(loadedProjectRows)) return;
-
-        const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
-        setProjectRows(loadedProjectRows.map((project) => {
-            const projectId = project.backendId || project.id;
-            const projectTasks = taskRows.filter((task) => String(task.projectId || "").toLowerCase() === String(projectId || "").toLowerCase() || task.project === project.name);
-            const completedTasks = projectTasks.filter((task) => String(task.status || "").toLowerCase() === "completed").length;
-            const progress = projectTasks.length ? Math.round((completedTasks / projectTasks.length) * 100) : project.progress;
-            return {
-                ...project,
-                progress,
-                status: project.status || (progress >= 100 ? "Completed" : progress > 0 ? "In Progress" : "To-Do"),
-            };
-        }));
-    }, [loadedProjectRows, loadedTaskRows]);
+        if (Array.isArray(loadedProjectRows)) {
+            setProjectRows(loadedProjectRows);
+        }
+    }, [loadedProjectRows]);
 
     useEffect(() => {
-        const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
-        const employeeRows = Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [];
-        setAssignmentRows(taskRows.map((task) => {
-            const project = loadedProjectRows?.find?.((row) => String(row.backendId || row.id || "").toLowerCase() === String(task.projectId || "").toLowerCase());
-            const employee = employeeRows.find((row) => [row.userId, row.backendId, row.employeeId, row.id].some((id) => String(id || "").toLowerCase() === String(task.assignedToId || "").toLowerCase()));
-            return {
-                id: task.displayId || task.id,
-                backendId: task.backendId || task.id,
-                taskId: task.backendId || task.id,
-                projectId: task.projectId,
-                project: project?.name || task.project,
-                taskType: task.taskName || task.category || "Assigned Task",
-                assignedToId: task.assignedToId,
-                assignedTo: employee?.name || employee?.displayName || task.assignedTo,
-                assignedDate: task.assignedDate || task.startDate || "",
-                dueDate: task.dueDate,
-                priority: task.priority,
-                status: task.status,
-            };
-        }));
-    }, [loadedTaskRows, loadedEmployeeRows, loadedProjectRows]);
-
-    const accessibleProjectRows = useMemo(
-        () => filterRowsByAccess(projectRows, currentUser, "projects"),
-        [projectRows, currentUser]
-    );
+        if (Array.isArray(loadedTaskRows)) {
+            setAssignmentRows(loadedTaskRows.map(taskToAssignedTaskRow));
+        }
+    }, [loadedTaskRows]);
 
     const accessibleAssignmentRows = useMemo(
-        () => [],
-        []
+        () => filterRowsByAccess(assignmentRows, currentUser, "tasks"),
+        [assignmentRows, currentUser]
     );
+
+    const accessibleProjectRows = useMemo(() => {
+        if (hasManagerAccess) return projectRows;
+
+        const assignedProjectNames = [...new Set(accessibleAssignmentRows.map((task) => task.project).filter(Boolean))];
+        return projectRows.filter((project) => assignedProjectNames.includes(project.name));
+    }, [projectRows, accessibleAssignmentRows, hasManagerAccess]);
 
     const projectOptions = useMemo(
         () => getUniqueOptions(accessibleProjectRows, "name", "All Projects"),
@@ -1044,14 +1133,14 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
         const firstEmployee = employeeSelectOptions[0];
         setAssignmentModal({
             mode: "create",
-            data: {
-                id: generateNextId("ASG", assignmentRows),
+        data: {
+                id: generateNextId("TSK", assignmentRows),
                 projectId: firstProject?.backendId || firstProject?.id || "",
                 project: firstProject?.name || "",
                 taskType: "Other",
+                taskName: "Other",
                 assignedToId: firstEmployee?.id || "",
                 assignedTo: firstEmployee?.name || "",
-                assignedDate: "May 01, 2026",
                 dueDate: "May 30, 2026",
                 priority: "Normal",
                 status: "Assigned",
@@ -1073,11 +1162,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                 const savedProject = projectModal.mode === "create"
                     ? await apiPlaceholders.createProject(projectToApi(cleanProject))
                     : await apiPlaceholders.updateProject(cleanProject.backendId || cleanProject.id, projectToApi(cleanProject));
-                cleanProject = { ...cleanProject, ...(normalizeProjectRows([savedProject])[0] || {}) };
-
-                if (projectModal.mode === "create") {
-                    await apiPlaceholders.createImagesForProjectMetrics(cleanProject);
-                }
+                cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
             } catch (apiError) {
                 console.warn("Project API request failed. The project list was not changed.", apiError);
                 window.alert(apiError?.message || "Project could not be saved. Please try again.");
@@ -1098,27 +1183,29 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
 
     const saveAssignment = async (assignment) => {
         if (!hasManagerAccess) return;
-        let cleanAssignment = {
+        let cleanAssignment = normalizeTaskForTimers({
             ...assignment,
-            id: assignment.backendId || assignment.taskId || assignment.id || generateNextId("ASG", assignmentRows),
+            id: assignment.backendId || assignment.taskId || assignment.id || generateNextId("TSK", assignmentRows),
             taskName: assignment.taskName || assignment.taskType || "General Task",
             taskType: String(assignment.taskType || "Other").trim() || "Other",
             category: assignment.category || assignment.taskType || "Other",
             assignedTo: String(assignment.assignedTo || "").trim() || "Unassigned",
-        };
+        });
 
         if (getUseApiDataSetting()) {
             try {
                 const savedAssignment = assignmentModal.mode === "create"
-                    ? await apiPlaceholders.createAssignment(cleanAssignment)
-                    : await apiPlaceholders.updateAssignment(cleanAssignment.backendId || cleanAssignment.taskId || cleanAssignment.id, cleanAssignment);
-                cleanAssignment = normalizeAssignmentRows([savedAssignment])[0] || cleanAssignment;
+                    ? await apiPlaceholders.createTask(cleanAssignment)
+                    : await apiPlaceholders.updateTask(cleanAssignment.backendId || cleanAssignment.taskId || cleanAssignment.id, cleanAssignment);
+                cleanAssignment = taskToAssignedTaskRow(normalizeTaskRows(savedAssignment)[0] || savedAssignment || cleanAssignment);
             } catch (apiError) {
-                console.warn("Assignment API request failed. The assignment list was not changed.", apiError);
-                window.alert(apiError?.message || "Assignment could not be saved. Please try again.");
+                console.warn("Task API request failed. The assigned task list was not changed.", apiError);
+                window.alert(apiError?.message || "Assigned task could not be saved. Please try again.");
                 return;
             }
         }
+
+        cleanAssignment = taskToAssignedTaskRow(cleanAssignment);
 
         setAssignmentRows((currentRows) => {
             if (assignmentModal.mode === "create") {
@@ -1146,13 +1233,13 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
     };
 
     const deleteAssignment = async (assignment) => {
-        if (!hasManagerAccess || !window.confirm(`Delete ${assignment.id}?`)) return;
+        if (!hasManagerAccess || !window.confirm(`Delete ${assignment.taskName || assignment.taskType || assignment.id}?`)) return;
         if (getUseApiDataSetting()) {
             try {
-                await apiPlaceholders.deleteAssignment(assignment.backendId || assignment.taskId || assignment.id);
+                await apiPlaceholders.deleteTask(assignment.backendId || assignment.taskId || assignment.id);
             } catch (apiError) {
-                console.warn("Assignment delete API request failed. The assignment list was not changed.", apiError);
-                window.alert(apiError?.message || "Assignment could not be deleted. Please try again.");
+                console.warn("Task delete API request failed. The assigned task list was not changed.", apiError);
+                window.alert(apiError?.message || "Assigned task could not be deleted. Please try again.");
                 return;
             }
         }
@@ -1173,7 +1260,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
         <section className="space-y-5 bg-slate-50 p-3 sm:p-4 lg:p-6">
             {!hasManagerAccess && (
                 <div className="rounded-xl border border-violet-200 bg-violet-50 px-5 py-4 text-sm font-semibold text-violet-800">
-                    Employee view: only projects connected to your login are shown.
+                    Employee view: only projects connected to tasks assigned directly to your login are shown.
                 </div>
             )}
 
@@ -1253,9 +1340,77 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                 <TableFooter text={getRangeText(projectPage, PROJECTS_PAGE_SIZE, sortedProjectRows.length, "projects")} currentPage={projectPage} totalPages={projectTotalPages} onPageChange={setProjectPage} />
             </div>
 
+            <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <h2 className="flex items-center gap-3 text-xl font-bold sm:text-2xl">
+                        <ListChecks size={26} /> Assigned Tasks
+                    </h2>
+                    {hasManagerAccess && (
+                        <button
+                            type="button"
+                            onClick={openNewAssignmentModal}
+                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 sm:w-auto"
+                        >
+                            <Plus size={16} /> New Assigned Task
+                        </button>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 border-b border-slate-200 px-5 py-4 md:grid-cols-[auto_auto_auto] md:items-center">
+                    <FilterSelect value={projectFilter} onChange={(value) => { setProjectFilter(value); setAssignmentPage(1); }} options={projectOptions} />
+                    {hasManagerAccess && (
+                        <FilterSelect value={employeeFilter} onChange={(value) => { setEmployeeFilter(value); setAssignmentPage(1); }} options={employeeOptions} />
+                    )}
+                    <FilterSelect value={statusFilter} onChange={(value) => { setStatusFilter(value); setAssignmentPage(1); }} options={statusOptions} />
+                </div>
+
+                <table className="min-w-[900px] w-full border-collapse text-sm">
+                    <thead className="bg-slate-200 text-slate-800">
+                    <tr>
+                        {ASSIGNED_TASK_COLUMNS.map((column) => (
+                            <SortableHeader key={column.key} column={column} sortConfig={assignmentSort} onSort={handleAssignmentSort} />
+                        ))}
+                        {hasManagerAccess && <th className="border border-slate-300 px-4 py-3 text-center font-bold">Actions</th>}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {visibleAssignmentRows.map((assignment) => (
+                        <tr key={assignment.backendId || assignment.id} className="hover:bg-slate-50">
+                            <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">{formatTaskId(assignment.displayId || assignment.id)}</td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.project}</td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.taskType}</td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.assignedTo}</td>
+                            <td className="border border-slate-300 px-4 py-3">{assignment.dueDate}</td>
+                            <td className="border border-slate-300 px-4 py-3 text-center"><PriorityBadge value={assignment.priority} /></td>
+                            <td className="border border-slate-300 px-4 py-3 text-center"><Badge value={assignment.status} /></td>
+                            {hasManagerAccess && (
+                                <td className="border border-slate-300 px-4 py-3">
+                                    <RowActions onEdit={() => setAssignmentModal({ mode: "edit", data: assignment })} onDelete={() => deleteAssignment(assignment)} />
+                                </td>
+                            )}
+                        </tr>
+                    ))}
+                    {visibleAssignmentRows.length === 0 && (
+                        <tr>
+                            <td colSpan={hasManagerAccess ? 8 : 7} className="border border-slate-300 px-4 py-8 text-center text-slate-500">
+                                No assigned tasks found for the selected filters.
+                            </td>
+                        </tr>
+                    )}
+                    </tbody>
+                </table>
+                <TableFooter text={getRangeText(assignmentPage, ASSIGNMENTS_PAGE_SIZE, sortedAssignmentRows.length, "assigned tasks")} currentPage={assignmentPage} totalPages={assignmentTotalPages} onPageChange={setAssignmentPage} />
+            </div>
+
             {projectModal && (
                 <Modal title={projectModal.mode === "create" ? "New Project" : "Edit Project"} onClose={() => setProjectModal(null)}>
                     <ProjectForm initialProject={projectModal.data} onCancel={() => setProjectModal(null)} onSave={saveProject} />
+                </Modal>
+            )}
+
+            {assignmentModal && (
+                <Modal title={assignmentModal.mode === "create" ? "New Assigned Task" : "Edit Assigned Task"} onClose={() => setAssignmentModal(null)}>
+                    <AssignmentForm initialAssignment={assignmentModal.data} projectOptions={projectSelectOptions} employeeOptions={employeeSelectOptions} onCancel={() => setAssignmentModal(null)} onSave={saveAssignment} />
                 </Modal>
             )}
         </section>

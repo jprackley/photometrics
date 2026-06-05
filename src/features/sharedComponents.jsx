@@ -55,7 +55,6 @@ import {
     useApiPlaceholder,
 } from "../services/api";
 import {
-    assignments,
     employees,
     employeeActivity,
     findMockUserByEmail,
@@ -364,22 +363,70 @@ function Modal({ title, children, onClose }) {
 
 
 /**
- * Small metric card used by the Reports and Analytics sections.
+ * Small metric card used by dashboard and report sections.
  */
-function InsightCard({ label, value, note, icon: Icon = BarChart3 }) {
+function InsightCard({
+    label,
+    value,
+    note,
+    icon: Icon = BarChart3,
+    tone = "violet",
+    valueClassName = "",
+    className = "",
+}) {
+    const toneStyles = {
+        blue: {
+            border: "border-blue-100",
+            icon: "bg-blue-50 text-blue-700",
+            value: "text-blue-900",
+        },
+        amber: {
+            border: "border-amber-100",
+            icon: "bg-amber-50 text-amber-700",
+            value: "text-amber-900",
+        },
+        emerald: {
+            border: "border-emerald-100",
+            icon: "bg-emerald-50 text-emerald-700",
+            value: "text-emerald-900",
+        },
+        cyan: {
+            border: "border-cyan-100",
+            icon: "bg-cyan-50 text-cyan-700",
+            value: "text-cyan-900",
+        },
+        violet: {
+            border: "border-violet-100",
+            icon: "bg-violet-50 text-violet-700",
+            value: "text-violet-900",
+        },
+        slate: {
+            border: "border-slate-200",
+            icon: "bg-slate-100 text-slate-700",
+            value: "text-slate-950",
+        },
+    };
+    const cardTone = toneStyles[tone] || toneStyles.violet;
+    const valueTitle = typeof value === "string" || typeof value === "number" ? String(value) : undefined;
+
     return (
-        <div className="pm-surface rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
-            <div className="flex items-center justify-between gap-3">
-                <div>
-                    <div className="text-sm font-bold text-slate-600">{label}</div>
-                    <div className="mt-3 text-3xl font-bold text-slate-950">{value}</div>
+        <article className={`pm-surface rounded-lg border ${cardTone.border} bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-md ${className}`}>
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-slate-600">{label}</p>
+                    <p
+                        className={`mt-3 min-w-0 truncate text-3xl font-bold leading-none ${cardTone.value} ${valueClassName}`}
+                        title={valueTitle}
+                    >
+                        {value}
+                    </p>
                 </div>
-                <div className="rounded-lg bg-violet-50 p-3 text-violet-700">
-                    <Icon size={24} />
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1 ring-black/5 ${cardTone.icon}`}>
+                    <Icon size={20} />
                 </div>
             </div>
-            {note && <p className="mt-3 text-sm text-slate-500">{note}</p>}
-        </div>
+            {note && <p className="mt-3 truncate text-sm text-slate-500">{note}</p>}
+        </article>
     );
 }
 

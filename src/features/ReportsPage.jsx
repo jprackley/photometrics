@@ -75,8 +75,6 @@ import {
     workflow,
 } from "../data/mockData";
 import {
-    ASSIGNMENTS_PAGE_SIZE,
-    ASSIGNMENT_COLUMNS,
     EMPLOYEES_PAGE_SIZE,
     EMPLOYEE_COLUMNS,
     PROJECTS_PAGE_SIZE,
@@ -107,6 +105,7 @@ import {
 } from "../utils/helpers";
 import {
     ANALYTICS_COLORS,
+    REPORT_ASSIGNMENT_COLUMNS,
     REPORT_EMPLOYEE_COLUMNS,
     REPORT_PROJECT_COLUMNS,
     REPORT_TIME_COLUMNS,
@@ -286,11 +285,13 @@ function ReportsPage({ globalSearch = "" }) {
     const [employeeFilter, setEmployeeFilter] = useState("All Employees");
 
     const reportData = useMemo(
-        () => buildOperationsReportData(projectRows, [], taskRows, employeeRows, timeEntryRows),
+        () => buildOperationsReportData(projectRows, taskRows, employeeRows, timeEntryRows),
         [projectRows, taskRows, employeeRows, timeEntryRows]
     );
 
-    const useLiveProjectDeliveryReport = getUseApiDataSetting();
+    // The backend does not currently mount project_delivery report snapshot routes,
+    // so the page uses the normalized project/task data already loaded above.
+    const useLiveProjectDeliveryReport = false;
 
     const projectSelectOptions = useMemo(() => ([
         { value: "", label: "Select a project" },
@@ -417,6 +418,14 @@ function ReportsPage({ globalSearch = "" }) {
             rows: reportData.employeeReportRows,
             searchKeys: ["name", "role", "status"],
         },
+        {
+            label: "Task Assignment Status",
+            filename: "photometrics-task-assignment-status-report.csv",
+            title: "Task Assignment Status Report",
+            columns: REPORT_ASSIGNMENT_COLUMNS,
+            rows: reportData.taskAssignmentReportRows,
+            searchKeys: ["id", "project", "taskType", "assignedTo", "dueDate", "priority", "status", "dueStatus"],
+        },
     ]), [reportData, useLiveProjectDeliveryReport, projectDeliveryPreviewRow, projectDeliveryHistoryRows]);
 
     const activeReport = reportDefinitions.find((report) => report.label === reportType) || reportDefinitions[0];
@@ -445,7 +454,7 @@ function ReportsPage({ globalSearch = "" }) {
                     <div>
                         <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">Reports</h1>
                         <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
-                            Export project delivery, task time, and employee productivity reports from one place.
+                            Export project delivery, task assignment status, task time, and employee productivity reports from one place.
                         </p>
                     </div>
 
@@ -469,12 +478,12 @@ function ReportsPage({ globalSearch = "" }) {
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
-                <InsightCard label="Projects" value={reportData.summary.totalProjects} note={`${reportData.summary.completedProjects} complete`} icon={Folder} />
-                <InsightCard label="Completion Rate" value={`${reportData.summary.completionRate}%`} note={`${formatNumber(reportData.summary.completedImages)} images complete`} icon={BarChart3} />
-                <InsightCard label="Images Remaining" value={formatNumber(reportData.summary.remainingImages)} note="Based on project progress" icon={Eye} />
-                <InsightCard label="Open Tasks" value={reportData.summary.openTasks} note={`${reportData.summary.completedTasks} task(s) complete`} icon={ListChecks} />
-                <InsightCard label="Review Queue" value={reportData.summary.reviewQueue} note="Tasks" icon={Bell} />
-                <InsightCard label="Tracked Time" value={formatDuration(reportData.summary.totalTrackedSeconds)} note={`${reportData.summary.utilizationRate}% of estimate`} icon={Clock} />
+                <InsightCard label="Projects" value={reportData.summary.totalProjects} note={`${reportData.summary.completedProjects} complete`} icon={Folder} tone="blue" />
+                <InsightCard label="Completion Rate" value={`${reportData.summary.completionRate}%`} note={`${formatNumber(reportData.summary.completedImages)} images complete`} icon={BarChart3} tone="emerald" />
+                <InsightCard label="Images Remaining" value={formatNumber(reportData.summary.remainingImages)} note="Based on project progress" icon={Eye} tone="violet" />
+                <InsightCard label="Open Tasks" value={reportData.summary.openTasks} note={`${reportData.summary.completedTasks} task(s) complete`} icon={ListChecks} tone="amber" />
+                <InsightCard label="Review Queue" value={reportData.summary.reviewQueue} note="Tasks ready for review" icon={Bell} tone="cyan" />
+                <InsightCard label="Tracked Time" value={formatDuration(reportData.summary.totalTrackedSeconds)} note={`${reportData.summary.utilizationRate}% of estimate`} icon={Clock} tone="slate" />
             </div>
 
 

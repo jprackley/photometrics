@@ -21,5 +21,4 @@ export {
     SettingsPage,
     EmployeeSettingsPage,
 } from "./SettingsPage";
-export { AnalyticsPage, AnalyticsPageSecure } from "./AnalyticsPage";
 export { PlaceholderPage } from "./PlaceholderPage";

@@ -67,7 +67,6 @@ import {
     normalizeProjectRows,
     normalizeProductivityKpiRows,
     normalizeTaskRows,
-    normalizeEmployeeRows,
     normalizeWorkflowKpiRows,
     normalizeEmployeeActivityKpiRows,
     normalizeProjectProgressKpiRows,
@@ -76,7 +75,6 @@ import {
     useApiPlaceholder,
 } from "../services/api";
 import {
-    assignments,
     employees,
     employeeActivity,
     findMockUserByEmail,
@@ -425,9 +423,6 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const { data: liveProjectData } = useApiPlaceholder(API_ENDPOINTS.projectsList, projects, {
         transformPayload: normalizeProjectRows,
     });
-    const { data: liveEmployeeData } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
-        transformPayload: normalizeEmployeeRows,
-    });
     const showDashboardTips = appSettings?.appearance?.showDashboardTips !== false;
     const employeeName = currentUser?.employeeName || currentUser?.name;
     const employeeActivityRows = Array.isArray(employeeActivityData) ? employeeActivityData : [];
@@ -469,20 +464,7 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
             x: { grid: { display: false } },
         },
     }), []);
-    const projectRows = Array.isArray(liveProjectData) ? liveProjectData : projects;
-    const employeeRows = Array.isArray(liveEmployeeData) ? liveEmployeeData : employees;
-    const projectNameById = new Map(projectRows.flatMap((project) => [[project.id, project.name], [project.backendId, project.name]]));
-    const employeeNameById = new Map(employeeRows.flatMap((employee) => ([
-        [employee.id, employee.name],
-        [employee.userId, employee.name],
-        [employee.backendId, employee.name],
-        [employee.employeeId, employee.name],
-    ])));
-    const taskRows = (Array.isArray(liveTaskData) ? liveTaskData : taskItems).map((task) => normalizeTaskForTimers({
-        ...task,
-        project: projectNameById.get(task.projectId) || task.project,
-        assignedTo: employeeNameById.get(task.assignedToId) || task.assignedTo,
-    }));
+    const taskRows = Array.isArray(liveTaskData) ? liveTaskData.map(normalizeTaskForTimers) : taskItems.map(normalizeTaskForTimers);
     const workflowRows = useMemo(() => {
         const rowsFromTasks = buildWorkflowRowsFromTasks(taskRows);
         return rowsFromTasks.length > 0 ? rowsFromTasks : rawWorkflowRows;
@@ -507,32 +489,19 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
             tooltip: { callbacks: { label: (context) => `${context.label}: ${context.parsed}%` } },
         },
     }), []);
-    const taskActivityRows = taskRows.map((task) => ([
-        task.assignedTo || "Unassigned",
-        `${task.taskName || task.category || "Task"} - ${task.project || "Unassigned Project"}`,
-        task.lastStoppedAt || task.dueDate || "",
-        task.status || "To-Do",
-    ]));
-    const activitySourceRows = taskActivityRows.length >= employeeActivityRows.length ? taskActivityRows : employeeActivityRows;
     const visibleEmployeeActivityData = hasManagerAccess
-        ? activitySourceRows
-        : activitySourceRows.filter((row) => row[0] === employeeName);
+        ? employeeActivityRows
+        : employeeActivityRows.filter((row) => row[0] === employeeName);
+    const projectRows = Array.isArray(liveProjectData) ? liveProjectData : projects;
     const assignedTasks = taskRows.filter((task) => isAssignedToUser(task, currentUser));
     const assignedProjectNames = Array.from(new Set(
         assignedTasks
             .map((task) => task.project)
             .filter(Boolean)
     ));
-    const taskDerivedProjectProgressRows = projectRows.map((project) => {
-        const projectTasks = taskRows.filter((task) => task.project === project.name || String(task.projectId || "").toLowerCase() === String(project.backendId || project.id || "").toLowerCase());
-        const completedTasks = projectTasks.filter((task) => String(task.status || "").toLowerCase() === "completed").length;
-        const progress = projectTasks.length ? Math.round((completedTasks / projectTasks.length) * 100) : normalizeNumber(project.progress);
-        return [project.name, projectTasks.length, completedTasks, Math.max(0, projectTasks.length - completedTasks), progress, project.status, project.dueDate];
-    });
-    const projectProgressSourceRows = taskDerivedProjectProgressRows.length ? taskDerivedProjectProgressRows : projectProgressRows;
     const visibleProjectProgressData = hasManagerAccess
-        ? projectProgressSourceRows
-        : projectProgressSourceRows.filter((row) => assignedProjectNames.includes(row[0]));
+        ? projectProgressRows
+        : projectProgressRows.filter((row) => assignedProjectNames.includes(row[0]));
     const assignedTaskRows = assignedTasks.map((task) => ({
         id: task.id,
         project: task.project,
@@ -571,11 +540,11 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const projectLabel = projectRows.length === 1 ? "project" : "projects";
     const openTaskLabel = openTaskCount === 1 ? "open task" : "open tasks";
     const reviewItemLabel = reviewQueueCount === 1 ? "review item" : "review items";
-    const assignmentLabel = assignedTasks.length === 1 ? "assignment" : "tasks";
+    const taskAssignmentLabel = assignedTasks.length === 1 ? "assigned task" : "assigned tasks";
     const dashboardTitle = hasManagerAccess ? "Studio Overview" : "My Dashboard";
     const dashboardSubtitle = hasManagerAccess
         ? `${projectRows.length} ${projectLabel}, ${openTaskCount} ${openTaskLabel}, ${reviewQueueCount} ${reviewItemLabel}`
-        : `${assignedTasks.length} ${taskLabel} connected to ${employeeName || "your login"}`;
+        : `${assignedTasks.length} ${taskAssignmentLabel} connected to ${employeeName || "your login"}`;
 
     return (
         <section className="min-h-full px-3 py-4 sm:px-5 lg:px-6 lg:py-6">
@@ -703,9 +672,9 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                        <EmployeeTasksPanel
+                        <AssignedTasksPanel
                             rows={assignedTaskRows}
-                            onViewAll={() => onPageChange?.("projects")}
+                            onViewAll={() => onPageChange?.("tasks")}
                         />
                         <ProjectProgressPanel
                             rows={visibleProjectProgressData}
@@ -832,7 +801,7 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedTaskRows = [], 
                     <div>
                         <h2 className="text-xl font-bold sm:text-2xl">My Work Queue</h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            Your next assigned tasks only. Other employees' tasks are hidden.
+                            Your next assigned tasks only. Other employees' work is hidden.
                         </p>
                     </div>
                     <button
@@ -936,16 +905,16 @@ function EmployeeDashboardInsights({ assignedTasks = [], assignedTaskRows = [], 
 }
 
 /**
- * Shows the current employee's most recent assignment records.
+ * Shows the current employee's most recent assigned task records.
  */
-function EmployeeTasksPanel({ rows = [], onViewAll }) {
+function AssignedTasksPanel({ rows = [], onViewAll }) {
     const visibleRows = rows.slice(0, 5);
 
     return (
         <section className="pm-surface rounded-lg border border-slate-200 bg-white">
             <div className="p-4 pb-3 sm:p-5 sm:pb-4">
                 <DashboardPanelHeader
-                    title="My Tasks"
+                    title="My Assigned Tasks"
                     subtitle="Current work connected to your login"
                     count={`${rows.length} records`}
                     actionLabel={onViewAll ? "Tasks" : undefined}
@@ -972,14 +941,14 @@ function EmployeeTasksPanel({ rows = [], onViewAll }) {
                     </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                    {visibleRows.length > 0 ? visibleRows.map((assignment) => (
-                        <tr key={assignment.id} className="hover:bg-slate-50">
-                            <td className="px-3 py-3 font-semibold text-slate-900">{assignment.id}</td>
-                            <td className="px-3 py-3 text-slate-700">{assignment.project}</td>
-                            <td className="px-3 py-3 text-slate-700">{assignment.taskType}</td>
-                            <td className="px-3 py-3 text-slate-600">{assignment.dueDate}</td>
-                            <td className="px-3 py-3"><PriorityBadge value={assignment.priority} /></td>
-                            <td className="px-3 py-3"><Badge value={assignment.status} /></td>
+                    {visibleRows.length > 0 ? visibleRows.map((task) => (
+                        <tr key={task.id} className="hover:bg-slate-50">
+                            <td className="px-3 py-3 font-semibold text-slate-900">{task.id}</td>
+                            <td className="px-3 py-3 text-slate-700">{task.project}</td>
+                            <td className="px-3 py-3 text-slate-700">{task.taskType}</td>
+                            <td className="px-3 py-3 text-slate-600">{task.dueDate}</td>
+                            <td className="px-3 py-3"><PriorityBadge value={task.priority} /></td>
+                            <td className="px-3 py-3"><Badge value={task.status} /></td>
                         </tr>
                     )) : (
                         <tr>
@@ -1016,7 +985,7 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
             <div className="p-4 pb-3 sm:p-5 sm:pb-4">
                 <DashboardPanelHeader
                     title="Employee Activity"
-                    subtitle="Latest assignment movement"
+                    subtitle="Latest task movement"
                     count={`${rows.length} records`}
                     actionLabel={onViewAll ? "Employees" : undefined}
                     onAction={onViewAll}
@@ -1029,7 +998,7 @@ function EmployeeActivityPanel({ rows = employeeActivity, onViewAll }) {
                 {/* Table header */}
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                    {["Employee", "Task", "Updated", "Status"]
+                    {["Employee", "Assigned Task", "Updated", "Status"]
                         .map((h) => (
                             <th
                                 key={h}
@@ -1217,7 +1186,7 @@ function ProjectProgressPanel({ rows = projectProgress, onViewAll }) {
 
 // Reports page
 /**
- * Small metric card used by the Reports and Analytics sections.
+ * Small metric card used by dashboard and report sections.
  */
 function InsightCard({ label, value, note, icon: Icon = BarChart3 }) {
     return (

@@ -51,13 +51,11 @@ import {
     getUseApiDataSetting,
     normalizeBackendUser,
     normalizeEmployeeRows,
-    normalizeTaskRows,
     saveUseApiDataSetting,
     unwrapApiPayload,
     useApiPlaceholder,
 } from "../services/api";
 import {
-    assignments,
     employees,
     employeeActivity,
     findMockUserByEmail,
@@ -131,6 +129,7 @@ import {
     FormField,
     TextInput,
     Modal,
+    InsightCard,
 } from "./sharedComponents";
 
 /**
@@ -376,9 +375,6 @@ function EmployeesPage({ globalSearch = "" }) {
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
         transformPayload: normalizeEmployeeRows,
     });
-    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
-        transformPayload: normalizeTaskRows,
-    });
 
     const [employeeRows, setEmployeeRows] = useState(employees);
     const [employeeSort, setEmployeeSort] = useState({ key: "name", direction: "asc" });
@@ -389,50 +385,10 @@ function EmployeesPage({ globalSearch = "" }) {
     const [employeeModal, setEmployeeModal] = useState(null);
 
     useEffect(() => {
-        if (!Array.isArray(loadedEmployeeRows)) return;
-
-        const taskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
-        const today = new Date().toDateString();
-        const isOpenStatus = (status) => !["completed", "complete", "cancelled"].includes(String(status || "").toLowerCase());
-
-        setEmployeeRows(loadedEmployeeRows.map((employee) => {
-            const employeeKeys = new Set([
-                employee.userId,
-                employee.backendId,
-                employee.employeeId,
-                employee.id,
-                employee.name,
-                employee.displayName,
-                employee.email,
-            ].filter(Boolean).map((value) => String(value).toLowerCase()));
-
-            const employeeTasks = taskRows.filter((task) => {
-                const taskKeys = [task.assignedToId, task.employeeId, task.assignedTo, task.assigned_to_email]
-                    .filter(Boolean)
-                    .map((value) => String(value).toLowerCase());
-                return taskKeys.some((value) => employeeKeys.has(value));
-            });
-
-            const openTasks = employeeTasks.filter((task) => isOpenStatus(task.status));
-            const completedToday = employeeTasks.filter((task) => {
-                if (String(task.status || "").toLowerCase() !== "completed") return false;
-                const dateValue = task.completedAt || task.completed_at || task.lastStoppedAt || task.dueDate;
-                const parsed = new Date(dateValue);
-                return !Number.isNaN(parsed.getTime()) && parsed.toDateString() === today;
-            }).length;
-            const trackedSeconds = employeeTasks.reduce((total, task) => total + Number(task.trackedSeconds || 0), 0);
-            const completedTasks = employeeTasks.filter((task) => String(task.status || "").toLowerCase() === "completed").length;
-
-            return {
-                ...employee,
-                currentTask: openTasks[0]?.taskName || employee.currentTask || "No active task",
-                activeTasks: openTasks.length,
-                completedToday: completedToday || employee.completedToday || 0,
-                hoursToday: trackedSeconds ? Number((trackedSeconds / 3600).toFixed(2)) : employee.hoursToday || 0,
-                efficiency: employeeTasks.length ? Math.round((completedTasks / employeeTasks.length) * 100) : employee.efficiency || 0,
-            };
-        }));
-    }, [loadedEmployeeRows, loadedTaskRows]);
+        if (Array.isArray(loadedEmployeeRows)) {
+            setEmployeeRows(loadedEmployeeRows);
+        }
+    }, [loadedEmployeeRows]);
 
     const roleOptions = useMemo(() => {
         const existingTitles = employeeRows
@@ -584,45 +540,10 @@ function EmployeesPage({ globalSearch = "" }) {
     return (
         <section className="space-y-5 bg-slate-50 p-3 sm:p-4 lg:p-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-xl border border-slate-300 bg-white px-4 py-5 shadow-sm">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <p className="text-sm font-bold text-slate-600">Total Employees</p>
-                            <p className="mt-2 text-3xl font-bold">{employeeRows.length}</p>
-                        </div>
-                        <Users size={32} className="text-violet-600" />
-                    </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-300 bg-white px-4 py-5 shadow-sm">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <p className="text-sm font-bold text-slate-600">Active Now</p>
-                            <p className="mt-2 text-3xl font-bold">{totalActiveEmployees}</p>
-                        </div>
-                        <Play size={32} className="text-violet-600" />
-                    </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-300 bg-white px-4 py-5 shadow-sm">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <p className="text-sm font-bold text-slate-600">Completed Today</p>
-                            <p className="mt-2 text-3xl font-bold">{totalCompletedToday}</p>
-                        </div>
-                        <ListChecks size={32} className="text-violet-600" />
-                    </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-300 bg-white px-4 py-5 shadow-sm">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <p className="text-sm font-bold text-slate-600">Avg. Efficiency</p>
-                            <p className="mt-2 text-3xl font-bold">{averageEfficiency}%</p>
-                        </div>
-                        <BarChart3 size={32} className="text-violet-600" />
-                    </div>
-                </div>
+                <InsightCard label="Total Employees" value={employeeRows.length} icon={Users} tone="cyan" />
+                <InsightCard label="Active Now" value={totalActiveEmployees} icon={Play} tone="violet" />
+                <InsightCard label="Completed Today" value={totalCompletedToday} icon={ListChecks} tone="blue" />
+                <InsightCard label="Avg. Efficiency" value={`${averageEfficiency}%`} icon={BarChart3} tone="violet" />
             </div>
 
             <div className="rounded-xl border border-slate-300 bg-white shadow-sm">
@@ -709,7 +630,9 @@ function EmployeesPage({ globalSearch = "" }) {
                             <tr key={employee.id} className="hover:bg-slate-50">
                                 <td className="border border-slate-300 px-4 py-3">
                                     <div className="font-semibold text-slate-900">{employee.name}</div>
-                                    <div className="text-xs text-slate-500">{employee.displayId || employee.id}</div>
+                                    <div className="text-xs text-slate-500">
+                                        {`EMP-${String(employee.employeeNumber || employee.employee_number || employee.empNumber || employee.emp_number || employee.id).replace(/[^0-9]/g, "").slice(-4).padStart(4, "0")}`}
+                                    </div>
                                     <div className="text-xs text-slate-500">{employee.email}</div>
                                 </td>
                                 <td className="border border-slate-300 px-4 py-3 font-medium">{getEmployeeJobTitle(employee)}</td>

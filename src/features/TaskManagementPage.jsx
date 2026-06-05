@@ -58,7 +58,6 @@ import {
     useApiPlaceholder,
 } from "../services/api";
 import {
-    assignments,
     employees,
     employeeActivity,
     findMockUserByEmail,
@@ -90,6 +89,7 @@ import {
     formatDuration,
     formatNumber,
     formatPercent,
+    formatTaskId,
     generateNextId,
     getLiveTrackedSeconds,
     getNextSort,
@@ -132,57 +132,8 @@ import {
     FormField,
     TextInput,
     Modal,
+    InsightCard,
 } from "./sharedComponents";
-
-const TASK_TYPE_OPTIONS = ["Import", "Cull", "Edit", "Quality Review", "Export", "Delivery", "Other"];
-
-function getEmployeeOptionId(employee) {
-    if (!employee || typeof employee === "string") return employee || "";
-    return employee.userId || employee.backendId || employee.employeeId || employee.id || employee.name || employee.displayName || employee.email || "";
-}
-
-function getEmployeeOptionName(employee) {
-    if (!employee || typeof employee === "string") return employee || "";
-    return employee.name || employee.displayName || employee.email || employee.employeeName || "";
-}
-
-function buildEmployeeSelectOptions(employeeRows = [], taskRows = []) {
-    const optionMap = new Map();
-
-    employeeRows.forEach((employee) => {
-        const name = getEmployeeOptionName(employee);
-        if (!name) return;
-        const id = getEmployeeOptionId(employee) || name;
-        optionMap.set(id, { id, name });
-    });
-
-    taskRows.forEach((task) => {
-        const name = task.assignedTo;
-        if (!name || name === "Unassigned") return;
-        const id = task.assignedToId || name;
-        if (!optionMap.has(id)) optionMap.set(id, { id, name });
-    });
-
-    return Array.from(optionMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-}
-
-function matchesBackendId(left, right) {
-    if (!left || !right) return false;
-    return String(left).toLowerCase() === String(right).toLowerCase();
-}
-
-function enrichTasksWithProjectAndEmployeeNames(taskRows = [], projectRows = [], employeeRows = []) {
-    return taskRows.map((task) => {
-        const project = projectRows.find((row) => matchesBackendId(row.backendId || row.id, task.projectId));
-        const employee = employeeRows.find((row) => [row.userId, row.backendId, row.employeeId, row.id].some((id) => matchesBackendId(id, task.assignedToId)));
-
-        return {
-            ...task,
-            project: project?.name || task.project,
-            assignedTo: employee?.name || employee?.displayName || employee?.email || task.assignedTo,
-        };
-    });
-}
 
 /**
  * Create/edit form for task records, including estimated and tracked time fields.
@@ -198,10 +149,8 @@ function TaskForm({ initialTask, projectOptions, employeeOptions, onCancel, onSa
         event.preventDefault();
         onSave({
             ...form,
-            taskName: String(form.taskName || "").trim() || "Untitled Task",
-            taskType: form.taskType || form.taskName || "Other",
-            category: form.category || form.taskType || form.taskName || "Other",
-            assignedTo: String(form.assignedTo || "").trim() || "Unassigned",
+            taskName: form.taskName.trim() || "Untitled Task",
+            assignedTo: form.assignedTo.trim() || "Unassigned",
             estimatedHours: normalizeNumber(form.estimatedHours),
             trackedSeconds: normalizeNumber(form.trackedSeconds),
         });
@@ -211,21 +160,7 @@ function TaskForm({ initialTask, projectOptions, employeeOptions, onCancel, onSa
         <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label="Task Name">
-                    <select
-                        value={TASK_TYPE_OPTIONS.includes(form.taskName) ? form.taskName : ""}
-                        onChange={(event) => {
-                            updateField("taskName", event.target.value);
-                            updateField("taskType", event.target.value);
-                            updateField("category", event.target.value);
-                        }}
-                        required
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                    >
-                        <option value="">Select task type</option>
-                        {TASK_TYPE_OPTIONS.map((taskType) => (
-                            <option key={taskType} value={taskType}>{taskType}</option>
-                        ))}
-                    </select>
+                    <TextInput value={form.taskName} onChange={(value) => updateField("taskName", value)} placeholder="Photo Editing Batch 1" />
                 </FormField>
 
                 <FormField label="Project">
@@ -241,21 +176,18 @@ function TaskForm({ initialTask, projectOptions, employeeOptions, onCancel, onSa
                 </FormField>
 
                 <FormField label="Assigned To">
-                    <select
-                        value={form.assignedToId || ""}
-                        onChange={(event) => {
-                            const selectedEmployee = employeeOptions.find((employee) => String(employee.id) === event.target.value);
-                            updateField("assignedToId", selectedEmployee?.id || "");
-                            updateField("assignedTo", selectedEmployee?.name || "");
-                        }}
-                        required
+                    <input
+                        list="task-employee-options"
+                        value={form.assignedTo}
+                        onChange={(event) => updateField("assignedTo", event.target.value)}
+                        placeholder="Employee name"
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                    >
-                        <option value="">Select employee</option>
+                    />
+                    <datalist id="task-employee-options">
                         {employeeOptions.map((employee) => (
-                            <option key={employee.id || employee.name} value={employee.id}>{employee.name}</option>
+                            <option key={employee} value={employee} />
                         ))}
-                    </select>
+                    </datalist>
                 </FormField>
 
                 <FormField label="Due Date">
@@ -357,14 +289,6 @@ function getTaskBackendId(task = {}) {
     return task.backendId || task.taskId || task.id;
 }
 
-function isTaskCompleted(task = {}) {
-    return String(task.status || "").toLowerCase() === "completed";
-}
-
-function isAlreadyCompletedTimerError(error) {
-    return Number(error?.status) === 400 && String(error?.message || "").toLowerCase().includes("already completed");
-}
-
 function getSavedTaskFromApiResponse(response, fallbackTask) {
     const savedTask = normalizeTaskRows(response)[0];
     return normalizeTaskForTimers(savedTask || fallbackTask);
@@ -372,20 +296,19 @@ function getSavedTaskFromApiResponse(response, fallbackTask) {
 
 function TimerControl({ task, currentTime, onStart, onStop, isAnotherTimerRunning }) {
     const isRunning = Boolean(task.timerStartedAt);
-    const isCompleted = isTaskCompleted(task);
 
     return (
         <div className="flex items-center justify-center gap-2">
             <button
                 type="button"
                 onClick={() => isRunning ? onStop(task) : onStart(task)}
-                disabled={(!isRunning && isAnotherTimerRunning) || (!isRunning && isCompleted)}
+                disabled={!isRunning && isAnotherTimerRunning}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
                     isRunning
                         ? "bg-red-600 text-white hover:bg-red-700"
                         : "bg-violet-600 text-white hover:bg-violet-700"
                 }`}
-                title={isCompleted && !isRunning ? "Completed tasks cannot be restarted" : isRunning ? "Stop timer" : "Start timer"}
+                title={isRunning ? "Stop timer" : "Start timer"}
             >
                 {isRunning ? <Square size={14} /> : <Play size={14} />}
                 {isRunning ? "Stop" : "Start"}
@@ -519,11 +442,8 @@ function TaskManagementPage() {
             data: {
                 id: generateNextId("TSK", taskRows),
                 taskName: "",
-                taskType: "",
-                category: "",
                 project: projectNames[0] || "Unassigned Project",
                 assignedTo: "",
-                assignedToId: "",
                 dueDate: "May 30, 2026",
                 priority: "Normal",
                 estimatedHours: 1,
@@ -541,18 +461,14 @@ function TaskManagementPage() {
         return [...new Set([...masterProjects, ...taskProjects])].sort();
     };
 
-    const employeeRowsForTasks = () => buildEmployeeSelectOptions(taskEmployeeRows, taskRows);
-
     const saveTask = async (task) => {
         const cleanTask = {
             ...task,
             id: task.id || generateNextId("TSK", taskRows),
             projectId: resolveProjectIdForTask(task, taskProjectRows, taskRows),
             assignedToId: resolveEmployeeIdForTask(task, taskEmployeeRows, taskRows),
-            taskName: String(task.taskName || "").trim() || "Untitled Task",
-            taskType: task.taskType || task.taskName || "Other",
-            category: task.category || task.taskType || task.taskName || "Other",
-            assignedTo: String(task.assignedTo || "").trim() || "Unassigned",
+            taskName: task.taskName.trim() || "Untitled Task",
+            assignedTo: task.assignedTo.trim() || "Unassigned",
             timerStartedAt: task.timerStartedAt || null,
             trackedSeconds: normalizeNumber(task.trackedSeconds),
         };
@@ -605,11 +521,6 @@ function TaskManagementPage() {
     };
 
     const startTimer = async (task) => {
-        if (isTaskCompleted(task)) {
-            window.alert("This task is already completed, so its timer cannot be restarted.");
-            return;
-        }
-
         const taskId = getTaskBackendId(task);
         if (activeTimerTaskId && activeTimerTaskId !== taskId) {
             window.alert("Please stop the active timer before starting another task.");
@@ -622,9 +533,7 @@ function TaskManagementPage() {
             try {
                 await apiPlaceholders.startTaskTimer(taskId, new Date(startedAt).toISOString());
             } catch (apiError) {
-                console.warn("Start timer API request failed. Timer was not started locally to avoid desyncing from the backend.", apiError);
-                window.alert(apiError?.message?.includes("already completed") ? "This task is already completed, so its timer cannot be restarted." : "The timer could not be started. Please refresh the page and try again.");
-                return;
+                console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
             }
         }
 
@@ -659,17 +568,13 @@ function TaskManagementPage() {
                     totalTrackedSeconds: nextTrackedSeconds,
                 });
             } catch (apiError) {
-                console.warn("Stop timer API request failed.", apiError);
-                if (!isAlreadyCompletedTimerError(apiError)) {
-                    window.alert("The timer could not be stopped. Please refresh the page and try again.");
-                    return;
-                }
+                console.warn("Stop timer API endpoint is not connected yet. Stopping locally.", apiError);
             }
         }
 
         setTaskRows((currentRows) => currentRows.map((row) => (
             getTaskBackendId(row) === getTaskBackendId(task)
-                ? { ...row, trackedSeconds: nextTrackedSeconds, timerStartedAt: null, lastStoppedAt, status: "Completed" }
+                ? { ...row, trackedSeconds: nextTrackedSeconds, timerStartedAt: null, lastStoppedAt }
                 : row
         )));
         setActiveTimerTaskId(null);
@@ -680,18 +585,13 @@ function TaskManagementPage() {
         <section className="space-y-5 bg-slate-50 p-3 sm:p-4 lg:p-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 {[
-                    ["Open Tasks", openTasks],
-                    ["Completed Tasks", completedTasks],
-                    ["In Review", reviewTasks],
-                    ["High Priority", highPriorityTasks],
-                    ["Total Tracked Time", formatDuration(totalTrackedSeconds)],
-                ].map(([label, value]) => (
-                    <div key={label} className="rounded-xl border border-slate-300 bg-white px-4 py-5 text-center shadow-sm sm:px-5 sm:py-6">
-                        <div className="text-sm font-bold">{label}</div>
-                        <div className={`mt-4 text-3xl ${label === "Total Tracked Time" ? "text-violet-700" : "text-black"}`}>
-                            {value}
-                        </div>
-                    </div>
+                    { label: "Open Tasks", value: openTasks, icon: ListChecks, tone: "amber" },
+                    { label: "Completed Tasks", value: completedTasks, icon: ShieldCheck, tone: "emerald" },
+                    { label: "In Review", value: reviewTasks, icon: Eye, tone: "blue" },
+                    { label: "High Priority", value: highPriorityTasks, icon: Bell, tone: "amber" },
+                    { label: "Total Tracked Time", value: formatDuration(totalTrackedSeconds), icon: Clock, tone: "violet", valueClassName: "text-violet-700" },
+                ].map((card) => (
+                    <InsightCard key={card.label} {...card} />
                 ))}
             </div>
 
@@ -732,7 +632,7 @@ function TaskManagementPage() {
                     <div className="mt-5 space-y-3 text-sm text-slate-700">
                         <div className="flex justify-between border-b border-slate-200 pb-2">
                             <span className="font-semibold">Active Task ID</span>
-                            <span>{activeTask ? (activeTask.displayId || activeTask.id) : "None"}</span>
+                            <span>{activeTask ? formatTaskId(activeTask.displayId || activeTask.id) : "None"}</span>
                         </div>
                         <div className="flex justify-between border-b border-slate-200 pb-2">
                             <span className="font-semibold">Assigned To</span>
@@ -842,7 +742,7 @@ function TaskManagementPage() {
                             return (
                                 <tr key={liveTask.displayId || liveTask.id} className="hover:bg-slate-50">
                                     <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">
-                                        {liveTask.displayId || liveTask.id}
+                                        {formatTaskId(liveTask.displayId || liveTask.id)}
                                     </td>
                                     <td className="border border-slate-300 px-4 py-3">
                                         <div className="font-semibold text-slate-900">{liveTask.taskName}</div>
@@ -906,7 +806,7 @@ function TaskManagementPage() {
                     <TaskForm
                         initialTask={taskModal.data}
                         projectOptions={projectRowsForTasks()}
-                        employeeOptions={employeeRowsForTasks()}
+                        employeeOptions={employeeOptions.filter((option) => option !== "All Employees")}
                         onCancel={() => setTaskModal(null)}
                         onSave={saveTask}
                     />
@@ -922,20 +822,19 @@ function TaskManagementPage() {
 function TimerControlSecure({ task, currentTime, currentUser, onStart, onStop, isAnotherTimerRunning, canUseTimer }) {
     const session = getTaskTimerSession(task, currentUser);
     const isRunning = Boolean(session.startedAt);
-    const isCompleted = isTaskCompleted(task);
 
     return (
         <div className="flex items-center justify-center gap-2">
             <button
                 type="button"
                 onClick={() => isRunning ? onStop(task) : onStart(task)}
-                disabled={!canUseTimer || (!isRunning && isAnotherTimerRunning) || (!isRunning && isCompleted)}
+                disabled={!canUseTimer || (!isRunning && isAnotherTimerRunning)}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
                     isRunning
                         ? "bg-red-600 text-white hover:bg-red-700"
                         : "bg-violet-600 text-white hover:bg-violet-700"
                 }`}
-                title={isCompleted && !isRunning ? "Completed tasks cannot be restarted" : isRunning ? "Stop your timer" : "Start your timer"}
+                title={isRunning ? "Stop your timer" : "Start your timer"}
             >
                 {isRunning ? <Square size={14} /> : <Play size={14} />}
                 {isRunning ? "Stop" : "Start"}
@@ -977,9 +876,9 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
 
     useEffect(() => {
         if (Array.isArray(loadedTaskRows)) {
-            setTaskRows(enrichTasksWithProjectAndEmployeeNames(loadedTaskRows.map(normalizeTaskForTimers), taskProjectRows, taskEmployeeRows));
+            setTaskRows(loadedTaskRows.map(normalizeTaskForTimers));
         }
-    }, [loadedTaskRows, taskProjectRows, taskEmployeeRows]);
+    }, [loadedTaskRows]);
 
     useEffect(() => {
         const currentUserKey = getTimerUserKey(currentUser);
@@ -1074,8 +973,6 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
         return [...new Set([...masterProjects, ...taskProjects])].sort();
     };
 
-    const employeeRowsForTasks = () => buildEmployeeSelectOptions(taskEmployeeRows, taskRows);
-
     const openNewTaskModal = () => {
         if (!hasManagerAccess) return;
         const projectNames = projectRowsForTasks();
@@ -1084,11 +981,8 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             data: {
                 id: generateNextId("TSK", taskRows),
                 taskName: "",
-                taskType: "",
-                category: "",
                 project: projectNames[0] || "Unassigned Project",
                 assignedTo: "",
-                assignedToId: "",
                 dueDate: "May 30, 2026",
                 priority: "Normal",
                 estimatedHours: 1,
@@ -1108,10 +1002,8 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             id: task.id || generateNextId("TSK", taskRows),
             projectId: resolveProjectIdForTask(task, taskProjectRows, taskRows),
             assignedToId: resolveEmployeeIdForTask(task, taskEmployeeRows, taskRows),
-            taskName: String(task.taskName || "").trim() || "Untitled Task",
-            taskType: task.taskType || task.taskName || "Other",
-            category: task.category || task.taskType || task.taskName || "Other",
-            assignedTo: String(task.assignedTo || "").trim() || "Unassigned",
+            taskName: task.taskName.trim() || "Untitled Task",
+            assignedTo: task.assignedTo.trim() || "Unassigned",
             trackedSeconds: normalizeNumber(task.trackedSeconds),
         });
 
@@ -1153,11 +1045,6 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
     };
 
     const startTimer = async (task) => {
-        if (isTaskCompleted(task)) {
-            window.alert("This task is already completed, so its timer cannot be restarted.");
-            return;
-        }
-
         if (!hasManagerAccess && !isAssignedToUser(task, currentUser)) {
             window.alert("You can only start timers on tasks assigned to your login.");
             return;
@@ -1182,9 +1069,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
             try {
                 await apiPlaceholders.startTaskTimer(taskId, new Date(startedAt).toISOString(), currentUser);
             } catch (apiError) {
-                console.warn("Start timer API request failed. Timer was not started locally to avoid desyncing from the backend.", apiError);
-                window.alert(apiError?.message?.includes("already completed") ? "This task is already completed, so its timer cannot be restarted." : "The timer could not be started. Please refresh the page and try again.");
-                return;
+                console.warn("Start timer API endpoint is not connected yet. Starting locally.", apiError);
             }
         }
 
@@ -1235,18 +1120,13 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                     userTrackedSeconds: nextTrackedSeconds,
                 });
             } catch (apiError) {
-                console.warn("Stop timer API request failed.", apiError);
-                if (!isAlreadyCompletedTimerError(apiError)) {
-                    window.alert("The timer could not be stopped. Please refresh the page and try again.");
-                    return;
-                }
+                console.warn("Stop timer API endpoint is not connected yet. Stopping locally.", apiError);
             }
         }
 
         setTaskRows((currentRows) => currentRows.map((row) => getTaskBackendId(row) === getTaskBackendId(task)
             ? {
                 ...row,
-                status: "Completed",
                 lastStoppedAt,
                 timersByUser: {
                     ...(row.timersByUser || {}),
@@ -1274,16 +1154,13 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 {[
-                    ["Open Tasks", openTasks],
-                    ["Completed Tasks", completedTasks],
-                    ["In Review", reviewTasks],
-                    ["High Priority", highPriorityTasks],
-                    [hasManagerAccess ? "Total Tracked Time" : "My Tracked Time", formatDuration(totalTrackedSeconds)],
-                ].map(([label, value]) => (
-                    <div key={label} className="rounded-xl border border-slate-300 bg-white px-4 py-5 text-center shadow-sm sm:px-5 sm:py-6">
-                        <div className="text-sm font-bold">{label}</div>
-                        <div className={`mt-4 text-3xl ${String(label).includes("Tracked") ? "text-violet-700" : "text-black"}`}>{value}</div>
-                    </div>
+                    { label: "Open Tasks", value: openTasks, icon: ListChecks, tone: "amber" },
+                    { label: "Completed Tasks", value: completedTasks, icon: ShieldCheck, tone: "emerald" },
+                    { label: "In Review", value: reviewTasks, icon: Eye, tone: "blue" },
+                    { label: "High Priority", value: highPriorityTasks, icon: Bell, tone: "amber" },
+                    { label: hasManagerAccess ? "Total Tracked Time" : "My Tracked Time", value: formatDuration(totalTrackedSeconds), icon: Clock, tone: "violet", valueClassName: "text-violet-700" },
+                ].map((card) => (
+                    <InsightCard key={card.label} {...card} />
                 ))}
             </div>
 
@@ -1306,7 +1183,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                         )}
                     </div>
                     <div className="mt-5 space-y-3 text-sm text-slate-700">
-                        <div className="flex justify-between border-b border-slate-200 pb-2"><span className="font-semibold">Active Task ID</span><span>{activeTask ? (activeTask.displayId || activeTask.id) : "None"}</span></div>
+                        <div className="flex justify-between border-b border-slate-200 pb-2"><span className="font-semibold">Active Task ID</span><span>{activeTask ? formatTaskId(activeTask.displayId || activeTask.id) : "None"}</span></div>
                         <div className="flex justify-between border-b border-slate-200 pb-2"><span className="font-semibold">Logged In As</span><span>{currentUser?.employeeName || currentUser?.name}</span></div>
                         <div className="flex justify-between"><span className="font-semibold">Last Stop</span><span>{activeTask ? getTaskTimerSession(activeTask, currentUser).lastStoppedAt || "Not recorded" : "Not recorded"}</span></div>
                     </div>
@@ -1349,7 +1226,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                             const canUseTimer = hasManagerAccess || isAssignedToUser(liveTask, currentUser);
                             return (
                                 <tr key={liveTask.displayId || liveTask.id} className="hover:bg-slate-50">
-                                    <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">{liveTask.displayId || liveTask.id}</td>
+                                    <td className="border border-slate-300 px-4 py-3 font-semibold text-slate-900">{formatTaskId(liveTask.displayId || liveTask.id)}</td>
                                     <td className="border border-slate-300 px-4 py-3"><div className="font-semibold text-slate-900">{liveTask.taskName}</div><div className="text-xs text-slate-500">Est. {liveTask.estimatedHours}h</div></td>
                                     <td className="border border-slate-300 px-4 py-3">{liveTask.project}</td>
                                     <td className="border border-slate-300 px-4 py-3">{liveTask.assignedTo}</td>
@@ -1373,7 +1250,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
 
             {taskModal && (
                 <Modal title={taskModal.mode === "create" ? "New Task" : "Edit Task"} onClose={() => setTaskModal(null)}>
-                    <TaskForm initialTask={taskModal.data} projectOptions={projectRowsForTasks()} employeeOptions={employeeRowsForTasks()} onCancel={() => setTaskModal(null)} onSave={saveTask} />
+                    <TaskForm initialTask={taskModal.data} projectOptions={projectRowsForTasks()} employeeOptions={employeeOptions.filter((option) => option !== "All Employees")} onCancel={() => setTaskModal(null)} onSave={saveTask} />
                 </Modal>
             )}
         </section>

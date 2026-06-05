@@ -48,6 +48,7 @@ import {
     API_ENDPOINTS,
     DEFAULT_USE_API_DATA,
     apiPlaceholders,
+    apiRequest,
     getUseApiDataSetting,
     normalizeBackendUser,
     saveUseApiDataSetting,
@@ -55,7 +56,6 @@ import {
     useApiPlaceholder,
 } from "../services/api";
 import {
-    assignments,
     employees,
     employeeActivity,
     findMockUserByEmail,
@@ -263,6 +263,28 @@ function LoginHeroGraphic() {
     );
 }
 
+
+function getMockLoginSummary() {
+    const totalTasks = taskItems.filter((task) => task.status !== "Cancelled").length;
+    const completedTasks = taskItems.filter((task) => task.status === "Completed").length;
+    const openTasks = taskItems.filter((task) => task.status !== "Completed" && task.status !== "Cancelled").length;
+
+    return {
+        projects: projects.length,
+        openTasks,
+        efficiency: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 100,
+    };
+}
+
+function formatLoginSummaryValue(value, suffix = "") {
+    if (value === null || value === undefined) return "—";
+
+    const numberValue = Number(value);
+    if (!Number.isFinite(numberValue)) return `${value}${suffix}`;
+
+    return `${numberValue.toLocaleString()}${suffix}`;
+}
+
 /**
  * Handles demo and API-backed login, including manager and employee credential shortcuts.
  */
@@ -276,6 +298,41 @@ function LoginPage({ onLogin }) {
     const [useMockLoginData, setUseMockLoginData] = useState(initialUseMockLoginData);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [loginSummary, setLoginSummary] = useState(() => getMockLoginSummary());
+
+    useEffect(() => {
+        let isMounted = true;
+
+        async function loadLoginSummary() {
+            if (useMockLoginData) {
+                setLoginSummary(getMockLoginSummary());
+                return;
+            }
+
+            try {
+                const summary = await apiRequest(API_ENDPOINTS.dashboard.loginSummary, { suppressApiError: true });
+
+                if (isMounted && summary) {
+                    setLoginSummary({
+                        projects: Number(summary.projects) || 0,
+                        openTasks: Number(summary.openTasks) || 0,
+                        efficiency: Number(summary.efficiency) || 0,
+                    });
+                }
+            } catch (summaryError) {
+                console.warn("Login summary API failed. Falling back to mock summary values.", summaryError);
+                if (isMounted) {
+                    setLoginSummary(getMockLoginSummary());
+                }
+            }
+        }
+
+        loadLoginSummary();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [useMockLoginData]);
 
     const handleMockDataToggle = (checked) => {
         setUseMockLoginData(checked);
@@ -361,11 +418,11 @@ function LoginPage({ onLogin }) {
                             <div className="absolute -right-10 top-40 h-32 w-32 rounded-full bg-[#d6b768]/20 blur-2xl" />
 
                             <div className="relative z-10 flex h-full flex-col">
-                                <div className="max-w-[360px] rounded-lg border border-white/10 bg-white p-4 shadow-lg">
-                                    <Logo />
+                                <div className="max-w-[380px] rounded-2xl border border-white/10 bg-white/95 p-2 shadow-xl shadow-black/20">
+                                    <Logo variant="login" />
                                 </div>
 
-                                <div className="mt-12 max-w-md">
+                                <div className="mt-10 max-w-md">
                                     <div className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#e8cf8b]">
                                         <ShieldCheck size={16} />
                                         Studio console
@@ -374,15 +431,15 @@ function LoginPage({ onLogin }) {
                                         Photometrics operations, in one secure workspace.
                                     </h1>
                                     <p className="mt-4 max-w-sm text-sm leading-6 text-slate-300">
-                                        Manage active photography projects, production assignments, employee work, and delivery progress.
+                                        Manage active photography projects, assigned task work, employee output, and delivery progress.
                                     </p>
                                 </div>
 
                                 <div className="mt-auto grid gap-3 pt-10 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
                                     {[
-                                        ["Projects", "12"],
-                                        ["Open tasks", "45"],
-                                        ["Efficiency", "87%"],
+                                        ["Projects", formatLoginSummaryValue(loginSummary.projects)],
+                                        ["Open tasks", formatLoginSummaryValue(loginSummary.openTasks)],
+                                        ["Efficiency", formatLoginSummaryValue(loginSummary.efficiency, "%")],
                                     ].map(([label, value]) => (
                                         <div key={label} className="rounded-lg border border-white/10 bg-white/10 p-4">
                                             <div className="text-2xl font-bold text-white">{value}</div>
