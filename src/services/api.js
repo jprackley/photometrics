@@ -849,6 +849,7 @@ const API_ENDPOINTS = {
         workflow: "/dashboard/workflow",
         employeeActivity: "/dashboard/employee-activity",
         projectProgress: "/dashboard/project-progress",
+        loginSummary: "/dashboard/login-summary",
     },
 
     //-----------------------------------------------------------------------
