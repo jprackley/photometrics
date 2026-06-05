@@ -969,7 +969,13 @@ const API_ENDPOINTS = {
     // - utilization
     // - client/project summaries
     //------------------------------------------------------------------------
-    reports: "/reports",
+    reports: {
+        root: "/reports",
+        projectDelivery: "/reports/project_delivery",
+        taskTime: "/reports/task_time",
+        employeeProductivity: "/reports/employee_productivity",
+        assignmentStatus: "/reports/assignment_status",
+    },
 
     //------------------------------------------------------------------------
     // Analytics endpoints for graphs, trends, forecasting, workload analysis, etc.
