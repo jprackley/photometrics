@@ -29,7 +29,7 @@ app.use('/api/clients', require('./routers/clients'));
 app.use('/api/projects', require('./routers/projects'));
 app.use('/api/tasks', require('./routers/tasks'));
 app.use('/api/images', require('./routers/images'));
-//app.use('/api/time-entries', require('./routers/time.entries'));
+app.use('/api/time-entries', require('./routers/time.entries'));
 app.use('/api/users', require('./routers/users'));
 app.use('/api/employees', require('./routers/read-only/employees'));
 
