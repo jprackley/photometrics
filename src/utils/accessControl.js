@@ -2,7 +2,7 @@
 // Role-Based Access Utilities
 // -----------------------------------------------------------------------------
 // Keeps manager/employee permission checks outside of page components so the UI
-// can consistently filter navigation items, projects and tasks.
+// can consistently filter navigation items, projects, and tasks.
 // Backend authorization should still protect production API routes.
 // -----------------------------------------------------------------------------
 
@@ -42,7 +42,7 @@ function isAssignedToUser(row, user) {
 }
 
 /**
- * Finds projects connected to the current user through tasks.
+ * Finds projects connected to the current user through assigned tasks.
  */
 function getAssignedProjectNames(user, taskRows = taskItems) {
     if (canManageContent(user)) {

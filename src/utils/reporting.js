@@ -1,8 +1,8 @@
 // -----------------------------------------------------------------------------
-// Reporting and Analytics Utilities
+// Reporting Utilities
 // -----------------------------------------------------------------------------
 // Builds normalized report models from projects, tasks, and employee
-// records. The Reports and Analytics pages use these helpers for summaries, CSV
+// records. The Reports page uses these helpers for summaries, CSV
 // exports, risk views, and chart-ready datasets.
 // -----------------------------------------------------------------------------
 
@@ -17,9 +17,9 @@ import {
 } from "./helpers";
 
 /**
- * Creates a normalized reporting model shared by the Reports and Analytics pages.
+ * Creates a normalized reporting model shared by report views and exports.
  */
-function buildOperationsReportData(projectRows = [], assignmentRows = [], taskRows = [], employeeRows = []) {
+function buildOperationsReportData(projectRows = [], taskRows = [], employeeRows = []) {
     const safeProjects = Array.isArray(projectRows) ? projectRows : [];
     const safeTasks = Array.isArray(taskRows) ? taskRows : [];
     const safeEmployees = Array.isArray(employeeRows) ? employeeRows : [];
@@ -104,6 +104,16 @@ function buildOperationsReportData(projectRows = [], assignmentRows = [], taskRo
         };
     });
 
+    const taskAssignmentReportRows = safeTasks.map((task) => ({
+        id: task.id,
+        project: task.project,
+        taskType: task.taskName || task.category,
+        assignedTo: task.assignedTo,
+        dueDate: task.dueDate,
+        priority: task.priority,
+        status: task.status,
+        dueStatus: getDueStatus(task),
+    }));
 
     const taskStatusData = ["Completed", "Review", "In Progress", "Not Started"].map((status) => ({
         name: status,
@@ -155,6 +165,7 @@ function buildOperationsReportData(projectRows = [], assignmentRows = [], taskRo
         projectReportRows,
         timeReportRows,
         employeeReportRows,
+        taskAssignmentReportRows,
         taskStatusData,
         priorityData,
         projectAnalyticsRows,
@@ -177,7 +188,7 @@ function downloadReportTable(filename, title, columns, rows) {
 }
 
 /**
- * Exports a complete operations report with project, task time, and employee sections.
+ * Exports a complete operations report with project, task assignment, time, and employee sections.
  */
 function downloadFullOperationsReport(reportData) {
     const sections = [
@@ -185,6 +196,11 @@ function downloadFullOperationsReport(reportData) {
             title: "Project Delivery Report",
             columns: REPORT_PROJECT_COLUMNS,
             rows: reportData.projectReportRows,
+        },
+        {
+            title: "Task Assignment Status Report",
+            columns: REPORT_ASSIGNMENT_COLUMNS,
+            rows: reportData.taskAssignmentReportRows,
         },
         {
             title: "Task Time Report",
@@ -234,7 +250,7 @@ const REPORT_TIME_COLUMNS = [
 const REPORT_EMPLOYEE_COLUMNS = [
     { label: "Employee", key: "name" },
     { label: "Role", key: "role" },
-    { label: "Assigned Items", key: "assignedTasks", align: "center" },
+    { label: "Assigned Tasks", key: "assignedTasks", align: "center" },
     { label: "Completed", key: "completedTasks", align: "center" },
     { label: "Review Items", key: "reviewItems", align: "center" },
     { label: "Tracked Time", key: "trackedTime", align: "center" },
@@ -243,9 +259,16 @@ const REPORT_EMPLOYEE_COLUMNS = [
     { label: "Status", key: "status", align: "center" },
 ];
 
-
-// Kept as an empty compatibility export while assignment-specific frontend screens/reports are removed.
-const REPORT_ASSIGNMENT_COLUMNS = [];
+const REPORT_ASSIGNMENT_COLUMNS = [
+    { label: "Task", key: "id" },
+    { label: "Project", key: "project" },
+    { label: "Task Name", key: "taskType" },
+    { label: "Assigned To", key: "assignedTo" },
+    { label: "Due Date", key: "dueDate" },
+    { label: "Priority", key: "priority", align: "center" },
+    { label: "Status", key: "status", align: "center" },
+    { label: "Due Status", key: "dueStatus", align: "center" },
+];
 
 const ANALYTICS_COLORS = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444", "#14b8a6"];
 

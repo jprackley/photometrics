@@ -21,11 +21,10 @@ const PROJECT_COLUMNS = [
 ];
 
 const ASSIGNMENT_COLUMNS = [
-    { label: "Assignment ID", key: "id" },
+    { label: "Task ID", key: "id" },
     { label: "Project", key: "project" },
-    { label: "Task Type", key: "taskType" },
+    { label: "Task Name", key: "taskType" },
     { label: "Assigned To", key: "assignedTo" },
-    { label: "Assigned Date", key: "assignedDate" },
     { label: "Due Date", key: "dueDate" },
     { label: "Priority", key: "priority", align: "center" },
     { label: "Status", key: "status", align: "center" },
@@ -52,6 +51,19 @@ const TASK_COLUMNS = [
     { label: "Tracked Time", key: "trackedSeconds", align: "center" },
     { label: "Status", key: "status", align: "center" },
 ];
+
+/**
+ * Formats long backend task UUIDs into short, readable task codes such as TSK-00301.
+ */
+function formatTaskId(value) {
+    const rawValue = String(value || "").trim();
+    if (!rawValue) return "";
+
+    const trailingDigits = rawValue.match(/(\d+)$/)?.[1] || rawValue.replace(/\D/g, "");
+    if (!trailingDigits) return rawValue;
+
+    return `TSK-${trailingDigits.slice(-5).padStart(5, "0")}`;
+}
 
 /**
  * Converts display-friendly numeric values into safe numbers for sorting, math, and progress calculations.
@@ -175,18 +187,24 @@ function downloadTextFile(filename, contents, mimeType = "text/csv;charset=utf-8
 }
 
 /**
- * Exports project data into a CSV report.
+ * Exports project and assigned task data into a combined CSV report.
  */
-function downloadProjectsReport(projectRows) {
+function downloadProjectsReport(projectRows, assignedTaskRows) {
     const projectCsv = createCsv(
         ["Project ID", "Project Name", "Client", "Start Date", "Due Date", "Images", "Progress", "Status"],
         projectRows,
         ["id", "name", "client", "startDate", "dueDate", "images", "progress", "status"]
     );
 
+    const assignedTaskCsv = createCsv(
+        ["Task ID", "Project", "Task Name", "Assigned To", "Due Date", "Priority", "Status"],
+        assignedTaskRows.map((task) => ({ ...task, reportTaskId: formatTaskId(task.displayId || task.id) })),
+        ["reportTaskId", "project", "taskType", "assignedTo", "dueDate", "priority", "status"]
+    );
+
     downloadTextFile(
         "photometrics-projects-report.csv",
-        `Projects\n${projectCsv}`
+        `Projects\n${projectCsv}\n\nAssigned Tasks\n${assignedTaskCsv}`
     );
 }
 
@@ -305,10 +323,11 @@ function downloadTasksReport(taskRows) {
         ["Task ID", "Task Name", "Project", "Assigned To", "Due Date", "Priority", "Estimated Hours", "Tracked Time", "Status", "Last Stopped"],
         taskRows.map((task) => ({
             ...task,
+            reportTaskId: formatTaskId(task.displayId || task.id),
             trackedTime: formatDuration(normalizeNumber(task.trackedSeconds)),
             lastStoppedAt: task.lastStoppedAt || "",
         })),
-        ["id", "taskName", "project", "assignedTo", "dueDate", "priority", "estimatedHours", "trackedTime", "status", "lastStoppedAt"]
+        ["reportTaskId", "taskName", "project", "assignedTo", "dueDate", "priority", "estimatedHours", "trackedTime", "status", "lastStoppedAt"]
     );
 
     downloadTextFile("photometrics-task-time-report.csv", taskCsv);
@@ -319,9 +338,9 @@ function downloadTasksReport(taskRows) {
  */
 function downloadEmployeesReport(employeeRows) {
     const employeeCsv = createCsv(
-        ["Employee ID", "Name", "Role", "Email", "Phone", "Status", "Current Task", "Active Tasks", "Completed Today", "Hours Today", "Efficiency", "Availability"],
+        ["Employee ID", "Name", "Role", "Email", "Phone", "Status", "Current Task", "Active Tasks", "Completed Today", "Hours Today", "Efficiency"],
         employeeRows,
-        ["id", "name", "role", "email", "phone", "status", "currentTask", "activeTasks", "completedToday", "hoursToday", "efficiency", "availability"]
+        ["id", "name", "role", "email", "phone", "status", "currentTask", "activeTasks", "completedToday", "hoursToday", "efficiency"]
     );
 
     downloadTextFile("photometrics-employees-report.csv", employeeCsv);
@@ -329,7 +348,7 @@ function downloadEmployeesReport(employeeRows) {
 
 
 /**
- * Formats a number for dashboard, report, and analytics summaries.
+ * Formats a number for dashboard and report summaries.
  */
 function formatNumber(value) {
     return new Intl.NumberFormat("en-US").format(Math.round(normalizeNumber(value)));
@@ -397,5 +416,6 @@ export {
     downloadEmployeesReport,
     formatNumber,
     formatPercent,
+    formatTaskId,
     getDueStatus,
 };
