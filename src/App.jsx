@@ -412,7 +412,7 @@ export default function App() {
                         currentUser={currentUser}
                     />
 
-                    <main className="min-w-0 flex-1 overflow-x-hidden">
+                    <main className="pm-app-main min-w-0 flex-1 overflow-x-hidden">
                         <ApiErrorBanner />
                         <ErrorBoundary key={page}>
                             {page === "dashboard" && <Dashboard onPageChange={setAuthorizedPage} currentUser={currentUser} appSettings={appSettings} />}
