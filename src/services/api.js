@@ -24,7 +24,7 @@
 // reusable data-loading hook used by page components.
 // -----------------------------------------------------------------------------
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // -----------------------------------------------------------------------------
 // API CONFIGURATION
@@ -1061,7 +1061,11 @@ function publishAuthFailure(error) {
 async function apiRequest(endpoint, options = {}) {
     const method = options.method || "GET";
     const url = buildApiUrl(endpoint);
-    const { suppressApiError = false, ...fetchOptions } = options;
+    const { suppressApiError = false, timeoutMs = 15000, signal, ...fetchOptions } = options;
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timeoutId = controller && timeoutMs > 0
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : null;
 
     try {
         const response = await fetch(url, {
@@ -1070,8 +1074,11 @@ async function apiRequest(endpoint, options = {}) {
                 "Content-Type": "application/json",
                 ...(fetchOptions.headers || {}),
             },
+            signal: signal || controller?.signal,
             ...fetchOptions,
         });
+
+        if (timeoutId) clearTimeout(timeoutId);
 
         if (!response.ok) {
             let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
@@ -1116,13 +1123,16 @@ async function apiRequest(endpoint, options = {}) {
             requestError.endpoint = endpoint;
             requestError.method = method;
             requestError.url = url;
-            requestError.code = requestError.code || "NETWORK_ERROR";
-            requestError.message = `${method} ${endpoint} failed: ${requestError.message}`;
+            requestError.code = requestError.name === "AbortError" ? "REQUEST_TIMEOUT" : requestError.code || "NETWORK_ERROR";
+            requestError.message = requestError.name === "AbortError"
+                ? `${method} ${endpoint} timed out. Please try again.`
+                : `${method} ${endpoint} failed: ${requestError.message}`;
             if (!suppressApiError) {
                 publishApiError(requestError);
             }
         }
 
+        if (timeoutId) clearTimeout(timeoutId);
         throw requestError;
     }
 }
@@ -1501,57 +1511,60 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
         };
     }, []);
 
-    useEffect(() => {
-        let isMounted = true;
-
+    const loadData = useCallback(async (shouldUpdate = () => true) => {
         if (!useApiData || !endpoint) {
-            setError(null);
-            setData(fallbackRef.current);
-            return undefined;
+            if (shouldUpdate()) {
+                setError(null);
+                setData(fallbackRef.current);
+            }
+            return;
         }
 
-        setData(getEmptyDataForFallback(fallbackRef.current));
-
-        async function loadData() {
+        if (shouldUpdate()) {
             setIsLoading(true);
             setError(null);
-
-            try {
-                const currentOptions = optionsRef.current || {};
-                const payload = await apiRequest(endpoint, {
-                    suppressApiError: Boolean(currentOptions.suppressApiError),
-                });
-                const nextData = typeof currentOptions.transformPayload === "function"
-                    ? currentOptions.transformPayload(payload)
-                    : currentOptions.unwrap === false
-                        ? payload
-                        : unwrapApiPayload(payload);
-
-                if (isMounted && nextData !== undefined) {
-                    setData(nextData);
-                }
-            } catch (apiError) {
-                if (isMounted) {
-                    setError(apiError.message);
-                    setData(getEmptyDataForFallback(fallbackRef.current));
-                }
-
-                console.warn(`API data failed for ${endpoint}. Mock data is disabled while database mode is on.`, apiError);
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false);
-                }
-            }
+            setData(getEmptyDataForFallback(fallbackRef.current));
         }
 
-        loadData();
+        try {
+            const currentOptions = optionsRef.current || {};
+            const payload = await apiRequest(endpoint, {
+                suppressApiError: Boolean(currentOptions.suppressApiError),
+            });
+            const nextData = typeof currentOptions.transformPayload === "function"
+                ? currentOptions.transformPayload(payload)
+                : currentOptions.unwrap === false
+                    ? payload
+                    : unwrapApiPayload(payload);
+
+            if (shouldUpdate() && nextData !== undefined) {
+                setData(nextData);
+            }
+        } catch (apiError) {
+            if (shouldUpdate()) {
+                setError(apiError.message);
+                setData(getEmptyDataForFallback(fallbackRef.current));
+            }
+            console.warn(`API data failed for ${endpoint}. Mock data is disabled while database mode is on.`, apiError);
+        } finally {
+            if (shouldUpdate()) {
+                setIsLoading(false);
+            }
+        }
+    }, [endpoint, useApiData]);
+
+    useEffect(() => {
+        let isMounted = true;
+        loadData(() => isMounted);
 
         return () => {
             isMounted = false;
         };
-    }, [endpoint, useApiData]);
+    }, [loadData]);
 
-    return { data, isLoading, error };
+    const retry = useCallback(() => loadData(), [loadData]);
+
+    return { data, isLoading, error, retry };
 }
 
 // API action wrappers used by create, update, delete, authentication, settings, and timer workflows.
