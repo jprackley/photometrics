@@ -122,6 +122,7 @@ import {
     isAssignedToUser,
     rowMatchesSearch,
 } from "../utils/accessControl";
+import { notifyError } from "../utils/notifications";
 import {
     Badge,
     PriorityBadge,
@@ -645,7 +646,7 @@ function ProjectsAndAssignments() {
                 cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
             } catch (apiError) {
                 console.warn("Project API request failed. The project list was not changed.", apiError);
-                window.alert(apiError?.message || "Project could not be saved. Please try again.");
+                notifyError(apiError?.message || "Project could not be saved. Please try again.", "Project not saved");
                 return;
             }
         }
@@ -679,7 +680,7 @@ function ProjectsAndAssignments() {
                 cleanAssignment = taskToAssignedTaskRow(normalizeTaskRows(savedAssignment)[0] || savedAssignment || cleanAssignment);
             } catch (apiError) {
                 console.warn("Task API request failed. The assigned task list was not changed.", apiError);
-                window.alert(apiError?.message || "Assigned task could not be saved. Please try again.");
+                notifyError(apiError?.message || "Assigned task could not be saved. Please try again.", "Task not saved");
                 return;
             }
         }
@@ -703,7 +704,7 @@ function ProjectsAndAssignments() {
                 await apiPlaceholders.deleteProject(project.backendId || project.id);
             } catch (apiError) {
                 console.warn("Project delete API request failed. The project list was not changed.", apiError);
-                window.alert(apiError?.message || "Project could not be deleted. Please try again.");
+                notifyError(apiError?.message || "Project could not be deleted. Please try again.", "Project not deleted");
                 return;
             }
         }
@@ -719,7 +720,7 @@ function ProjectsAndAssignments() {
                 await apiPlaceholders.deleteTask(assignment.backendId || assignment.taskId || assignment.id);
             } catch (apiError) {
                 console.warn("Task delete API request failed. The assigned task list was not changed.", apiError);
-                window.alert(apiError?.message || "Assigned task could not be deleted. Please try again.");
+                notifyError(apiError?.message || "Assigned task could not be deleted. Please try again.", "Task not deleted");
                 return;
             }
         }
@@ -1165,7 +1166,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                 cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
             } catch (apiError) {
                 console.warn("Project API request failed. The project list was not changed.", apiError);
-                window.alert(apiError?.message || "Project could not be saved. Please try again.");
+                notifyError(apiError?.message || "Project could not be saved. Please try again.", "Project not saved");
                 return;
             }
         }
@@ -1200,7 +1201,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                 cleanAssignment = taskToAssignedTaskRow(normalizeTaskRows(savedAssignment)[0] || savedAssignment || cleanAssignment);
             } catch (apiError) {
                 console.warn("Task API request failed. The assigned task list was not changed.", apiError);
-                window.alert(apiError?.message || "Assigned task could not be saved. Please try again.");
+                notifyError(apiError?.message || "Assigned task could not be saved. Please try again.", "Task not saved");
                 return;
             }
         }
@@ -1225,7 +1226,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                 await apiPlaceholders.deleteProject(project.backendId || project.id);
             } catch (apiError) {
                 console.warn("Project delete API request failed. The project list was not changed.", apiError);
-                window.alert(apiError?.message || "Project could not be deleted. Please try again.");
+                notifyError(apiError?.message || "Project could not be deleted. Please try again.", "Project not deleted");
                 return;
             }
         }
@@ -1239,7 +1240,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                 await apiPlaceholders.deleteTask(assignment.backendId || assignment.taskId || assignment.id);
             } catch (apiError) {
                 console.warn("Task delete API request failed. The assigned task list was not changed.", apiError);
-                window.alert(apiError?.message || "Assigned task could not be deleted. Please try again.");
+                notifyError(apiError?.message || "Assigned task could not be deleted. Please try again.", "Task not deleted");
                 return;
             }
         }
