@@ -10,6 +10,7 @@
 import React, { useEffect, useState } from "react";
 import { Sidebar, Topbar } from "./components/Layout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ToastProvider } from "./components/ToastProvider";
 import {
   getUseApiDataSetting,
   apiPlaceholders,
@@ -391,7 +392,8 @@ export default function App() {
     const appearanceClassName = getAppAppearanceClassName(appSettings);
 
     return (
-        <div className={`pm-app-shell min-h-screen bg-slate-50 text-slate-950 ${appearanceClassName}`}>
+        <ToastProvider>
+            <div className={`pm-app-shell min-h-screen bg-slate-50 text-slate-950 ${appearanceClassName}`}>
             <div className="flex min-h-screen flex-col">
                 <Topbar
                     isSidebarCollapsed={isSidebarCollapsed}
@@ -429,6 +431,7 @@ export default function App() {
                     </main>
                 </div>
             </div>
-        </div>
+            </div>
+        </ToastProvider>
     );
 }
