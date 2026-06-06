@@ -1,5 +1,7 @@
 import React from "react";
 
+const isDevelopment = import.meta.env?.DEV;
+
 function getErrorCode(error) {
     if (!error) return "APP_RENDER_ERROR";
     return error.code || error.status || error.name || "APP_RENDER_ERROR";
@@ -39,26 +41,39 @@ export class ErrorBoundary extends React.Component {
                     </div>
                     <h1 className="text-2xl font-black text-slate-950">This page could not load.</h1>
                     <p className="mt-2 text-sm text-slate-700">
-                        PhotoMetrics caught the crash and displayed the error below.
+                        PhotoMetrics caught an unexpected page error. Reload the application, or return to the dashboard and try again.
                     </p>
 
-                    <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
-                        <div className="text-sm font-bold text-red-800">Error message</div>
-                        <pre className="mt-2 whitespace-pre-wrap break-words text-sm text-red-900">{message}</pre>
-                    </div>
+                    {isDevelopment && (
+                        <>
+                            <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
+                                <div className="text-sm font-bold text-red-800">Error message</div>
+                                <pre className="mt-2 whitespace-pre-wrap break-words text-sm text-red-900">{message}</pre>
+                            </div>
 
-                    <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-sm font-bold text-slate-800">Component stack</div>
-                        <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs text-slate-700">{componentStack}</pre>
-                    </div>
+                            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <div className="text-sm font-bold text-slate-800">Component stack</div>
+                                <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs text-slate-700">{componentStack}</pre>
+                            </div>
+                        </>
+                    )}
 
-                    <button
-                        type="button"
-                        className="mt-5 rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white"
-                        onClick={() => window.location.reload()}
-                    >
-                        Reload application
-                    </button>
+                    <div className="mt-5 flex flex-wrap gap-3">
+                        <button
+                            type="button"
+                            className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white"
+                            onClick={() => window.location.reload()}
+                        >
+                            Reload application
+                        </button>
+                        <button
+                            type="button"
+                            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700"
+                            onClick={() => { window.location.hash = "#dashboard"; window.location.reload(); }}
+                        >
+                            Go to dashboard
+                        </button>
+                    </div>
                 </div>
             </div>
         );
