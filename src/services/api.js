@@ -98,6 +98,9 @@ function formatApiDateForDisplay(value) {
     });
 }
 
+/**
+ * Formats API date-time values into human-readable timestamps.
+ */
 function formatApiDateTimeForDisplay(value) {
     if (!value) return "";
 
@@ -113,6 +116,9 @@ function formatApiDateTimeForDisplay(value) {
 }
 
 
+/**
+ * Converts date input values into API-compatible date-time strings.
+ */
 function toApiDateTime(value) {
     if (!value) return undefined;
 
@@ -125,15 +131,24 @@ function toApiDateTime(value) {
     return parsedDate.toISOString();
 }
 
+/**
+ * Checks whether a value looks like a backend UUID.
+ */
 function isUuid(value) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
 }
 
+/**
+ * Converts dashboard metric values into safe numbers.
+ */
 function toMetricNumber(value, fallback = 0) {
     const numberValue = Number.parseFloat(value);
     return Number.isFinite(numberValue) ? numberValue : fallback;
 }
 
+/**
+ * Builds a display name from optional first, middle, and last names.
+ */
 function buildDisplayName(firstName, middleName, lastName, fallback = "") {
     return [firstName, middleName, lastName]
         .filter(Boolean)
@@ -142,6 +157,9 @@ function buildDisplayName(firstName, middleName, lastName, fallback = "") {
         .trim() || fallback;
 }
 
+/**
+ * Splits a full name into editable name parts.
+ */
 function splitFullName(fullName = "") {
     const parts = String(fullName || "")
         .trim()
@@ -164,6 +182,9 @@ function splitFullName(fullName = "") {
     };
 }
 
+/**
+ * Returns the best display name available from a backend employee record.
+ */
 function getDisplayNameFromApi(record, fallback = "Unnamed Employee") {
     const nameParts = buildDisplayName(record?.first_name, record?.middle_name, record?.last_name);
 
@@ -176,11 +197,17 @@ function getDisplayNameFromApi(record, fallback = "Unnamed Employee") {
         || fallback;
 }
 
+/**
+ * Formats long backend identifiers for readable UI display.
+ */
 function shortBackendId(value, fallback = "Unassigned") {
     if (!value) return fallback;
     return String(value).slice(0, 8);
 }
 
+/**
+ * Formats the last six characters of an identifier with a prefix.
+ */
 function lastSixBackendId(value, prefix = "ID") {
     if (!value) return "";
     const compact = String(value).replace(/[^0-9a-z]/gi, "");
@@ -188,6 +215,9 @@ function lastSixBackendId(value, prefix = "ID") {
     return `${prefix}-${source.slice(-6).toUpperCase()}`;
 }
 
+/**
+ * Checks whether a backend row is seeded demo data.
+ */
 function isSeedRecord(record) {
     const searchable = [
         record?.email,
@@ -208,6 +238,9 @@ function isSeedRecord(record) {
         || searchable.includes("@photometrics.local");
 }
 
+/**
+ * Converts supported API payload shapes into an array.
+ */
 function toArrayPayload(payload) {
     const unwrapped = unwrapApiPayload(payload);
     if (Array.isArray(unwrapped)) return unwrapped;
@@ -234,6 +267,9 @@ const TIMEZONE_LABEL_BY_IANA = Object.fromEntries(
     Object.entries(TIMEZONE_IANA_BY_LABEL).map(([label, value]) => [value, label])
 );
 
+/**
+ * Converts data to boolean setting.
+ */
 function toBooleanSetting(value, fallback = false) {
     if (typeof value === "boolean") return value;
     if (typeof value === "number") return value !== 0;
@@ -246,6 +282,9 @@ function toBooleanSetting(value, fallback = false) {
     return fallback;
 }
 
+/**
+ * Normalizes title option for this feature.
+ */
 function normalizeTitleOption(value, fallback) {
     if (!value) return fallback;
     const normalized = String(value).trim().toLowerCase();
@@ -257,11 +296,17 @@ function normalizeTitleOption(value, fallback) {
         .join(" ");
 }
 
+/**
+ * Normalizes theme option for this feature.
+ */
 function normalizeThemeOption(value, fallback = "Light") {
     const option = normalizeTitleOption(value, fallback);
     return ["Light", "Dark", "System"].includes(option) ? option : fallback;
 }
 
+/**
+ * Normalizes accent option for this feature.
+ */
 function normalizeAccentOption(value, fallback = "Violet") {
     if (!value) return fallback;
 
@@ -276,6 +321,9 @@ function normalizeAccentOption(value, fallback = "Violet") {
     return fallback;
 }
 
+/**
+ * Normalizes timezone option for this feature.
+ */
 function normalizeTimezoneOption(value, fallback = "Pacific Time") {
     if (!value) return fallback;
     const stringValue = String(value).trim();
@@ -289,12 +337,18 @@ function normalizeTimezoneOption(value, fallback = "Pacific Time") {
     return fallback;
 }
 
+/**
+ * Returns first settings record for this feature.
+ */
 function getFirstSettingsRecord(payload) {
     const unwrapped = unwrapApiPayload(payload);
     if (Array.isArray(unwrapped)) return unwrapped[0] || null;
     return unwrapped || null;
 }
 
+/**
+ * Maps backend settings into the frontend settings object.
+ */
 function normalizeBackendSettings(payload, baseSettings = {}, currentUser = null) {
     const record = getFirstSettingsRecord(payload);
 
@@ -340,6 +394,9 @@ function normalizeBackendSettings(payload, baseSettings = {}, currentUser = null
     };
 }
 
+/**
+ * Converts frontend settings into the backend settings payload.
+ */
 function settingsToApiPayload(settings = {}, currentUser = null) {
     const appearance = settings.appearance || {};
     const company = settings.company || {};
@@ -371,6 +428,9 @@ function settingsToApiPayload(settings = {}, currentUser = null) {
 
 const IMAGE_METRICS_NOTE_PREFIX = "[photometrics:image-metrics]";
 
+/**
+ * Returns default image metrics for this feature.
+ */
 function getDefaultImageMetrics(project = {}) {
     const totalImages = toMetricNumber(project.images ?? project.image_count ?? project.totalImages, 0);
     const completedImages = toMetricNumber(project.completedImages ?? project.completed_images, 0);
@@ -390,6 +450,9 @@ function getDefaultImageMetrics(project = {}) {
     };
 }
 
+/**
+ * Splits project notes and image metrics for this feature.
+ */
 function splitProjectNotesAndImageMetrics(notes = "", project = {}) {
     const defaultMetrics = getDefaultImageMetrics(project);
     const rawNotes = String(notes || "");
@@ -413,6 +476,9 @@ function splitProjectNotesAndImageMetrics(notes = "", project = {}) {
     }
 }
 
+/**
+ * Combines project notes and image metrics for this feature.
+ */
 function combineProjectNotesAndImageMetrics(notes = "", imageMetrics = {}) {
     const cleanNotes = String(notes || "").split(IMAGE_METRICS_NOTE_PREFIX)[0].trim();
     const metrics = getDefaultImageMetrics(imageMetrics);
@@ -423,6 +489,9 @@ function combineProjectNotesAndImageMetrics(notes = "", imageMetrics = {}) {
         .join("\n");
 }
 
+/**
+ * Maps a backend project into the frontend project row shape.
+ */
 function projectFromApi(project) {
     const { visibleNotes, imageMetrics } = splitProjectNotesAndImageMetrics(project.notes, project);
     const totalImages = imageMetrics.totalImages || toMetricNumber(project.image_count ?? project.images, 0);
@@ -465,6 +534,9 @@ function projectFromApi(project) {
     };
 }
 
+/**
+ * Maps a backend task into the frontend task row shape.
+ */
 function taskFromApi(task) {
     return {
         id: task.task_id || task.id,
@@ -493,6 +565,9 @@ function taskFromApi(task) {
     };
 }
 
+/**
+ * Maps a backend employee into the frontend employee row shape.
+ */
 function employeeFromApi(employee) {
     const displayName = getDisplayNameFromApi(employee);
     const role = employee.title || employee.role || employee.account_role || "Employee";
@@ -523,24 +598,36 @@ function employeeFromApi(employee) {
     };
 }
 
+/**
+ * Normalizes project rows for this feature.
+ */
 function normalizeProjectRows(payload) {
     return toArrayPayload(payload)
         .filter((project) => !isSeedRecord(project))
         .map(projectFromApi);
 }
 
+/**
+ * Normalizes task rows for this feature.
+ */
 function normalizeTaskRows(payload) {
     return toArrayPayload(payload)
         .filter((task) => !isSeedRecord(task))
         .map(taskFromApi);
 }
 
+/**
+ * Normalizes employee rows for this feature.
+ */
 function normalizeEmployeeRows(payload) {
     return toArrayPayload(payload)
         .filter((employee) => !isSeedRecord(employee))
         .map(employeeFromApi);
 }
 
+/**
+ * Maps backend assignment fields into the frontend row shape.
+ */
 function assignmentFromApi(assignment) {
     const employeeId = assignment.employee_id || assignment.assigned_to || assignment.user_id || assignment.employeeId || assignment.assignedToId || null;
     const taskId = assignment.task_id || assignment.id || assignment.taskId;
@@ -563,6 +650,9 @@ function assignmentFromApi(assignment) {
     };
 }
 
+/**
+ * Normalizes assignment rows for this feature.
+ */
 function normalizeAssignmentRows(payload) {
     return toArrayPayload(payload)
         .filter((assignment) => !isSeedRecord(assignment))
@@ -570,6 +660,9 @@ function normalizeAssignmentRows(payload) {
         .map(assignmentFromApi);
 }
 
+/**
+ * Maps backend time entry fields into the frontend row shape.
+ */
 function timeEntryFromApi(entry) {
     const totalHours = Number(entry.total_time ?? entry.totalTime ?? entry.hours ?? 0) || 0;
 
@@ -586,6 +679,9 @@ function timeEntryFromApi(entry) {
     };
 }
 
+/**
+ * Normalizes time entry rows for this feature.
+ */
 function normalizeTimeEntryRows(payload) {
     return toArrayPayload(payload)
         .filter((entry) => !isSeedRecord(entry))
@@ -594,6 +690,9 @@ function normalizeTimeEntryRows(payload) {
 
 const DASHBOARD_COLORS = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444", "#14b8a6", "#8b5cf6", "#64748b"];
 
+/**
+ * Normalizes productivity kpi rows for this feature.
+ */
 function normalizeProductivityKpiRows(payload) {
     return toArrayPayload(payload)
         .filter((row) => !isSeedRecord(row))
@@ -617,6 +716,9 @@ function normalizeProductivityKpiRows(payload) {
         });
 }
 
+/**
+ * Normalizes workflow kpi rows for this feature.
+ */
 function normalizeWorkflowKpiRows(payload) {
     return toArrayPayload(payload)
         .filter((row) => !isSeedRecord(row))
@@ -635,6 +737,9 @@ function normalizeWorkflowKpiRows(payload) {
         });
 }
 
+/**
+ * Normalizes employee activity kpi rows for this feature.
+ */
 function normalizeEmployeeActivityKpiRows(payload) {
     return toArrayPayload(payload)
         .filter((row) => !isSeedRecord(row))
@@ -667,6 +772,9 @@ function normalizeEmployeeActivityKpiRows(payload) {
         });
 }
 
+/**
+ * Normalizes project progress kpi rows for this feature.
+ */
 function normalizeProjectProgressKpiRows(payload) {
     return toArrayPayload(payload)
         .filter((row) => !isSeedRecord(row))
@@ -687,6 +795,9 @@ function normalizeProjectProgressKpiRows(payload) {
         });
 }
 
+/**
+ * Converts a frontend project row into the backend payload shape.
+ */
 function projectToApi(project) {
     const payload = {
         project_name: String(project.name || project.project_name || "Untitled Project").trim(),
@@ -709,6 +820,9 @@ function projectToApi(project) {
 }
 
 
+/**
+ * Returns project image creation batches for this feature.
+ */
 function getProjectImageCreationBatches(project = {}) {
     const projectId = project.backendId || project.project_id || project.id;
     if (!isUuid(projectId)) return [];
@@ -769,6 +883,9 @@ async function createImagesForProjectMetrics(project = {}) {
     return createdImages;
 }
 
+/**
+ * Converts a frontend employee row into the backend payload shape.
+ */
 function employeeToApiPayload(employee = {}) {
     const splitName = splitFullName(employee.name || employee.displayName || employee.display_name || "");
     const firstName = String(employee.firstName || employee.first_name || splitName.firstName || "").trim();
@@ -798,6 +915,9 @@ function employeeToApiPayload(employee = {}) {
     };
 }
 
+/**
+ * Converts a frontend task row into the backend payload shape.
+ */
 function taskToApiPayload(task = {}) {
     const projectId = task.projectId || task.project_id;
     const assignedTo = task.assignedToId || task.assigned_to || task.employeeId;
@@ -1038,6 +1158,9 @@ function publishApiError(error) {
     window.dispatchEvent(new CustomEvent("photometrics-api-error", { detail: apiError }));
 }
 
+/**
+ * Clears any currently displayed global API errors.
+ */
 function clearPublishedApiErrors() {
     if (typeof window === "undefined") return;
 
@@ -1045,6 +1168,9 @@ function clearPublishedApiErrors() {
     window.dispatchEvent(new CustomEvent("photometrics-api-error", { detail: null }));
 }
 
+/**
+ * Broadcasts authentication failures to reset stale sessions.
+ */
 function publishAuthFailure(error) {
     if (typeof window === "undefined") return;
 
@@ -1193,14 +1319,23 @@ const KPI_IGNORED_OBJECT_KEYS = new Set([
     "status",
 ]);
 
+/**
+ * Checks whether plain object is true.
+ */
 function isPlainObject(value) {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+/**
+ * Checks whether primitive value is true.
+ */
 function isPrimitiveValue(value) {
     return value === null || ["string", "number", "boolean"].includes(typeof value);
 }
 
+/**
+ * Documents the title case kpi label behavior used by this module.
+ */
 function titleCaseKpiLabel(value) {
     const label = String(value || "KPI")
         .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -1220,6 +1355,9 @@ function titleCaseKpiLabel(value) {
         .join(" ");
 }
 
+/**
+ * Returns first defined value for this feature.
+ */
 function getFirstDefinedValue(source, keys) {
     if (!isPlainObject(source)) return undefined;
 
@@ -1230,6 +1368,9 @@ function getFirstDefinedValue(source, keys) {
     return undefined;
 }
 
+/**
+ * Returns kpi detail objects for this feature.
+ */
 function getKpiDetailObjects(source) {
     if (!isPlainObject(source)) return [];
 
@@ -1240,6 +1381,9 @@ function getKpiDetailObjects(source) {
     return [];
 }
 
+/**
+ * Returns kpi raw value for this feature.
+ */
 function getKpiRawValue(source) {
     if (isPrimitiveValue(source)) return source;
     if (!isPlainObject(source)) return undefined;
@@ -1261,6 +1405,9 @@ function getKpiRawValue(source) {
     return primitiveEntry?.[1];
 }
 
+/**
+ * Returns kpi label for this feature.
+ */
 function getKpiLabel(source, fallbackLabel, index) {
     if (Array.isArray(source)) return source[0] || fallbackLabel || `KPI ${index + 1}`;
     if (!isPlainObject(source)) return fallbackLabel || `KPI ${index + 1}`;
@@ -1269,6 +1416,9 @@ function getKpiLabel(source, fallbackLabel, index) {
     return titleCaseKpiLabel(label || fallbackLabel || `KPI ${index + 1}`);
 }
 
+/**
+ * Formats kpi value for this feature.
+ */
 function formatKpiValue(rawValue, source) {
     if (isPlainObject(source) && source.displayValue !== undefined) {
         return String(source.displayValue);
@@ -1286,6 +1436,9 @@ function formatKpiValue(rawValue, source) {
     return `${prefix}${formattedValue}${suffix}`;
 }
 
+/**
+ * Normalizes kpi card for this feature.
+ */
 function normalizeKpiCard(source, index = 0, fallbackLabel) {
     if (Array.isArray(source)) {
         const label = titleCaseKpiLabel(source[0] || fallbackLabel || `KPI ${index + 1}`);
@@ -1316,6 +1469,9 @@ function normalizeKpiCard(source, index = 0, fallbackLabel) {
     };
 }
 
+/**
+ * Returns fallback kpi label for this feature.
+ */
 function getFallbackKpiLabel(fallbackKpis, index) {
     const fallback = Array.isArray(fallbackKpis) ? fallbackKpis[index] : null;
 
@@ -1441,6 +1597,9 @@ const PREVIEW_DATABASE_USERS = [
     },
 ];
 
+/**
+ * Returns preview database user for this feature.
+ */
 function getPreviewDatabaseUser(credentials) {
     const normalizedEmail = String(credentials?.email || "").trim().toLowerCase();
     const password = String(credentials?.password_hash || credentials?.password || "");
