@@ -35,6 +35,9 @@ import {
 const SETTINGS_STORAGE_KEY = "photometrics-manager-settings-v1";
 const SETTINGS_UPDATED_EVENT = "photometrics-settings-updated";
 
+/**
+ * Merges saved settings into the default settings without dropping nested defaults.
+ */
 function mergeSettings(baseSettings, savedSettings) {
     if (!savedSettings || typeof savedSettings !== "object" || Array.isArray(savedSettings)) {
         return { ...baseSettings };
@@ -52,6 +55,9 @@ function mergeSettings(baseSettings, savedSettings) {
     };
 }
 
+/**
+ * Loads locally persisted app settings with a safe fallback to defaults.
+ */
 function loadSavedAppSettings() {
     if (typeof window === "undefined") return { ...settingsData };
 
@@ -64,6 +70,9 @@ function loadSavedAppSettings() {
     }
 }
 
+/**
+ * Persists app settings locally and notifies active views about the change.
+ */
 function saveAppSettings(settings) {
     if (typeof window === "undefined") return;
 
@@ -75,6 +84,9 @@ function saveAppSettings(settings) {
     }
 }
 
+/**
+ * Resolves the effective light or dark theme from the saved appearance option.
+ */
 function resolveTheme(theme) {
     if (theme === "System" && typeof window !== "undefined" && window.matchMedia) {
         return window.matchMedia("(prefers-color-scheme: dark)").matches ? "Dark" : "Light";
@@ -83,6 +95,9 @@ function resolveTheme(theme) {
     return theme === "Dark" ? "Dark" : "Light";
 }
 
+/**
+ * Builds the CSS class list that applies theme, accent, and density settings.
+ */
 function getAppAppearanceClassName(settings) {
     const appearance = settings?.appearance || settingsData.appearance;
     const theme = resolveTheme(appearance.theme);
@@ -94,6 +109,9 @@ function getAppAppearanceClassName(settings) {
         .join(" ");
 }
 
+/**
+ * Returns user-facing troubleshooting guidance for known API failure states.
+ */
 function getApiErrorHelp(error) {
     const endpoint = error?.endpoint || "unknown endpoint";
     const status = Number(error?.status || error?.code);
@@ -162,6 +180,9 @@ function getApiErrorHelp(error) {
 }
 
 
+/**
+ * Renders recoverable API error guidance when backend requests fail.
+ */
 function ApiErrorBanner() {
     const [errors, setErrors] = useState(() => {
         if (typeof window === "undefined") return [];
