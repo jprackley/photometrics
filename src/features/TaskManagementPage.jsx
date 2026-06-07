@@ -257,6 +257,9 @@ function normalizeLookupText(value = "") {
     return String(value || "").trim().toLowerCase();
 }
 
+/**
+ * Returns id from named rows for this feature.
+ */
 function getIdFromNamedRows(name, rows, nameKeys = ["name"], idKeys = ["backendId", "id"]) {
     const normalizedName = normalizeLookupText(name);
     if (!normalizedName) return null;
@@ -271,6 +274,9 @@ function getIdFromNamedRows(name, rows, nameKeys = ["name"], idKeys = ["backendI
     return null;
 }
 
+/**
+ * Resolves project id for task for this feature.
+ */
 function resolveProjectIdForTask(task, projectRows, taskRows) {
     return task.projectId
         || task.project_id
@@ -278,6 +284,9 @@ function resolveProjectIdForTask(task, projectRows, taskRows) {
         || getIdFromNamedRows(task.project, taskRows, ["project"], ["projectId"]);
 }
 
+/**
+ * Resolves employee id for task for this feature.
+ */
 function resolveEmployeeIdForTask(task, employeeRows, taskRows) {
     return task.assignedToId
         || task.assigned_to
@@ -285,15 +294,24 @@ function resolveEmployeeIdForTask(task, employeeRows, taskRows) {
         || getIdFromNamedRows(task.assignedTo, taskRows, ["assignedTo"], ["assignedToId"]);
 }
 
+/**
+ * Returns the backend task identifier when available.
+ */
 function getTaskBackendId(task = {}) {
     return task.backendId || task.taskId || task.id;
 }
 
+/**
+ * Extracts the saved task row from a create/update API response.
+ */
 function getSavedTaskFromApiResponse(response, fallbackTask) {
     const savedTask = normalizeTaskRows(response)[0];
     return normalizeTaskForTimers(savedTask || fallbackTask);
 }
 
+/**
+ * Renders task timer controls for the non-secure task table.
+ */
 function TimerControl({ task, currentTime, onStart, onStop, isAnotherTimerRunning }) {
     const isRunning = Boolean(task.timerStartedAt);
 

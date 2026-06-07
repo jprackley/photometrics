@@ -158,6 +158,9 @@ const DEFAULT_JOB_TITLE_OPTIONS = [
     "Employee",
 ];
 
+/**
+ * Formats employee phone numbers for display while preserving incomplete values.
+ */
 function formatPhoneNumber(value = "") {
     const digits = String(value || "").replace(/\D/g, "").slice(0, 10);
 
@@ -167,6 +170,9 @@ function formatPhoneNumber(value = "") {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
+/**
+ * Returns the best available employee title from supported field names.
+ */
 function getEmployeeJobTitle(employee = {}) {
     const title = String(employee.title || "").trim();
     const role = String(employee.role || "").trim();
@@ -177,6 +183,9 @@ function getEmployeeJobTitle(employee = {}) {
     return "Photo Editor";
 }
 
+/**
+ * Renders the employee status badge component.
+ */
 function EmployeeStatusBadge({ value }) {
     const style =
         value === "Active"
@@ -208,6 +217,9 @@ function getEmployeeNameParts(employee = {}) {
     };
 }
 
+/**
+ * Builds the display name saved from the employee edit form.
+ */
 function buildEmployeeDisplayName(form = {}) {
     return [form.firstName, form.middleName, form.lastName]
         .filter(Boolean)
@@ -216,6 +228,9 @@ function buildEmployeeDisplayName(form = {}) {
         .trim();
 }
 
+/**
+ * Renders the employee form component.
+ */
 function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
     const [form, setForm] = useState(() => {
         const nameParts = getEmployeeNameParts(initialEmployee);

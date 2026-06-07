@@ -136,6 +136,9 @@ import {
 } from "./sharedComponents";
 
 
+/**
+ * Formats report dates consistently across report tables.
+ */
 function formatReportDate(value) {
     if (!value) return "";
     const parsedDate = new Date(value);
@@ -143,6 +146,9 @@ function formatReportDate(value) {
     return parsedDate.toLocaleDateString([], { month: "short", day: "2-digit", year: "numeric" });
 }
 
+/**
+ * Normalizes project delivery report row for this feature.
+ */
 function normalizeProjectDeliveryReportRow(report = {}) {
     const totalImages = Number(report.total_images ?? report.totalImages ?? 0) || 0;
     const completedImages = Number(report.completed_images ?? report.completedImages ?? 0) || 0;
@@ -173,6 +179,9 @@ function normalizeProjectDeliveryReportRow(report = {}) {
     };
 }
 
+/**
+ * Extracts project delivery payload for this feature.
+ */
 function unwrapProjectDeliveryPayload(payload, key) {
     if (!payload) return key === "reports" ? [] : null;
     if (key === "reports") return Array.isArray(payload.reports) ? payload.reports : [];
@@ -180,6 +189,9 @@ function unwrapProjectDeliveryPayload(payload, key) {
 }
 
 
+/**
+ * Formats tracked-time values that may arrive as strings, minutes, or seconds.
+ */
 function formatTrackedTime(value) {
     if (value === null || value === undefined || value === "") return "0m";
     if (typeof value === "string") return value;
@@ -193,6 +205,9 @@ function formatTrackedTime(value) {
     return formatDuration(Math.round(numericValue * 60));
 }
 
+/**
+ * Normalizes task time report row for this feature.
+ */
 function normalizeTaskTimeReportRow(report = {}) {
     return {
         id: report.report_snapshot_id || report.task_id || report.taskId || report.id,
@@ -212,6 +227,9 @@ function normalizeTaskTimeReportRow(report = {}) {
     };
 }
 
+/**
+ * Normalizes employee productivity report row for this feature.
+ */
 function normalizeEmployeeProductivityReportRow(report = {}) {
     return {
         id: report.report_snapshot_id || report.user_id || report.userId || report.employee_id || report.employeeId || report.id,
@@ -230,6 +248,9 @@ function normalizeEmployeeProductivityReportRow(report = {}) {
     };
 }
 
+/**
+ * Normalizes assignment status report row for this feature.
+ */
 function normalizeAssignmentStatusReportRow(report = {}) {
     return {
         id: report.report_snapshot_id || report.task_id || report.taskId || report.id,
@@ -247,6 +268,9 @@ function normalizeAssignmentStatusReportRow(report = {}) {
     };
 }
 
+/**
+ * Extracts report rows from supported backend response shapes.
+ */
 function unwrapReportPayload(payload, key) {
     if (!payload) return key === "reports" ? [] : null;
     if (key === "reports") return Array.isArray(payload.reports) ? payload.reports : [];

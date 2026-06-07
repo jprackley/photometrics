@@ -197,10 +197,16 @@ function formatSettingsPhoneNumber(value = "") {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
+/**
+ * Returns the stable identifier used to save employee-specific settings.
+ */
 function getCurrentUserId(currentUser) {
     return currentUser?.userId || currentUser?.user_id || currentUser?.id || currentUser?.employeeId || currentUser?.employee_id;
 }
 
+/**
+ * Downloads the current settings as a readable text report.
+ */
 function downloadSettingsReport(settings) {
     downloadTextFile(
         "photometrics-settings-export.json",
@@ -212,6 +218,9 @@ function downloadSettingsReport(settings) {
 const SETTINGS_STORAGE_KEY = "photometrics-manager-settings-v1";
 const SETTINGS_UPDATED_EVENT = "photometrics-settings-updated";
 
+/**
+ * Merges saved settings into the default settings without dropping nested defaults.
+ */
 function mergeSettings(baseSettings, savedSettings) {
     if (!savedSettings || typeof savedSettings !== "object" || Array.isArray(savedSettings)) {
         return { ...baseSettings };
@@ -229,6 +238,9 @@ function mergeSettings(baseSettings, savedSettings) {
     };
 }
 
+/**
+ * Loads saved settings for this feature.
+ */
 function loadSavedSettings() {
     if (typeof window === "undefined") return { ...settingsData };
 
@@ -241,6 +253,9 @@ function loadSavedSettings() {
     }
 }
 
+/**
+ * Persists settings changes and broadcasts them to the app shell.
+ */
 function saveSettingsLocally(settings) {
     if (typeof window === "undefined") return;
 
@@ -252,6 +267,9 @@ function saveSettingsLocally(settings) {
     }
 }
 
+/**
+ * Persists appearance changes so the app shell can update immediately.
+ */
 function saveAppearanceLocally(appearance) {
     const currentSettings = loadSavedSettings();
 

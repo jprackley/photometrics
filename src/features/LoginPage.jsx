@@ -264,6 +264,9 @@ function LoginHeroGraphic() {
 }
 
 
+/**
+ * Builds login-page summary metrics from mock dashboard data.
+ */
 function getMockLoginSummary() {
     const totalTasks = taskItems.filter((task) => task.status !== "Cancelled").length;
     const completedTasks = taskItems.filter((task) => task.status === "Completed").length;
@@ -276,6 +279,9 @@ function getMockLoginSummary() {
     };
 }
 
+/**
+ * Formats login-page metric values with optional suffixes.
+ */
 function formatLoginSummaryValue(value, suffix = "") {
     if (value === null || value === undefined) return "—";
 

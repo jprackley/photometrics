@@ -136,6 +136,9 @@ import {
     Modal,
 } from "./sharedComponents";
 
+/**
+ * Calculates project completion percentage from image workflow counts.
+ */
 const calculateProjectProgress = (project = {}) => {
     const totalImages = normalizeNumber(project.images);
     const completedImages = normalizeNumber(project.completedImages);
@@ -147,6 +150,9 @@ const calculateProjectProgress = (project = {}) => {
     return Math.max(0, Math.min(100, Math.round((completedImages / totalImages) * 100)));
 };
 
+/**
+ * Converts a task record into the assignment-table row shape.
+ */
 function taskToAssignedTaskRow(task = {}) {
     const taskId = task.backendId || task.taskId || task.id;
 

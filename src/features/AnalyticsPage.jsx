@@ -10,10 +10,16 @@
 import React from "react";
 import { PlaceholderPage } from "./PlaceholderPage";
 
+/**
+ * Renders the analytics page component.
+ */
 function AnalyticsPage(props) {
     return <PlaceholderPage title="Analytics" {...props} />;
 }
 
+/**
+ * Renders the analytics page secure component.
+ */
 function AnalyticsPageSecure(props) {
     return <AnalyticsPage {...props} />;
 }

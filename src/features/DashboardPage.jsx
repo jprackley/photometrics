@@ -165,6 +165,9 @@ const DASHBOARD_KPI_STYLES = [
     { icon: Clock, border: "border-slate-200", iconBg: "bg-slate-100", iconText: "text-slate-700", valueText: "text-slate-950" },
 ];
 
+/**
+ * Selects icon, color, and trend metadata for a dashboard KPI card.
+ */
 function getKpiPresentation(card, index) {
     const label = String(card?.label || "").toLowerCase();
 
@@ -206,6 +209,9 @@ const WORKFLOW_STEP_ALIASES = {
     other: "Other",
 };
 
+/**
+ * Maps workflow labels into the standard workflow step sequence.
+ */
 function getWorkflowStep(value) {
     const text = String(value || "").trim();
     if (!text) return "Other";
@@ -216,6 +222,9 @@ function getWorkflowStep(value) {
         || "Other";
 }
 
+/**
+ * Builds dashboard workflow summary rows from task records.
+ */
 function buildWorkflowRowsFromTasks(tasks = []) {
     const counts = WORKFLOW_STEPS.reduce((acc, step) => ({ ...acc, [step]: 0 }), {});
 
@@ -244,6 +253,9 @@ function buildWorkflowRowsFromTasks(tasks = []) {
         .filter((row) => row.value > 0);
 }
 
+/**
+ * Returns display labels for the current week used by productivity charts.
+ */
 function getCurrentWeekLabels() {
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -259,6 +271,9 @@ function getCurrentWeekLabels() {
     });
 }
 
+/**
+ * Aggregates completed task counts by weekday for the dashboard chart.
+ */
 function buildCurrentWeekProductivityRows(rows = []) {
     const labels = getCurrentWeekLabels();
     const values = labels.map((label, index) => {
@@ -274,6 +289,9 @@ function buildCurrentWeekProductivityRows(rows = []) {
     }));
 }
 
+/**
+ * Extracts KPI objects from supported backend response shapes.
+ */
 function unwrapKpiPayload(payload) {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) return payload;
 
@@ -287,6 +305,9 @@ function unwrapKpiPayload(payload) {
 }
 
 
+/**
+ * Normalizes a generic KPI response into the dashboard card contract.
+ */
 function summaryKpiFromApi(payload, template, valueKeys = []) {
     const source = unwrapKpiPayload(payload);
     const keys = [...valueKeys, "active", "completed", "remaining", "total", "count", "value"];
@@ -314,6 +335,9 @@ function summaryKpiFromApi(payload, template, valueKeys = []) {
     return [template];
 }
 
+/**
+ * Builds the active-project KPI card from backend project data.
+ */
 function activeProjectsKpiFromApi(payload) {
     const source = unwrapKpiPayload(payload);
 
@@ -688,6 +712,9 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
 }
 
 
+/**
+ * Renders the dashboard kpi card component.
+ */
 function DashboardKpiCard({ card, index }) {
     const presentation = getKpiPresentation(card, index);
     const Icon = presentation.icon;
@@ -710,6 +737,9 @@ function DashboardKpiCard({ card, index }) {
     );
 }
 
+/**
+ * Renders the dashboard status strip component.
+ */
 function DashboardStatusStrip({
     hasManagerAccess,
     openTaskCount,
@@ -742,6 +772,9 @@ function DashboardStatusStrip({
     );
 }
 
+/**
+ * Renders the dashboard panel header component.
+ */
 function DashboardPanelHeader({ title, subtitle, count, actionLabel, onAction }) {
     return (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
