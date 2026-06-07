@@ -1,3 +1,6 @@
+/* -----------------------------------------------------------------------------
+   Global application styles, theme tokens, and responsive layout helpers.
+   ----------------------------------------------------------------------------- */
 @import "tailwindcss";
 
 body {
