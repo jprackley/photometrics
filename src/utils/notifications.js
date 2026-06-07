@@ -1,5 +1,8 @@
 import { TOAST_EVENT } from "../components/ToastProvider";
 
+/**
+ * Displays a browser-safe error message fallback.
+ */
 export function notifyError(message, title = "Action failed") {
     if (typeof window === "undefined") return;
 
