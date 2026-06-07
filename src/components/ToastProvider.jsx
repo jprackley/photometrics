@@ -4,12 +4,18 @@ export const TOAST_EVENT = "photometrics-toast";
 
 const ToastContext = createContext({ notify: () => {} });
 
+/**
+ * Maps toast message types to matching visual classes.
+ */
 function getToneClasses(type) {
     if (type === "success") return "border-emerald-200 bg-emerald-50 text-emerald-900";
     if (type === "warning") return "border-amber-200 bg-amber-50 text-amber-900";
     return "border-red-200 bg-red-50 text-red-900";
 }
 
+/**
+ * Renders the toast provider component.
+ */
 export function ToastProvider({ children }) {
     const [toasts, setToasts] = useState([]);
 

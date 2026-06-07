@@ -109,6 +109,9 @@ function Sidebar({ isCollapsed, activePage, onPageChange, onLogout, currentUser 
     );
 }
 
+/**
+ * Parses notification dates defensively so invalid values do not break the header.
+ */
 function parseNotificationDate(value) {
     if (!value) return null;
 
@@ -128,6 +131,9 @@ function parseNotificationDate(value) {
     return Number.isNaN(withCurrentYear.getTime()) ? null : withCurrentYear;
 }
 
+/**
+ * Checks whether a date falls inside the current calendar week.
+ */
 function isDateThisWeek(value) {
     const dueDate = parseNotificationDate(value);
     if (!dueDate) return false;
@@ -141,14 +147,23 @@ function isDateThisWeek(value) {
     return dueDate >= startOfToday && dueDate <= endOfWeek;
 }
 
+/**
+ * Checks whether a task or project status should appear in review-ready counts.
+ */
 function isReviewReadyStatus(status) {
     return /review/i.test(String(status || ""));
 }
 
+/**
+ * Returns a singular or plural label based on the supplied count.
+ */
 function pluralize(count, singular, plural = `${singular}s`) {
     return count === 1 ? singular : plural;
 }
 
+/**
+ * Builds a compact avatar label from the active user profile.
+ */
 function getUserInitials(user) {
     const displayName = user?.name || user?.employeeName || user?.email || "User";
     const nameParts = String(displayName)

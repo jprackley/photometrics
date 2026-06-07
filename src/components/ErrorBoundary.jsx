@@ -2,11 +2,17 @@ import React from "react";
 
 const isDevelopment = import.meta.env?.DEV;
 
+/**
+ * Extracts a stable diagnostic code from caught errors.
+ */
 function getErrorCode(error) {
     if (!error) return "APP_RENDER_ERROR";
     return error.code || error.status || error.name || "APP_RENDER_ERROR";
 }
 
+/**
+ * Renders the error boundary component.
+ */
 export class ErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
