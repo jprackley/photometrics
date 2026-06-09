@@ -2,102 +2,43 @@
 // Projects and Assigned Tasks Page.
 // -----------------------------------------------------------------------------
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-    BarChart3,
-    Bell,
-    ChevronLeft,
-    ChevronRight,
-    Clock,
     Download,
-    Eye,
-    EyeOff,
     Folder,
     ListChecks,
-    Lock,
-    Mail,
-    MoreVertical,
-    Pencil,
-    Play,
     Plus,
     Search,
-    Settings,
-    ShieldCheck,
-    Sparkles,
-    Square,
-    Trash2,
-    Users,
 } from "lucide-react";
-import {
-    LineChart,
-    Line,
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    PieChart,
-    Pie,
-    Cell,
-    ResponsiveContainer,
-} from "recharts";
+
 
 import { Logo } from "../components/Layout";
 import {
     API_ENDPOINTS,
-    DEFAULT_USE_API_DATA,
     apiPlaceholders,
     getUseApiDataSetting,
-    normalizeBackendUser,
     normalizeProjectRows,
     normalizeEmployeeRows,
     normalizeTaskRows,
     projectToApi,
-    saveUseApiDataSetting,
-    unwrapApiPayload,
     useApiPlaceholder,
 } from "../services/api";
 import {
     employees,
-    employeeActivity,
-    findMockUserByEmail,
-    getPublicUser,
-    kpis,
-    mockUsers,
-    placeholderPages,
-    productivity,
-    projectProgress,
     projects,
-    settingsData,
     taskItems,
     workflow,
 } from "../data/mockData";
 import {
     ASSIGNMENTS_PAGE_SIZE,
     ASSIGNMENT_COLUMNS,
-    EMPLOYEES_PAGE_SIZE,
-    EMPLOYEE_COLUMNS,
     PROJECTS_PAGE_SIZE,
     PROJECT_COLUMNS,
-    TASKS_PAGE_SIZE,
-    TASK_COLUMNS,
-    buildPageNumbers,
-    downloadEmployeesReport,
-    downloadTextFile,
     downloadProjectsReport,
-    downloadTasksReport,
-    formatDuration,
-    formatNumber,
-    formatPercent,
     formatTaskId,
     generateNextId,
-    getLiveTrackedSeconds,
     getNextSort,
-    getSortableValue,
     getRangeText,
-    getTimerUserKey,
-    getTaskTimerSession,
     getTotalPages,
     getUniqueOptions,
     normalizeNumber,
@@ -105,21 +46,10 @@ import {
     paginateRows,
     sortRows,
 } from "../utils/helpers";
-import {
-    ANALYTICS_COLORS,
-    REPORT_ASSIGNMENT_COLUMNS,
-    REPORT_EMPLOYEE_COLUMNS,
-    REPORT_PROJECT_COLUMNS,
-    REPORT_TIME_COLUMNS,
-    buildOperationsReportData,
-    downloadFullOperationsReport,
-    downloadReportTable,
-} from "../utils/reporting";
+
 import {
     canManageContent,
     filterRowsByAccess,
-    getAssignedProjectNames,
-    isAssignedToUser,
     rowMatchesSearch,
 } from "../utils/accessControl";
 import { notifyError } from "../utils/notifications";
