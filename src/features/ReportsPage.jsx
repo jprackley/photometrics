@@ -22,7 +22,6 @@ import {
     normalizeEmployeeRows,
     normalizeTaskRows,
     normalizeProjectRows,
-    normalizeTimeEntryRows,
     useApiPlaceholder,
 } from "../services/api";
 import {
@@ -278,15 +277,9 @@ function ReportsPage({ globalSearch = "" }) {
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
         transformPayload: normalizeEmployeeRows,
     });
-    const { data: loadedTimeEntryRows } = useApiPlaceholder(API_ENDPOINTS.timeEntriesList, [], {
-        transformPayload: normalizeTimeEntryRows,
-        suppressApiError: true,
-    });
-
     const projectRows = Array.isArray(loadedProjectRows) ? loadedProjectRows : [];
     const rawTaskRows = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
     const employeeRows = Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [];
-    const timeEntryRows = Array.isArray(loadedTimeEntryRows) ? loadedTimeEntryRows : [];
 
     const projectNameById = useMemo(() => new Map(projectRows.map((project) => [project.id, project.name])), [projectRows]);
     const employeeNameById = useMemo(() => new Map(employeeRows.flatMap((employee) => ([
@@ -312,8 +305,8 @@ function ReportsPage({ globalSearch = "" }) {
     const [employeeFilter, setEmployeeFilter] = useState("All Employees");
 
     const reportData = useMemo(
-        () => buildOperationsReportData(projectRows, taskRows, employeeRows, timeEntryRows),
-        [projectRows, taskRows, employeeRows, timeEntryRows]
+        () => buildOperationsReportData(projectRows, taskRows, employeeRows),
+        [projectRows, taskRows, employeeRows]
     );
 
     const useLiveReports = getUseApiDataSetting();
@@ -659,3 +652,4 @@ function ReportsPage({ globalSearch = "" }) {
 export {
     ReportsPage,
 };
+                                                                                                                                                                                                                                                                                                                                               
