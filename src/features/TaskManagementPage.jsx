@@ -303,10 +303,35 @@ function TaskManagementPage() {
     const taskEmployeeRows = Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [];
 
     useEffect(() => {
-        if (Array.isArray(loadedTaskRows)) {
-            setTaskRows(loadedTaskRows.map((task) => ({ ...task, timerStartedAt: task.timerStartedAt || null })));
-        }
-    }, [loadedTaskRows]);
+        if (!Array.isArray(loadedTaskRows)) return;
+
+        // Build lookup maps so UUIDs in project/assignedTo can be resolved to real names.
+        const projectNameById = new Map(
+            taskProjectRows.flatMap((p) =>
+                [p.backendId, p.id].filter(Boolean).map((id) => [id, p.name])
+            )
+        );
+        const employeeNameById = new Map(
+            taskEmployeeRows.flatMap((e) =>
+                [e.userId, e.backendId, e.employeeId, e.id].filter(Boolean).map((id) => [id, e.name])
+            )
+        );
+
+        setTaskRows(loadedTaskRows.map((task) => {
+            // Only replace if the current value is a raw UUID fallback (starts with "Project " or "Employee ").
+            const project =
+                (task.project && !task.project.startsWith("Project "))
+                    ? task.project
+                    : (task.projectId && projectNameById.get(task.projectId)) || task.project;
+
+            const assignedTo =
+                (task.assignedTo && !task.assignedTo.startsWith("Employee "))
+                    ? task.assignedTo
+                    : (task.assignedToId && employeeNameById.get(task.assignedToId)) || task.assignedTo;
+
+            return { ...task, project, assignedTo, timerStartedAt: task.timerStartedAt || null };
+        }));
+    }, [loadedTaskRows, taskProjectRows, taskEmployeeRows]);
 
     useEffect(() => {
         if (!activeTimerTaskId) return undefined;
