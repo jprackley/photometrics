@@ -270,26 +270,6 @@ CREATE TABLE images
             ON DELETE SET NULL
 );
 
-/*CREATE TABLE time_entries
-(
-    time_entry_id UUID PRIMARY KEY     DEFAULT gen_random_uuid(),
-    task_id       UUID        NOT NULL,
-    employee_id   UUID        NOT NULL,
-    start_time    TIMESTAMPTZ NOT NULL,
-    end_time      TIMESTAMPTZ          DEFAULT NULL,
-    total_time    DECIMAL              DEFAULT 0, -- in hours
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT fk_time_entries_task
-        FOREIGN KEY (task_id)
-            REFERENCES tasks (task_id)
-            ON DELETE CASCADE,
-    CONSTRAINT fk_time_entries_employee
-        FOREIGN KEY (employee_id)
-            REFERENCES users (user_id)
-            ON DELETE CASCADE,
-    CONSTRAINT chk_time_entry_end_after_start
-        CHECK (end_time IS NULL OR end_time >= start_time)
-);*/
 ---------------------------------------------------------------------------
 -- Report Snapshots
 ---------------------------------------------------------------------------
