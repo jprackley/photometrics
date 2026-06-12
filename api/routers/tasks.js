@@ -100,7 +100,7 @@ router.get('/time-entries',
         res.status(C_HTTP.STATUS.OK).json({timeEntries: rows});
     })
 )
-router.get('/:id/time-entries',
+router.get('/:id/time-entry',
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Task:id Time Entries - ');
         const {id} = req.params;
