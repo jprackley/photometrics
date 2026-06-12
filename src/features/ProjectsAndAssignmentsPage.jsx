@@ -576,10 +576,19 @@ function ProjectsAndAssignments() {
 
         if (getUseApiDataSetting()) {
             try {
-                const savedProject = projectModal.mode === "create"
+                const isCreatingProject = projectModal.mode === "create";
+                const savedProject = isCreatingProject
                     ? await apiPlaceholders.createProject(projectToApi(cleanProject))
                     : await apiPlaceholders.updateProject(cleanProject.backendId || cleanProject.id, projectToApi(cleanProject));
                 cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
+
+                if (isCreatingProject) {
+                    try {
+                        await apiPlaceholders.createImagesForProjectMetrics({ ...project, ...cleanProject });
+                    } catch (imageError) {
+                        console.warn("Project saved, but image metrics could not be created.", imageError);
+                    }
+                }
             } catch (apiError) {
                 console.warn("Project API request failed. The project list was not changed.", apiError);
                 notifyError(apiError?.message || "Project could not be saved. Please try again.", "Project not saved");
@@ -1096,10 +1105,19 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
 
         if (getUseApiDataSetting()) {
             try {
-                const savedProject = projectModal.mode === "create"
+                const isCreatingProject = projectModal.mode === "create";
+                const savedProject = isCreatingProject
                     ? await apiPlaceholders.createProject(projectToApi(cleanProject))
                     : await apiPlaceholders.updateProject(cleanProject.backendId || cleanProject.id, projectToApi(cleanProject));
                 cleanProject = normalizeProjectRows([savedProject])[0] || cleanProject;
+
+                if (isCreatingProject) {
+                    try {
+                        await apiPlaceholders.createImagesForProjectMetrics({ ...project, ...cleanProject });
+                    } catch (imageError) {
+                        console.warn("Project saved, but image metrics could not be created.", imageError);
+                    }
+                }
             } catch (apiError) {
                 console.warn("Project API request failed. The project list was not changed.", apiError);
                 notifyError(apiError?.message || "Project could not be saved. Please try again.", "Project not saved");
