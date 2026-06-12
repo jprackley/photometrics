@@ -664,17 +664,22 @@ function normalizeAssignmentRows(payload) {
  * Maps backend time entry fields into the frontend row shape.
  */
 function timeEntryFromApi(entry) {
-    const totalHours = Number(entry.total_time ?? entry.totalTime ?? entry.hours ?? 0) || 0;
+    // Backend contract: total_time is stored in MINUTES (total_time = EXTRACT(EPOCH ...) / 60).
+    const totalMinutes = Number(entry.total_time ?? entry.totalTime ?? 0) || 0;
+    const estimatedHours = Number(entry.estimated_hours ?? entry.estimatedHours ?? 0) || 0;
 
     return {
-        id: entry.time_entry_id || entry.id,
-        backendId: entry.time_entry_id || entry.id,
+        id: entry.time_entry_id || entry.id || entry.task_id || entry.taskId || null,
+        backendId: entry.time_entry_id || entry.id || null,
+        projectId: entry.project_id || entry.projectId || null,
         taskId: entry.task_id || entry.taskId || null,
-        employeeId: entry.employee_id || entry.employeeId || null,
+        employeeId: entry.assigned_to || entry.employee_id || entry.employeeId || null,
         startTime: entry.start_time || entry.startTime || null,
-        endTime: entry.end_time || entry.endTime || null,
-        totalHours,
-        totalSeconds: totalHours * 3600,
+        endTime: entry.stop_time || entry.end_time || entry.endTime || null,
+        totalMinutes,
+        totalSeconds: Math.round(totalMinutes * 60),
+        estimatedHours,
+        completedAt: entry.completed_at || entry.completedAt || null,
         createdAt: entry.created_at || entry.createdAt || null,
     };
 }
@@ -933,6 +938,7 @@ function taskToApiPayload(task = {}) {
         description: task.description || undefined,
         status: task.status || "Assigned",
         progress: task.progress ?? undefined,
+        estimated_hours: Number(task.estimatedHours ?? task.estimated_hours ?? 0) || 0,
         start_time: toApiDateTime(task.startDate || task.assignedDate || task.start_time),
         due_time: toApiDateTime(task.dueDate || task.due_time),
         completed_at: toApiDateTime(task.completedAt || task.completed_at),
@@ -1072,13 +1078,12 @@ const API_ENDPOINTS = {
     tasksList: "/tasks?all=true",
 
     //-----------------------------------------------------------------------
-    // Stores clocked work time for tasks/projects.
-    // Frontend timer system posts here.
-    // Expected fields:
-    // employeeId, taskId, startTime, endTime, duration
+    // Task time tracking (merged with tasks). total_time is returned in MINUTES.
+    // Confirmed backend routes:
+    //   GET /api/tasks/time-entries          -> { timeEntries: [...] } (all)
+    //   GET /api/tasks/:task_id/time-entry    -> { timeEntry: [...] }   (one task)
+    // Timer writes use PATCH /api/tasks/:id/timer/start and /timer/stop.
     //-----------------------------------------------------------------------
-    // New backend routes: all time entries live under /tasks/time-entries,
-    // and task-specific entries under /tasks/:task_id/time-entries.
     timeEntries: "/tasks/time-entries",
     timeEntriesList: "/tasks/time-entries",
 
