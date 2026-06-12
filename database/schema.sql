@@ -225,9 +225,9 @@ CREATE TABLE tasks
     progress        DECIMAL               DEFAULT 0,
     start_time      TIMESTAMPTZ           DEFAULT null,
     stop_time       TIMESTAMPTZ           DEFAULT null,
-    total_time      DECIMAL               DEFAULT 0,
+    total_time      DECIMAL               DEFAULT 0, -- in Minutes
     due_time        TIMESTAMPTZ           DEFAULT NULL,
-    estimated_hours DECIMAL               DEFAULT 0,
+    estimated_hours DECIMAL               DEFAULT 0, -- in Hours
     completed_at    TIMESTAMPTZ           DEFAULT NULL,
     assigned_by     UUID                  DEFAULT NULL REFERENCES users (user_id) ON DELETE SET NULL,
     assigned_to     UUID                  DEFAULT NULL REFERENCES users (user_id) ON DELETE SET NULL,

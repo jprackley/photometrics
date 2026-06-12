@@ -2,6 +2,7 @@ DROP VIEW IF EXISTS project_delivery_report CASCADE;
 DROP VIEW IF EXISTS task_time_report CASCADE;
 DROP VIEW IF EXISTS employee_productivity_report CASCADE;
 DROP VIEW IF EXISTS assignment_status_report CASCADE;
+DROP VIEW IF EXISTS operations_summary_view CASCADE;
 DROP VIEW IF EXISTS task_progress_view CASCADE;
 DROP VIEW IF EXISTS project_progress_view CASCADE;
 DROP VIEW IF EXISTS employee_activity_view CASCADE;
@@ -212,6 +213,116 @@ FROM tasks t
                    ON t.project_id = p.project_id
          LEFT JOIN users u
                    ON t.assigned_to = u.user_id;
+
+CREATE OR REPLACE VIEW operations_summary_view AS
+WITH project_summary AS (
+    SELECT
+        COUNT(*) AS total_projects,
+        COUNT(*) FILTER (
+            WHERE status IN ('Completed', 'Cancelled', 'Archived')
+                AND completed_at IS NOT NULL
+            ) AS completed_projects
+    FROM projects
+),
+
+     image_summary AS (
+         SELECT
+             COUNT(*) AS total_images,
+             COUNT(*) FILTER (
+                 WHERE status IN ('Completed', 'Rejected')
+                     AND completed_at IS NOT NULL
+                 ) AS completed_images,
+             COUNT(*) FILTER (
+                 WHERE status NOT IN ('Completed', 'Rejected')
+                 ) AS remaining_images
+         FROM images
+     ),
+
+     task_summary AS (
+         SELECT
+             COUNT(*) AS total_tasks,
+             COUNT(*) FILTER (
+                 WHERE status IN ('Completed', 'Cancelled')
+                     AND completed_at IS NOT NULL
+                 ) AS completed_tasks,
+             COUNT(*) FILTER (
+                 WHERE status NOT IN ('Completed', 'Cancelled')
+                 ) AS open_tasks,
+             COUNT(*) FILTER (
+                 WHERE category = 'Quality Review'
+                     AND status NOT IN ('Completed', 'Cancelled')
+                 ) AS review_queue,
+
+             COALESCE(
+                     SUM(
+                             COALESCE(total_time, 0)
+                                 +
+                             CASE
+                                 WHEN start_time IS NOT NULL
+                                     AND stop_time IS NULL
+                                     AND status = 'In Progress'
+                                     THEN EXTRACT(EPOCH FROM (NOW() - start_time)) / 60
+                                 ELSE 0
+                                 END
+                     ),
+                     0
+             ) AS total_tracked_minutes,
+
+             COALESCE(SUM(COALESCE(estimated_hours, 0)), 0) AS estimated_hours
+         FROM tasks
+     )
+
+SELECT
+    COALESCE(ps.total_projects, 0) AS total_projects,
+    COALESCE(ps.completed_projects, 0) AS completed_projects,
+
+    COALESCE(img.total_images, 0) AS total_images,
+    COALESCE(img.completed_images, 0) AS completed_images,
+    COALESCE(img.remaining_images, 0) AS remaining_images,
+
+    COALESCE(
+            ROUND(
+                    img.completed_images::numeric
+                        / NULLIF(img.total_images, 0)
+                        * 100,
+                    2
+            ),
+            0
+    ) AS completion_rate,
+
+    COALESCE(ts.total_tasks, 0) AS total_tasks,
+    COALESCE(ts.completed_tasks, 0) AS completed_tasks,
+    COALESCE(ts.open_tasks, 0) AS open_tasks,
+    COALESCE(ts.review_queue, 0) AS review_queue,
+
+    ROUND(COALESCE(ts.total_tracked_minutes, 0)::numeric, 2) AS total_tracked_time,
+    ROUND(COALESCE(ts.total_tracked_minutes / 60, 0)::numeric, 2) AS total_employee_hours,
+
+    ROUND(COALESCE(ts.estimated_hours, 0)::numeric, 2) AS estimated_time,
+
+    COALESCE(
+            ROUND(
+                    (ts.total_tracked_minutes / 60)::numeric
+                        / NULLIF(ts.estimated_hours, 0)
+                        * 100,
+                    2
+            ),
+            0
+    ) AS utilization_rate,
+
+    COALESCE(
+            ROUND(
+                    ts.estimated_hours::numeric
+                        / NULLIF(ts.total_tracked_minutes / 60, 0)
+                        * 100,
+                    2
+            ),
+            0
+    ) AS average_efficiency
+
+FROM project_summary ps
+         CROSS JOIN image_summary img
+         CROSS JOIN task_summary ts;
 
 ---------------------------------------------------------------------------
 -- Views

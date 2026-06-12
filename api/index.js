@@ -52,6 +52,7 @@ app.use('/api/reports/project_delivery', require('./routers/reports/project_deli
 app.use('/api/reports/task_time', require('./routers/reports/task_time_report'));
 app.use('/api/reports/employee_productivity', require('./routers/reports/employee_productivity_report'));
 app.use('/api/reports/assignment_status', require('./routers/reports/assignment_status_report'));
+app.use('/api/reports/operations_summary', require('./routers/reports/operations_summary_report'));
 
 //app.use('/api/auth/refresh', require('./routers/auth/refresh'));
 
