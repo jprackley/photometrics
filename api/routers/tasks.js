@@ -81,6 +81,7 @@ router.post(
 // READ Time Entries
 //----------------------------------------------------------------------------------
 router.get('/time-entries',
+    verifyAuthentication,
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Task Time Entries - ');
         const {rows} = await query(`
@@ -101,6 +102,7 @@ router.get('/time-entries',
     })
 )
 router.get('/:id/time-entry',
+    verifyAuthentication,
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'READ Task:id Time Entries - ');
         const {id} = req.params;
