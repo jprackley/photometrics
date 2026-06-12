@@ -172,16 +172,37 @@ function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
         };
     });
 
+    const [error, setError] = useState("");
+
     const updateField = (field, value) => {
         setForm((current) => ({ ...current, [field]: value }));
     };
 
     const handleSubmit = (event) => {
         event.preventDefault();
+
+        // The backend requires a valid email and a password of at least 8
+        // characters to create a user. Validate here so a rushed save shows a
+        // clear message instead of a generic "Validation failed" from the API.
+        const email = String(form.email || "").trim();
+        const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        if (!emailValid) {
+            setError("Please enter a valid email address before saving.");
+            return;
+        }
+
+        const password = String(form.password || "");
+        if (password && password.length < 8) {
+            setError("Password must be at least 8 characters.");
+            return;
+        }
+
+        setError("");
         const displayName = buildEmployeeDisplayName(form);
 
         onSave({
             ...form,
+            email,
             name: displayName,
             displayName,
             role: form.title || form.role || "Photo Editor",
@@ -234,7 +255,7 @@ function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
                 </FormField>
 
                 <FormField label="Email">
-                    <TextInput value={form.email} onChange={(value) => updateField("email", value)} placeholder="employee@company.com" type="email" />
+                    <TextInput value={form.email} onChange={(value) => updateField("email", value)} placeholder="employee@company.com" type="email" required />
                 </FormField>
 
                 <FormField label="Temporary Password">
@@ -287,6 +308,10 @@ function EmployeeForm({ initialEmployee, roleOptions, onCancel, onSave }) {
                     <TextInput value={form.efficiency} onChange={(value) => updateField("efficiency", value)} placeholder="91" type="number" />
                 </FormField>
             </div>
+
+            {error && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{error}</p>
+            )}
 
             <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
                 <button
