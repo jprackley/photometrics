@@ -8,6 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server/api/index.js",
+    "local:api": "node api/index.js",
+    "local:server": "concurrently \"npm run local:api\" \"npm run dev\"",
     "test": "node --test"
   },
   "dependencies": {
@@ -40,6 +42,7 @@
     "@types/react-dom": "~19.0.6",
     "@types/supertest": "^7.2.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^10.0.3",
     "supertest": "^7.2.2",
     "tailwindcss": "^4.3.0",
     "vite": "^6.0.0"

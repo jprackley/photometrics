@@ -71,6 +71,36 @@ async function verifyAuthentication(req, res, next) {
     }
 }
 
+function requireRole(...allowedRoles) {
+    return (req, res, next) => {
+        const accessToken = req.cookies?.access_token;
+        const decodedToken = verifyAccessToken( accessToken );
+
+        if (!accessToken || !decodedToken) {
+            return res.status(C_HTTP.STATUS.UNAUTHORIZED).json({
+                error: {
+                    code: 'UNAUTHORIZED',
+                    message: 'Failed to decyrypt Access Token. Please login again.',
+                },
+            });
+        }
+
+        const userRole = decodedToken.account_role;
+
+        if (!allowedRoles.includes(userRole)) {
+            return res.status(C_HTTP.STATUS.FORBIDDEN).json({
+                error: {
+                    code: 'FORBIDDEN',
+                    message: 'You do not have permission to access this resource.',
+                },
+            });
+        }
+
+        next();
+    };
+}
+
 module.exports = {
-    verifyAuthentication
+    verifyAuthentication,
+    requireRole,
 };

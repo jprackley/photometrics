@@ -87,4 +87,12 @@ app.use((err, req, res, next) => {
     });
 });
 
+if (process.env.NODE_ENV === 'development') {
+    const PORT = process.env.PORT || 3000;
+
+    app.listen(PORT, () => {
+        console.warn(`[WARNING] Server running at http://localhost:${PORT}`);
+    });
+}
+
 module.exports = app;
