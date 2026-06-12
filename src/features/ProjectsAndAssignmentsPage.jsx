@@ -704,7 +704,7 @@ function ProjectsAndAssignments() {
             }
         }
 
-        setProjectRows((currentRows) => currentRows.filter((row) => row.id !== project.id));
+        setProjectRows((currentRows) => currentRows.filter((row) => (row.backendId || row.id) !== (project.backendId || project.id)));
     };
 
     const deleteAssignment = async (assignment) => {
@@ -1261,7 +1261,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                 return;
             }
         }
-        setProjectRows((currentRows) => currentRows.filter((row) => row.id !== project.id));
+        setProjectRows((currentRows) => currentRows.filter((row) => (row.backendId || row.id) !== (project.backendId || project.id)));
     };
 
     const deleteAssignment = async (assignment) => {

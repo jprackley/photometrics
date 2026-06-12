@@ -118,18 +118,18 @@ function unwrapProjectDeliveryPayload(payload, key) {
 
 
 /**
- * Formats tracked-time values that may arrive as strings, minutes, or seconds.
+ * Formats tracked-time values. The backend reports tracked_time/total_time in minutes
+ * (confirmed by backend: total_time = EXTRACT(EPOCH ...) / 60). Values may arrive as
+ * numbers or numeric strings. Pre-formatted strings (containing a unit like "h" or "m")
+ * are passed through unchanged.
  */
 function formatTrackedTime(value) {
     if (value === null || value === undefined || value === "") return "0m";
-    if (typeof value === "string") return value;
+    // Pre-formatted, human-readable strings (e.g. "2h 5m") should pass through as-is.
+    if (typeof value === "string" && /[a-z]/i.test(value)) return value;
     const numericValue = Number(value);
     if (!Number.isFinite(numericValue)) return String(value);
-    // Backend report views store tracked_time as hours or formatted text depending on the view.
-    // Treat small decimal values as hours and larger whole values as minutes.
-    if (numericValue > 0 && numericValue < 1000 && !Number.isInteger(numericValue)) {
-        return formatDuration(Math.round(numericValue * 3600));
-    }
+    // tracked_time is in minutes -> convert to seconds for formatDuration.
     return formatDuration(Math.round(numericValue * 60));
 }
 
