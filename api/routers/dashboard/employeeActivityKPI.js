@@ -7,11 +7,13 @@ const { query } = require("../../db");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
 const {param} = require("express-validator");
-const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
+const {verifyAuthentication, requireRole} = require("../../middleware/verifyAuthentication");
+const C_USER = require("../../../utils/constants/cUsers");
 
 router.get(
     '/',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Employee Activity KPI - ');
         const sql = `
@@ -27,6 +29,7 @@ router.get(
 router.get(
     '/:id',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     param('id').isUUID().withMessage('Invalid User UUID'),
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Employee Activity KPI - ');

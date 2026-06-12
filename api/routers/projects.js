@@ -285,6 +285,7 @@ router.get(
 router.patch(
     '/:id',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [
         param('id').isUUID().withMessage('Invalid project ID format'),
         body('client_id').optional({ values: 'null' }).isUUID().withMessage('Invalid client ID format'),
@@ -376,6 +377,7 @@ router.patch(
 router.delete(
     '/:id',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [param('id').isUUID().withMessage('ID is an invalid UUID')],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE Project:id - ');

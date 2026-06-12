@@ -8,11 +8,13 @@ const { verbose } = require('../../handlers/expressHandlers');
 const {validationErrorHandler} = require("../../handlers/expressHandlers");
 const { query } = require("../../db");
 const C_HTTP = require("../../../utils/constants/cHTTP");
-const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
+const {verifyAuthentication, requireRole} = require("../../middleware/verifyAuthentication");
+const C_USER = require("../../../utils/constants/cUsers");
 
 router.get(
     '/active',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [verbose],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Active Tasks - ');
@@ -41,6 +43,7 @@ router.get(
 router.get(
     '/completed',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [verbose],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Completed Tasks - ');
@@ -69,6 +72,7 @@ router.get(
 router.get(
     '/remaining',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [verbose],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Remaining Tasks - ');
@@ -103,6 +107,7 @@ router.get(
 router.get(
     '/total',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [verbose],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Total Tasks - ');

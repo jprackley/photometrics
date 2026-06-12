@@ -8,11 +8,12 @@ const { verbose } = require('../../handlers/expressHandlers');
 const {validationErrorHandler} = require("../../handlers/expressHandlers");
 const { query } = require("../../db");
 const C_HTTP = require("../../../utils/constants/cHTTP");
-const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
+const {verifyAuthentication, requireRole} = require("../../middleware/verifyAuthentication");
 
 router.get(
     '/active',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [verbose],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Active Employees - ');
@@ -41,6 +42,7 @@ router.get(
 router.get(
     '/total',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [verbose],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Total Employees - ');

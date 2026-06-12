@@ -9,7 +9,7 @@ const C_NODE = require('../../utils/constants/cNodeServer');
 const asyncHandler = require('../handlers/asyncHandler');
 const {validationErrorHandler, buildPagination} = require('../handlers/expressHandlers');
 const {query} = require("../db");
-const {verifyAuthentication} = require("../middleware/verifyAuthentication");
+const {verifyAuthentication, requireRole} = require("../middleware/verifyAuthentication");
 
 //----------------------------------------------------------------------------------
 // POST Task
@@ -17,6 +17,7 @@ const {verifyAuthentication} = require("../middleware/verifyAuthentication");
 router.post(
     '/',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [
         body('project_id').isUUID().withMessage('Invalid project_id UUID'),
         body('task_name').isString().isLength(
@@ -356,6 +357,7 @@ router.patch('/:id/timer/stop',
 router.delete(
     '/:id',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [
         param('id').isUUID().withMessage('Invalid Task UUID.'),
     ],

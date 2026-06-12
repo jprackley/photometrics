@@ -13,7 +13,7 @@ const asyncHandler = require('../handlers/asyncHandler');
 const {validationErrorHandler, paginate, buildPagination} = require("../handlers/expressHandlers");
 const { query } = require('../db');
 const {MESSAGE} = require("../../utils/constants/cHTTP");
-const {verifyAuthentication} = require("../middleware/verifyAuthentication");
+const {verifyAuthentication, requireRole} = require("../middleware/verifyAuthentication");
 
 //----------------------------------------------------------------------------------
 // Create Users
@@ -21,6 +21,7 @@ const {verifyAuthentication} = require("../middleware/verifyAuthentication");
 router.post(
     '/',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [
         body('employee_id').optional({ values: 'null' }).isString().isLength({
             min: C_USER.MIN.EMPLOYEE_ID,
@@ -335,6 +336,7 @@ router.patch(
 router.delete(
     '/:id',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [param('id').isUUID()],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE User - ');

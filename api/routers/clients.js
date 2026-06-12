@@ -13,7 +13,8 @@ const {
     buildPagination,
     validationErrorHandler
 } = require('../../api/handlers/expressHandlers');
-const {verifyAuthentication} = require("../middleware/verifyAuthentication");
+const {verifyAuthentication, requireRole} = require("../middleware/verifyAuthentication");
+const C_USER = require("../../utils/constants/cUsers");
 
 //----------------------------------------------------------------------------------
 // CREATE Client
@@ -21,6 +22,7 @@ const {verifyAuthentication} = require("../middleware/verifyAuthentication");
 router.post(
     '/',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [
         body('first_name').isString().isLength({
             min: C_CLIENT.MIN.FIRST_NAME,
@@ -271,6 +273,7 @@ router.get(
 router.patch(
     '/:id',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [
         param('id').isUUID(),
         body('first_name').optional({ values: 'falsy' }).isString().isLength({
@@ -416,6 +419,7 @@ router.patch(
 router.delete(
     '/:id',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [param('id').isUUID()],
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'DELETE Client:id - ');

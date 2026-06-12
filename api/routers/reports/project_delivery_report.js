@@ -6,11 +6,13 @@ const {param} = require("express-validator");
 const {query} = require("../../db");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
-const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
+const {verifyAuthentication, requireRole} = require("../../middleware/verifyAuthentication");
 const {validationErrorHandler} = require("../../handlers/expressHandlers");
+const C_USER = require("../../../utils/constants/cUsers");
 
 router.post('/:id/save',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [
         param('id').isUUID().withMessage('Invalid Project UUID')
     ],
@@ -63,6 +65,7 @@ router.post('/:id/save',
 
 router.get('/history',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     asyncHandler(async (req, res) => {
 
         const result = await query(
@@ -79,6 +82,7 @@ router.get('/history',
 
 router.get('/:id',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [
         param('id').isUUID().withMessage('Invalid Project UUID')
     ],

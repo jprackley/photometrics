@@ -1,3 +1,4 @@
+/*
 const express = require('express');
 const {paginate, validationErrorHandler, buildPagination} = require("../handlers/expressHandlers");
 const {param, body} = require("express-validator");
@@ -197,4 +198,4 @@ router.delete(
         res.status(C_HTTP.STATUS.NO_CONTENT).send({time_entries: rows[0]});
     })
 )
-module.exports = router;
+module.exports = router;*/

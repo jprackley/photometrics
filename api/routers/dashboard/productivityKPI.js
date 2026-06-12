@@ -7,23 +7,17 @@ const { query } = require("../../db");
 const {param} = require("express-validator");
 
 const C_HTTP = require("../../../utils/constants/cHTTP");
-const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
+const {verifyAuthentication, requireRole} = require("../../middleware/verifyAuthentication");
+const C_USER = require("../../../utils/constants/cUsers");
 
 router.get(
     '/',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Productivity KPI - ');
 
         const sql = `
-            WITH task_time AS (
-                SELECT
-                    te.task_id,
-                    COALESCE(SUM(te.total_time), 0) AS total_hours
-                FROM time_entries te
-                GROUP BY te.task_id
-            ) -- Total time for all Tasks (Minutes) defined as task_time tt
-
             SELECT
                 u.user_id,
                 u.first_name,
@@ -52,7 +46,7 @@ router.get(
                     ) AS overdue_tasks,
                 --Counts Overdue Tasks by counting tasks that are not completed or canceled and are past due.
 
-                COALESCE(SUM(tt.total_hours), 0) AS total_hours,
+                COALESCE(SUM(t.total_time), 0) / 60.0 AS total_hours,
                 --Calculates the total hours spent on all assigned Tasks.
 
                 COALESCE(
@@ -73,8 +67,6 @@ router.get(
             FROM users u
                      LEFT JOIN tasks t
                                ON t.assigned_to = u.user_id
-                     LEFT JOIN task_time tt
-                               ON tt.task_id = t.task_id
             WHERE u.account_role = 'Employee'
 
             GROUP BY
@@ -93,19 +85,12 @@ router.get(
 router.get(
     '/:id',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     param('id').isUUID().withMessage('Invalid User UUID'),
     asyncHandler(async (req, res) => {
         validationErrorHandler(req, 'GET Productivity KPI - ');
         const {id: param} = req.params;
         const sql = `
-            WITH task_time AS (
-                SELECT
-                    te.task_id,
-                    COALESCE(SUM(te.total_time), 0) AS total_hours
-                FROM time_entries te
-                GROUP BY te.task_id
-            ) -- Total time for all Tasks (Minutes) defined as task_time tt
-
             SELECT
                 u.user_id,
                 u.first_name,
@@ -134,7 +119,7 @@ router.get(
                     ) AS overdue_tasks,
                 --Counts Overdue Tasks by counting tasks that are not completed or canceled and are past due.
 
-                COALESCE(SUM(tt.total_hours), 0) AS total_hours,
+                COALESCE(SUM(t.total_time), 0) / 60.0 AS total_hours,
                 --Calculates the total hours spent on all assigned Tasks.
 
                 COALESCE(
@@ -155,8 +140,6 @@ router.get(
             FROM users u
                      LEFT JOIN tasks t
                                ON t.assigned_to = u.user_id
-                     LEFT JOIN task_time tt
-                               ON tt.task_id = t.task_id
             
             WHERE u.user_id = $1 AND u.account_role = 'Employee'
 

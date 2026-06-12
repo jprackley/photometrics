@@ -6,10 +6,12 @@ const asyncHandler = require('../../../api/handlers/asyncHandler');
 const {validationErrorHandler} = require("../../handlers/expressHandlers");
 const C_HTTP = require("../../../utils/constants/cHTTP");
 const {query} = require("../../db");
-const {verifyAuthentication} = require("../../middleware/verifyAuthentication");
+const {verifyAuthentication, requireRole} = require("../../middleware/verifyAuthentication");
+const C_USER = require("../../../utils/constants/cUsers");
 
 router.post('/:id/save',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [
         param('id').isUUID().withMessage('Invalid Employee UUID')
     ],
@@ -50,6 +52,7 @@ router.post('/:id/save',
 
 router.get('/history',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     asyncHandler(async (req, res) => {
         const result = await query(
             `SELECT * FROM employee_productivity_report_snapshots ORDER BY generated_at DESC;`
@@ -61,6 +64,7 @@ router.get('/history',
 
 router.get('/:id',
     verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
     [
         param('id').isUUID().withMessage('Invalid Employee UUID')
     ],
