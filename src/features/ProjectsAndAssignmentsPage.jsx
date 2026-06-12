@@ -80,6 +80,29 @@ const calculateProjectProgress = (project = {}) => {
     return Math.max(0, Math.min(100, Math.round((completedImages / totalImages) * 100)));
 };
 
+const normalizeLookupId = (value) => String(value || "").trim().toLowerCase();
+
+const buildNameLookup = (rows = [], idKeys = [], nameKeys = []) => {
+    const lookup = new Map();
+
+    rows.forEach((row) => {
+        const name = nameKeys.map((key) => row?.[key]).find(Boolean);
+        if (!name) return;
+
+        idKeys
+            .map((key) => normalizeLookupId(row?.[key]))
+            .filter(Boolean)
+            .forEach((id) => lookup.set(id, name));
+    });
+
+    return lookup;
+};
+
+const getLookupName = (lookup, id, fallback) => {
+    const resolvedName = lookup.get(normalizeLookupId(id));
+    return resolvedName || fallback;
+};
+
 /**
  * Converts a task record into the assignment-table row shape.
  */
@@ -460,11 +483,6 @@ function ProjectsAndAssignments() {
         [projectRows]
     );
 
-    const employeeOptions = useMemo(
-        () => getUniqueOptions(assignmentRows, "assignedTo", "All Employees"),
-        [assignmentRows]
-    );
-
     const projectSelectOptions = useMemo(
         () => projectRows
             .filter((project) => project.id)
@@ -479,19 +497,51 @@ function ProjectsAndAssignments() {
         [loadedEmployeeRows]
     );
 
+    const projectNameById = useMemo(
+        () => buildNameLookup(
+            projectRows,
+            ["backendId", "projectId", "project_id", "id"],
+            ["name", "projectName", "project_name"]
+        ),
+        [projectRows]
+    );
+
+    const employeeNameById = useMemo(
+        () => buildNameLookup(
+            Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [],
+            ["userId", "user_id", "employeeId", "employee_id", "backendId", "id"],
+            ["name", "displayName", "display_name", "employeeName", "employee_name", "email"]
+        ),
+        [loadedEmployeeRows]
+    );
+
+    const resolvedAssignmentRows = useMemo(
+        () => assignmentRows.map((assignment) => ({
+            ...assignment,
+            project: getLookupName(projectNameById, assignment.projectId || assignment.project_id, assignment.project),
+            assignedTo: getLookupName(employeeNameById, assignment.assignedToId || assignment.assigned_to || assignment.employeeId || assignment.employee_id, assignment.assignedTo),
+        })),
+        [assignmentRows, projectNameById, employeeNameById]
+    );
+
+    const employeeOptions = useMemo(
+        () => getUniqueOptions(resolvedAssignmentRows, "assignedTo", "All Employees"),
+        [resolvedAssignmentRows]
+    );
+
     const statusOptions = useMemo(
-        () => getUniqueOptions(assignmentRows, "status", "All Status"),
-        [assignmentRows]
+        () => getUniqueOptions(resolvedAssignmentRows, "status", "All Status"),
+        [resolvedAssignmentRows]
     );
 
     const filteredAssignmentRows = useMemo(() => {
-        return assignmentRows.filter((assignment) => {
+        return resolvedAssignmentRows.filter((assignment) => {
             const matchesProject = projectFilter === "All Projects" || assignment.project === projectFilter;
             const matchesEmployee = employeeFilter === "All Employees" || assignment.assignedTo === employeeFilter;
             const matchesStatus = statusFilter === "All Status" || assignment.status === statusFilter;
             return matchesProject && matchesEmployee && matchesStatus;
         });
-    }, [assignmentRows, projectFilter, employeeFilter, statusFilter]);
+    }, [resolvedAssignmentRows, projectFilter, employeeFilter, statusFilter]);
 
     const sortedProjectRows = useMemo(
         () => sortRows(projectRows, projectSort),
@@ -696,7 +746,7 @@ function ProjectsAndAssignments() {
                     <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
                         <button
                             type="button"
-                            onClick={() => downloadProjectsReport(projectRows, assignmentRows)}
+                            onClick={() => downloadProjectsReport(projectRows, resolvedAssignmentRows)}
                             className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:w-auto"
                         >
                             <Download size={16} /> Export Report
@@ -954,9 +1004,36 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
         }
     }, [loadedTaskRows]);
 
+    const projectNameById = useMemo(
+        () => buildNameLookup(
+            projectRows,
+            ["backendId", "projectId", "project_id", "id"],
+            ["name", "projectName", "project_name"]
+        ),
+        [projectRows]
+    );
+
+    const employeeNameById = useMemo(
+        () => buildNameLookup(
+            Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [],
+            ["userId", "user_id", "employeeId", "employee_id", "backendId", "id"],
+            ["name", "displayName", "display_name", "employeeName", "employee_name", "email"]
+        ),
+        [loadedEmployeeRows]
+    );
+
+    const resolvedAssignmentRows = useMemo(
+        () => assignmentRows.map((assignment) => ({
+            ...assignment,
+            project: getLookupName(projectNameById, assignment.projectId || assignment.project_id, assignment.project),
+            assignedTo: getLookupName(employeeNameById, assignment.assignedToId || assignment.assigned_to || assignment.employeeId || assignment.employee_id, assignment.assignedTo),
+        })),
+        [assignmentRows, projectNameById, employeeNameById]
+    );
+
     const accessibleAssignmentRows = useMemo(
-        () => filterRowsByAccess(assignmentRows, currentUser, "tasks"),
-        [assignmentRows, currentUser]
+        () => filterRowsByAccess(resolvedAssignmentRows, currentUser, "tasks"),
+        [resolvedAssignmentRows, currentUser]
     );
 
     const accessibleProjectRows = useMemo(() => {
@@ -1228,7 +1305,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
                         <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
                             <button
                                 type="button"
-                                onClick={() => downloadProjectsReport(projectRows, assignmentRows)}
+                                onClick={() => downloadProjectsReport(projectRows, resolvedAssignmentRows)}
                                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 sm:w-auto"
                             >
                                 <Download size={16} /> Export Report
