@@ -318,16 +318,17 @@ function TaskManagementPage() {
         );
 
         setTaskRows(loadedTaskRows.map((task) => {
-            // Only replace if the current value is a raw UUID fallback (starts with "Project " or "Employee ").
+            // Prefer the id-based lookup so the row always shows the canonical
+            // project/employee name, regardless of which placeholder the API
+            // layer fell back to ("Unknown project", "Unknown employee", a raw
+            // "Project <id>"/"Employee <id>", etc.). Fall back to the existing
+            // value only when there is no id or no match. This keeps the
+            // name-based access filter working so assigned tasks aren't hidden.
             const project =
-                (task.project && !task.project.startsWith("Project "))
-                    ? task.project
-                    : (task.projectId && projectNameById.get(task.projectId)) || task.project;
+                (task.projectId && projectNameById.get(task.projectId)) || task.project;
 
             const assignedTo =
-                (task.assignedTo && !task.assignedTo.startsWith("Employee "))
-                    ? task.assignedTo
-                    : (task.assignedToId && employeeNameById.get(task.assignedToId)) || task.assignedTo;
+                (task.assignedToId && employeeNameById.get(task.assignedToId)) || task.assignedTo;
 
             return { ...task, project, assignedTo, timerStartedAt: task.timerStartedAt || null };
         }));
