@@ -299,13 +299,14 @@ function ReportsPage({ globalSearch = "" }) {
     const [selectedProjectId, setSelectedProjectId] = useState("");
     const [projectDeliveryHistoryRows, setProjectDeliveryHistoryRows] = useState([]);
     const [projectDeliveryPreviewRow, setProjectDeliveryPreviewRow] = useState(null);
+    const [currentReportRowsByType, setCurrentReportRowsByType] = useState({});
     const [projectDeliveryMessage, setProjectDeliveryMessage] = useState("");
     const [isProjectDeliveryLoading, setIsProjectDeliveryLoading] = useState(false);
     const [statusFilter, setStatusFilter] = useState("All Status");
     const [employeeFilter, setEmployeeFilter] = useState("All Employees");
 
     const reportData = useMemo(
-        () => buildOperationsReportData(projectRows, taskRows, employeeRows),
+        () => buildOperationsReportData(projectRows, [], taskRows, employeeRows),
         [projectRows, taskRows, employeeRows]
     );
 
@@ -361,6 +362,29 @@ function ReportsPage({ globalSearch = "" }) {
             }))
             .filter((option) => option.value),
     ]), [activeReportApiConfig]);
+
+    const loadCurrentReportRows = async () => {
+        if (!useLiveReports || !activeReportApiConfig) return;
+        setIsProjectDeliveryLoading(true);
+        setProjectDeliveryMessage("");
+        try {
+            const payload = await apiRequest(activeReportApiConfig.basePath);
+            const rows = unwrapReportPayload(payload, "reports").map(activeReportApiConfig.normalize);
+            setCurrentReportRowsByType((currentRows) => ({
+                ...currentRows,
+                [reportType]: rows,
+            }));
+        } catch (apiError) {
+            console.warn(`${reportType} current report rows could not be loaded.`, apiError);
+            setCurrentReportRowsByType((currentRows) => ({
+                ...currentRows,
+                [reportType]: [],
+            }));
+            setProjectDeliveryMessage(apiError?.message || `${reportType} current report rows could not be loaded.`);
+        } finally {
+            setIsProjectDeliveryLoading(false);
+        }
+    };
 
     const loadReportHistory = async () => {
         if (!useLiveReports || !activeReportApiConfig) return;
@@ -428,6 +452,7 @@ function ReportsPage({ globalSearch = "" }) {
 
     useEffect(() => {
         if (!useLiveReports || !activeReportApiConfig) return;
+        loadCurrentReportRows();
         loadReportHistory();
     }, [useLiveReports, activeReportApiConfig]);
 
@@ -463,15 +488,20 @@ function ReportsPage({ globalSearch = "" }) {
         return ["All Status", ...new Set(values.sort())];
     }, [projectRows, taskRows]);
 
+    const getLiveRows = (label, fallbackRows) => {
+        if (!useLiveReports) return fallbackRows;
+        const currentRows = currentReportRowsByType[label];
+        const snapshotRows = reportType === label ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean) : [];
+        return Array.isArray(currentRows) && currentRows.length > 0 ? currentRows : snapshotRows.length > 0 ? snapshotRows : fallbackRows;
+    };
+
     const reportDefinitions = useMemo(() => ([
         {
             label: "Project Delivery",
             filename: "photometrics-project-delivery-report.csv",
             title: "Project Delivery Report",
             columns: REPORT_PROJECT_COLUMNS,
-            rows: useLiveReports && reportType === "Project Delivery"
-                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
-                : reportData.projectReportRows,
+            rows: getLiveRows("Project Delivery", reportData.projectReportRows),
             searchKeys: ["name", "client", "dueDate", "status", "dueStatus", "assignedTo"],
         },
         {
@@ -479,9 +509,7 @@ function ReportsPage({ globalSearch = "" }) {
             filename: "photometrics-task-time-report.csv",
             title: "Task Time Report",
             columns: REPORT_TIME_COLUMNS,
-            rows: useLiveReports && reportType === "Task Time"
-                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
-                : reportData.timeReportRows,
+            rows: getLiveRows("Task Time", reportData.timeReportRows),
             searchKeys: ["taskName", "project", "assignedTo", "dueDate", "priority", "status", "dueStatus"],
         },
         {
@@ -489,9 +517,7 @@ function ReportsPage({ globalSearch = "" }) {
             filename: "photometrics-employee-productivity-report.csv",
             title: "Employee Productivity Report",
             columns: REPORT_EMPLOYEE_COLUMNS,
-            rows: useLiveReports && reportType === "Employee Productivity"
-                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
-                : reportData.employeeReportRows,
+            rows: getLiveRows("Employee Productivity", reportData.employeeReportRows),
             searchKeys: ["name", "role", "status"],
         },
         {
@@ -499,12 +525,10 @@ function ReportsPage({ globalSearch = "" }) {
             filename: "photometrics-task-assignment-status-report.csv",
             title: "Task Assignment Status Report",
             columns: REPORT_ASSIGNMENT_COLUMNS,
-            rows: useLiveReports && reportType === "Task Assignment Status"
-                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
-                : reportData.taskAssignmentReportRows,
+            rows: getLiveRows("Task Assignment Status", reportData.assignmentReportRows),
             searchKeys: ["id", "project", "taskType", "assignedTo", "dueDate", "priority", "status", "dueStatus"],
         },
-    ]), [reportData, useLiveReports, reportType, projectDeliveryPreviewRow, projectDeliveryHistoryRows]);
+    ]), [reportData, useLiveReports, reportType, projectDeliveryPreviewRow, projectDeliveryHistoryRows, currentReportRowsByType]);
 
     const activeReport = reportDefinitions.find((report) => report.label === reportType) || reportDefinitions[0];
 
@@ -579,16 +603,24 @@ function ReportsPage({ globalSearch = "" }) {
                                     <option key={option.value || "empty"} value={option.value}>{option.label}</option>
                                 ))}
                             </select>
-                            <p className="mt-2 text-xs text-slate-500">Preview uses GET /api{activeReportApiConfig.basePath}/ID. Save uses POST /api{activeReportApiConfig.basePath}/ID/save. History uses GET /api{activeReportApiConfig.basePath}/history.</p>
+                            <p className="mt-2 text-xs text-slate-500">Current rows use GET /api{activeReportApiConfig.basePath}. Preview uses GET /api{activeReportApiConfig.basePath}/ID. Save uses POST /api{activeReportApiConfig.basePath}/ID/save. History uses GET /api{activeReportApiConfig.basePath}/history.</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={loadCurrentReportRows}
+                                disabled={isProjectDeliveryLoading}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <Eye size={16} /> Refresh Current Rows
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => loadReportPreview()}
                                 disabled={isProjectDeliveryLoading || !selectedProjectId}
                                 className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                <Eye size={16} /> Preview Current Report
+                                <Eye size={16} /> Preview Selected Row
                             </button>
                             <button
                                 type="button"
