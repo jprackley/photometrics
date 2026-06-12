@@ -839,7 +839,8 @@ function getProjectImageCreationBatches(project = {}) {
     return statusCounts
         .map(({ status, count }) => ({ status, count: Math.max(0, Math.trunc(toMetricNumber(count, 0))) }))
         .filter(({ count }) => count > 0)
-        .map(({ status, count }) => ({ project_id: projectId, projectId, status, count, number: count }));
+        // Backend supports the implicit bulk shape: { project_id, status, count }.
+        .map(({ status, count }) => ({ project_id: projectId, status, count }));
 }
 
 async function createImagesForProjectMetrics(project = {}) {
@@ -850,7 +851,8 @@ async function createImagesForProjectMetrics(project = {}) {
 
     for (const batch of batches) {
         try {
-            // Preferred MVP bulk shape requested by backend: number/count, project id, and status.
+            // Preferred backend bulk shape: implicit array generation.
+            // Example: { project_id, status, count }
             const bulkResponse = await apiRequest(`${API_ENDPOINTS.images}/bulk`, {
                 method: "POST",
                 body: JSON.stringify(batch),
@@ -1784,7 +1786,9 @@ const apiPlaceholders = {
         method: "DELETE",
     }),
     createImagesForProjectMetrics,
-    getTaskTimeEntries: (taskId) => apiRequest(`${API_ENDPOINTS.tasks}/${encodeURIComponent(taskId)}/time-entries`),
+    // Temporarily disabled until task time-entry read routes are confirmed.
+    // Timer start/stop remains enabled below because the backend confirmed PATCH /tasks/:id/timer/start and /timer/stop.
+    getTaskTimeEntries: async () => [],
     createAssignment: (assignment) => apiPlaceholders.createTask(assignment),
     updateAssignment: (assignmentId, assignment) => apiPlaceholders.updateTask(assignmentId, assignment),
     deleteAssignment: (assignmentId) => apiPlaceholders.deleteTask(assignmentId),
