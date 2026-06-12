@@ -63,7 +63,7 @@ router.get('/',
     verifyAuthentication,
     requireRole(C_USER.ROLES.MANAGER),
     asyncHandler(async (req, res) => {
-        validationErrorHandler(req, 'GET Task Time Report -')
+        validationErrorHandler(req, 'GET Task Time Reports -')
 
         const sql = `
         SELECT *

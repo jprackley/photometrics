@@ -50,6 +50,22 @@ router.post('/:id/save',
     })
 )
 
+router.get('/',
+    verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
+    asyncHandler(async (req, res) => {
+        validationErrorHandler(req, 'GET Employee Productivity Reports - ');
+        const result = await query(
+            `SELECT * FROM employee_productivity_report;`
+            )
+
+        if (result.rows.length === 0) {
+            return res.status(C_HTTP.STATUS.NOT_FOUND).json({message: 'No report found for the employee'});
+        }
+        res.status(C_HTTP.STATUS.OK).json({reports: result.rows});
+    })
+)
+
 router.get('/history',
     verifyAuthentication,
     requireRole(C_USER.ROLES.MANAGER),

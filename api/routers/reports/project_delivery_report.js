@@ -63,6 +63,26 @@ router.post('/:id/save',
     })
 )
 
+router.get('/',
+    verifyAuthentication,
+    requireRole(C_USER.ROLES.MANAGER),
+    asyncHandler(async (req, res) => {
+        validationErrorHandler(req, 'GET Project Delivery Reports - ')
+
+        const sql = `
+        SELECT *
+        FROM project_delivery_report;
+        `;
+
+        const result = await query(sql);
+
+        if (result.rows.length === 0) {
+            return res.status(C_HTTP.STATUS.NOT_FOUND).json({message: 'No report found for the project'});
+        }
+        res.status(C_HTTP.STATUS.OK).json({reports: result.rows});
+    })
+)
+
 router.get('/history',
     verifyAuthentication,
     requireRole(C_USER.ROLES.MANAGER),
