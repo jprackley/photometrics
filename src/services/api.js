@@ -847,6 +847,15 @@ function projectToApi(project) {
     if (isUuid(clientId)) payload.client_id = clientId;
     if (isUuid(managerId)) payload.managed_by = managerId;
 
+    // Send the typed client name so it can be stored and shown on the project.
+    // Harmless if the backend ignores it; once the backend stores client_name,
+    // projectFromApi already reads it back for display. "Unassigned Client" is a
+    // display-only placeholder and should not be persisted as a real name.
+    const clientName = String(project.client || project.clientName || project.client_name || "").trim();
+    if (clientName && clientName !== "Unassigned Client") {
+        payload.client_name = clientName;
+    }
+
     return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""));
 }
 
