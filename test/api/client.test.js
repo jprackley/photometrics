@@ -131,7 +131,7 @@ describe('Testing /api/clients', () => {
          */
         test(`[TEST]: CREATE Client with overrun required fields [EXPECTED] status code ${C_HTTP.STATUS.BAD_REQUEST}`,
             async () => {
-                console.log(`Starting test CREATE Client with overrun reqquired fields...`);
+                console.log(`Starting test CREATE Client with overrun required fields...`);
                 for (const field of Object.values(C_CLIENT.REQUIRED_COLUMNS)) {
                     const response = await request(app).post('/api/clients')
                         .send( buildTestClient( 'client', null, field ) );
