@@ -5,17 +5,17 @@
 // can consistently filter navigation items, projects, and tasks.
 // Backend authorization should still protect production API routes.
 // -----------------------------------------------------------------------------
-
+ 
 import { navItems } from "../config/navigation";
 import { projects, taskItems } from "../data/mockData";
-
+ 
 /**
  * Returns true when the current user should receive manager-level UI permissions.
  */
 function canManageContent(user) {
     return user?.accessLevel === "manager" || String(user?.role || "").toLowerCase().includes("manager");
 }
-
+ 
 /**
  * Controls page-level access for managers and employee users.
  */
@@ -23,24 +23,33 @@ function canAccessPage(user, page) {
     if (canManageContent(user)) return true;
     return ["dashboard", "projects", "tasks", "settings"].includes(page);
 }
-
+ 
 /**
  * Filters the sidebar navigation so employees only see permitted pages.
  */
 function getAllowedNavItems(user) {
     return navItems.filter((item) => canAccessPage(user, item.page));
 }
-
+ 
 /**
  * Checks whether a task belongs to the current employee.
  */
 function isAssignedToUser(row, user) {
     if (canManageContent(user)) return true;
-
+ 
+    // Match by id first — robust against any name-formatting differences
+    // (middle initials, display name vs. first+last, etc.) that would otherwise
+    // hide an employee's own tasks.
+    const userIds = [user?.id, user?.userId, user?.user_id, user?.employeeId, user?.employee_id]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase());
+    const rowId = row?.assignedToId || row?.assigned_to || row?.employeeId || row?.employee_id;
+    if (rowId && userIds.includes(String(rowId).toLowerCase())) return true;
+ 
     const employeeName = user?.employeeName || user?.name;
     return String(row?.assignedTo || "").toLowerCase() === String(employeeName || "").toLowerCase();
 }
-
+ 
 /**
  * Finds projects connected to the current user through assigned tasks.
  */
@@ -48,47 +57,47 @@ function getAssignedProjectNames(user, taskRows = taskItems) {
     if (canManageContent(user)) {
         return projects.map((project) => project.name);
     }
-
+ 
     const fromTasks = taskRows
         .filter((task) => isAssignedToUser(task, user))
         .map((task) => task.project);
-
+ 
     return [...new Set(fromTasks.filter(Boolean))];
 }
-
+ 
 /**
  * Applies role-based row filtering for secure manager and employee views.
  */
 function filterRowsByAccess(rows, user, type) {
     if (canManageContent(user)) return rows;
-
+ 
     if (type === "tasks") {
         return rows.filter((row) => isAssignedToUser(row, user));
     }
-
+ 
     if (type === "projects") {
         const assignedProjectNames = getAssignedProjectNames(user);
         return rows.filter((project) => assignedProjectNames.includes(project.name));
     }
-
+ 
     return rows;
 }
-
+ 
 /**
  * Performs a simple case-insensitive search across selected row fields.
  */
 function rowMatchesSearch(row, searchText, keys) {
     const normalizedSearch = String(searchText || "").trim().toLowerCase();
     if (!normalizedSearch) return true;
-
+ 
     const searchableText = keys
         .map((key) => row?.[key])
         .join(" ")
         .toLowerCase();
-
+ 
     return searchableText.includes(normalizedSearch);
 }
-
+ 
 export {
     canManageContent,
     canAccessPage,
