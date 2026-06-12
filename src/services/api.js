@@ -219,6 +219,32 @@ function lastSixBackendId(value, prefix = "ID") {
  * Checks whether a backend row is seeded demo data.
  */
 function isSeedRecord(record) {
+    // The demo data in database/seed.sql uses fixed, structured UUIDs:
+    // users/clients start with 00000000-... and projects start with 10000000-...
+    // Real records use gen_random_uuid(), so this pattern can only match seed data.
+    // We check identifier AND foreign-key fields so that an orphaned demo task
+    // (whose own name looks normal but whose project_id/assigned_to point at a
+    // seed project/employee) is hidden too, instead of rendering as
+    // "Project 10000000" / "Employee 00000000".
+    const SEED_ID_PATTERN = /^(00000000|10000000)-0000-4000-8000-[0-9a-f]{12}$/i;
+    const idFields = [
+        record?.id,
+        record?.task_id,
+        record?.project_id,
+        record?.user_id,
+        record?.employee_id,
+        record?.client_id,
+        record?.assigned_to,
+        record?.assigned_by,
+        record?.assignedToId,
+        record?.projectId,
+        record?.employeeId,
+    ];
+
+    if (idFields.some((value) => SEED_ID_PATTERN.test(String(value || "")))) {
+        return true;
+    }
+
     const searchable = [
         record?.email,
         record?.project_name,
@@ -544,7 +570,7 @@ function taskFromApi(task) {
         displayId: lastSixBackendId(task.task_id || task.id, "TID"),
         taskName: task.task_name || task.taskName || "Untitled Task",
         projectId: task.project_id || task.projectId || null,
-        project: task.project_name || task.project || (task.project_id ? `Project ${String(task.project_id).slice(0, 8)}` : "Unassigned Project"),
+        project: task.project_name || task.project || (task.project_id ? "Unknown project" : "Unassigned Project"),
         category: task.category || "Other",
         assignedToId: task.assigned_to || task.assignedToId || task.employee_id || task.employeeId || null,
         assignedTo: task.assigned_to_name
@@ -553,7 +579,7 @@ function taskFromApi(task) {
             || task.assigned_to_display_name
             || task.assigned_to_email
             || task.assignedTo
-            || (task.assigned_to ? `Employee ${String(task.assigned_to).slice(0, 8)}` : "Unassigned"),
+            || (task.assigned_to ? "Unknown employee" : "Unassigned"),
         dueDate: formatApiDateForDisplay(task.due_time || task.dueDate),
         priority: task.priority || "Normal",
         estimatedHours: Number(task.estimated_hours ?? task.estimatedHours ?? 0) || 0,
@@ -631,7 +657,7 @@ function normalizeEmployeeRows(payload) {
 function assignmentFromApi(assignment) {
     const employeeId = assignment.employee_id || assignment.assigned_to || assignment.user_id || assignment.employeeId || assignment.assignedToId || null;
     const taskId = assignment.task_id || assignment.id || assignment.taskId;
-    const assignedTo = getDisplayNameFromApi(assignment, employeeId ? `Employee ${shortBackendId(employeeId)}` : "Unassigned");
+    const assignedTo = getDisplayNameFromApi(assignment, employeeId ? "Unknown employee" : "Unassigned");
 
     return {
         id: assignment.id || taskId || `assignment-${shortBackendId(employeeId)}-${shortBackendId(assignment.project_id)}`,
@@ -640,7 +666,7 @@ function assignmentFromApi(assignment) {
         assignedToId: employeeId,
         projectId: assignment.project_id || assignment.projectId || null,
         taskId,
-        project: assignment.project_name || assignment.project || (assignment.project_id ? `Project ${shortBackendId(assignment.project_id)}` : "Unassigned Project"),
+        project: assignment.project_name || assignment.project || (assignment.project_id ? "Unknown project" : "Unassigned Project"),
         taskType: assignment.task_name || assignment.taskType || assignment.category || "Assigned Task",
         assignedTo,
         assignedDate: formatApiDateForDisplay(assignment.assigned_date || assignment.assignedDate || assignment.created_at),
@@ -962,6 +988,7 @@ const API_ENDPOINTS = {
         // /users?all=true as a temporary database-backed login bridge.
         login: "/login",
         logout: "/logout",
+        refresh: "/refresh",
     },
     // Future analytics and dashboard routes. These can be backed by SQL views,
     // reporting tables, or a separate analytics store as the backend evolves.
@@ -1191,10 +1218,30 @@ function publishAuthFailure(error) {
     }));
 }
 
+// Tracks a single in-flight token refresh so that several parallel requests
+// that all hit an expired access token at once share one refresh call instead
+// of stampeding the /refresh endpoint.
+let inFlightSessionRefresh = null;
+
+async function attemptSessionRefresh() {
+    if (!inFlightSessionRefresh) {
+        inFlightSessionRefresh = fetch(buildApiUrl(API_ENDPOINTS.auth.refresh), {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+        })
+            .then((response) => response.ok)
+            .catch(() => false)
+            .finally(() => { inFlightSessionRefresh = null; });
+    }
+
+    return inFlightSessionRefresh;
+}
+
 async function apiRequest(endpoint, options = {}) {
     const method = options.method || "GET";
     const url = buildApiUrl(endpoint);
-    const { suppressApiError = false, timeoutMs = 15000, signal, ...fetchOptions } = options;
+    const { suppressApiError = false, timeoutMs = 15000, signal, _retried = false, ...fetchOptions } = options;
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
     const timeoutId = controller && timeoutMs > 0
         ? setTimeout(() => controller.abort(), timeoutMs)
@@ -1232,6 +1279,26 @@ async function apiRequest(endpoint, options = {}) {
             error.endpoint = endpoint;
             error.method = method;
             error.url = url;
+
+            // A single expired access token should not log the user out. Try a
+            // silent refresh once, then retry the original request. Only if that
+            // also fails do we treat it as a real authentication failure.
+            const isAuthEndpoint = endpoint === API_ENDPOINTS.auth.refresh
+                || endpoint === API_ENDPOINTS.auth.login;
+
+            if (response.status === 401 && !_retried && !isAuthEndpoint) {
+                // A single 401 should not end the session. The backend auth
+                // middleware renews the access token from the refresh cookie on
+                // the next request, so we retry the original request once before
+                // giving up. If a dedicated /refresh route exists it is pinged
+                // first as a best effort; if it does not, the retry still
+                // benefits from the middleware's auto-refresh.
+                await attemptSessionRefresh();
+                if (timeoutId) clearTimeout(timeoutId);
+                await new Promise((resolve) => setTimeout(resolve, 150));
+                return apiRequest(endpoint, { ...options, _retried: true });
+            }
+
             if (!suppressApiError) {
                 publishApiError(error);
             }
