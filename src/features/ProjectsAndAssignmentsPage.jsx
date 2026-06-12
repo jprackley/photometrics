@@ -310,6 +310,19 @@ function ProjectForm({ initialProject, onCancel, onSave }) {
     );
 }
 
+// Standard photography post-production task types offered when assigning work.
+// `category` must match the backend's allowed task categories
+// (utils/constants/cTasks.js); `label` is what shows in the Task Name column.
+const ASSIGNMENT_TASK_TYPES = [
+    { label: "Import & Ingest", category: "Import" },
+    { label: "Culling & Selection", category: "Cull" },
+    { label: "Editing & Retouching", category: "Edit" },
+    { label: "Quality Review", category: "Quality Review" },
+    { label: "Export & Finishing", category: "Export" },
+    { label: "Delivery & Handoff", category: "Delivery" },
+    { label: "Other", category: "Other" },
+];
+
 /**
  * Create/edit form for assigned task records.
  */
@@ -328,7 +341,8 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
         onSave({
             ...form,
             taskName: String(form.taskName || form.taskType || "").trim() || "General Task",
-            taskType: String(form.taskName || form.taskType || "").trim() || "General Task",
+            taskType: String(form.taskType || form.category || "Other").trim() || "Other",
+            category: String(form.category || form.taskType || "Other").trim() || "Other",
             projectId: selectedProject?.id || form.projectId,
             project: selectedProject?.name || form.project,
             assignedToId: selectedEmployee?.id || form.assignedToId,
@@ -358,14 +372,22 @@ function AssignmentForm({ initialAssignment, projectOptions, employeeOptions, on
                 </FormField>
 
                 <FormField label="Task Name">
-                    <TextInput
-                        value={form.taskName || form.taskType || ""}
-                        onChange={(value) => {
-                            updateField("taskName", value);
-                            updateField("taskType", value);
+                    <select
+                        value={form.category || form.taskType || ""}
+                        onChange={(event) => {
+                            const selectedType = ASSIGNMENT_TASK_TYPES.find((type) => type.category === event.target.value);
+                            updateField("category", selectedType?.category || event.target.value);
+                            updateField("taskType", selectedType?.category || event.target.value);
+                            updateField("taskName", selectedType?.label || event.target.value);
                         }}
-                        placeholder="Cull gallery"
-                    />
+                        required
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    >
+                        <option value="">Select task type</option>
+                        {ASSIGNMENT_TASK_TYPES.map((type) => (
+                            <option key={type.category} value={type.category}>{type.label}</option>
+                        ))}
+                    </select>
                 </FormField>
 
                 <FormField label="Assigned To">
@@ -492,7 +514,7 @@ function ProjectsAndAssignments() {
 
     const employeeSelectOptions = useMemo(
         () => (Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [])
-            .filter((employee) => (employee.userId || employee.id) && (employee.accountRole || employee.role) === "Employee")
+            .filter((employee) => (employee.userId || employee.id) && (employee.name || employee.displayName || employee.email))
             .map((employee) => ({ id: employee.userId || employee.id, name: employee.name || employee.displayName || employee.email })),
         [loadedEmployeeRows]
     );
@@ -1064,7 +1086,7 @@ function ProjectsAndAssignmentsSecure({ currentUser, globalSearch = "" }) {
 
     const employeeSelectOptions = useMemo(
         () => (Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : [])
-            .filter((employee) => (employee.userId || employee.id) && (employee.accountRole || employee.role) === "Employee")
+            .filter((employee) => (employee.userId || employee.id) && (employee.name || employee.displayName || employee.email))
             .map((employee) => ({ id: employee.userId || employee.id, name: employee.name || employee.displayName || employee.email })),
         [loadedEmployeeRows]
     );
