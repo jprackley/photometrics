@@ -119,7 +119,7 @@ router.get('/:id/time-entries',
             GROUP BY project_id, task_id, assigned_to
         `, [id]);
 
-        res.status(C_HTTP.STATUS.OK).json({timeEntries: rows});
+        res.status(C_HTTP.STATUS.OK).json({timeEntry: rows});
     })
 )
 
