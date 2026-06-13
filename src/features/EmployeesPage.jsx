@@ -21,11 +21,13 @@ import {
     apiPlaceholders,
     getUseApiDataSetting,
     normalizeEmployeeRows,
+    normalizeTaskRows,
     useApiPlaceholder,
 } from "../services/api";
 import {
     employees,
     productivity,
+    taskItems,
 } from "../data/mockData";
 import {
     EMPLOYEES_PAGE_SIZE,
@@ -339,6 +341,11 @@ function EmployeesPage({ globalSearch = "" }) {
     const { data: loadedEmployeeRows } = useApiPlaceholder(API_ENDPOINTS.employees, employees, {
         transformPayload: normalizeEmployeeRows,
     });
+    // Tasks aren't returned with per-employee aggregates on /users, so load them
+    // here and compute each person's active-task count / current task locally.
+    const { data: loadedTaskRows } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {
+        transformPayload: normalizeTaskRows,
+    });
 
     const [employeeRows, setEmployeeRows] = useState(employees);
     const [employeeSort, setEmployeeSort] = useState({ key: "name", direction: "asc" });
@@ -353,6 +360,44 @@ function EmployeesPage({ globalSearch = "" }) {
             setEmployeeRows(loadedEmployeeRows);
         }
     }, [loadedEmployeeRows]);
+
+    // Count each employee's open tasks (anything not Completed/Cancelled) and
+    // surface an in-progress task as their "current task", keyed by assignee id.
+    const taskStatsByEmployee = useMemo(() => {
+        const tasks = Array.isArray(loadedTaskRows) ? loadedTaskRows : [];
+        const stats = new Map();
+        tasks.forEach((task) => {
+            const assigneeId = task.assignedToId || task.assigned_to;
+            if (!assigneeId) return;
+            const key = String(assigneeId).toLowerCase();
+            const bucket = stats.get(key) || { activeTasks: 0, currentTask: "" };
+            if (task.status !== "Completed" && task.status !== "Cancelled") {
+                bucket.activeTasks += 1;
+            }
+            if (task.status === "In Progress" && !bucket.currentTask) {
+                bucket.currentTask = task.taskName;
+            }
+            stats.set(key, bucket);
+        });
+        return stats;
+    }, [loadedTaskRows]);
+
+    // Merge the computed task stats onto the employee rows used for display.
+    const employeeRowsWithStats = useMemo(() => {
+        if (taskStatsByEmployee.size === 0) return employeeRows;
+        return employeeRows.map((employee) => {
+            const candidateIds = [employee.userId, employee.id, employee.employeeId, employee.backendId].filter(Boolean);
+            const matched = candidateIds
+                .map((id) => taskStatsByEmployee.get(String(id).toLowerCase()))
+                .find(Boolean);
+            if (!matched) return employee;
+            return {
+                ...employee,
+                activeTasks: matched.activeTasks,
+                currentTask: matched.currentTask || employee.currentTask || "No active task",
+            };
+        });
+    }, [employeeRows, taskStatsByEmployee]);
 
     const roleOptions = useMemo(() => {
         const existingTitles = employeeRows
@@ -375,7 +420,7 @@ function EmployeesPage({ globalSearch = "" }) {
     const filteredEmployeeRows = useMemo(() => {
         const searchText = [globalSearch, employeeSearch].filter(Boolean).join(" " ).trim().toLowerCase();
 
-        return employeeRows.filter((employee) => {
+        return employeeRowsWithStats.filter((employee) => {
             const employeeTitle = getEmployeeJobTitle(employee);
             const matchesRole = roleFilter === "All Roles" || employeeTitle === roleFilter;
             const matchesStatus = statusFilter === "All Status" || employee.status === statusFilter;
@@ -390,7 +435,7 @@ function EmployeesPage({ globalSearch = "" }) {
 
             return matchesRole && matchesStatus && matchesSearch;
         });
-    }, [employeeRows, roleFilter, statusFilter, employeeSearch, globalSearch]);
+    }, [employeeRowsWithStats, roleFilter, statusFilter, employeeSearch, globalSearch]);
 
     const sortedEmployeeRows = useMemo(
         () => sortRows(filteredEmployeeRows, employeeSort),
@@ -655,7 +700,7 @@ function EmployeesPage({ globalSearch = "" }) {
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                         <p className="text-sm font-bold text-slate-600">Open Workload</p>
                         <p className="mt-2 text-2xl font-bold">
-                            {employeeRows.reduce((total, employee) => total + normalizeNumber(employee.activeTasks), 0)} tasks
+                            {employeeRowsWithStats.reduce((total, employee) => total + normalizeNumber(employee.activeTasks), 0)} tasks
                         </p>
                     </div>
 
