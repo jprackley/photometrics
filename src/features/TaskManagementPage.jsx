@@ -37,6 +37,7 @@ import {
     TASK_COLUMNS,
     downloadTasksReport,
     formatDuration,
+    formatDurationMinutes,
     formatTaskId,
     generateNextId,
     getLiveTrackedSeconds,
@@ -822,7 +823,7 @@ function TimerControlSecure({ task, currentTime, currentUser, onStart, onStop, i
                 {isRunning ? "Stop" : "Start"}
             </button>
             <span className={`min-w-[76px] text-xs font-bold ${isRunning ? "text-violet-700" : "text-slate-700"}`}>
-                {formatDuration(getLiveTrackedSeconds(task, currentTime, currentUser))}
+                {formatDurationMinutes(getLiveTrackedSeconds(task, currentTime, currentUser))}
             </span>
         </div>
     );
@@ -857,10 +858,31 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
     const hasManagerAccess = canManageContent(currentUser);
 
     useEffect(() => {
-        if (Array.isArray(loadedTaskRows)) {
-            setTaskRows(loadedTaskRows.map(normalizeTaskForTimers));
-        }
-    }, [loadedTaskRows]);
+        if (!Array.isArray(loadedTaskRows)) return;
+
+        // Resolve UUID-based project/assignee references to real names so the
+        // table doesn't show "Unknown project"/"Unknown employee" — the backend
+        // tasks endpoint returns ids only, not names.
+        const projectNameById = new Map(
+            (Array.isArray(loadedProjectRows) ? loadedProjectRows : []).flatMap((p) =>
+                [p.backendId, p.id].filter(Boolean).map((id) => [id, p.name])
+            )
+        );
+        const employeeNameById = new Map(
+            (Array.isArray(loadedEmployeeRows) ? loadedEmployeeRows : []).flatMap((e) =>
+                [e.userId, e.backendId, e.employeeId, e.id].filter(Boolean).map((id) => [id, e.name])
+            )
+        );
+
+        setTaskRows(loadedTaskRows.map((task) => {
+            const row = normalizeTaskForTimers(task);
+            return {
+                ...row,
+                project: (row.projectId && projectNameById.get(row.projectId)) || row.project,
+                assignedTo: (row.assignedToId && employeeNameById.get(row.assignedToId)) || row.assignedTo,
+            };
+        }));
+    }, [loadedTaskRows, loadedProjectRows, loadedEmployeeRows]);
 
     useEffect(() => {
         const currentUserKey = getTimerUserKey(currentUser);
@@ -1142,7 +1164,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                     { label: "Completed Tasks", value: completedTasks, icon: ShieldCheck, tone: "emerald" },
                     { label: "In Review", value: reviewTasks, icon: Eye, tone: "blue" },
                     { label: "High Priority", value: highPriorityTasks, icon: Bell, tone: "amber" },
-                    { label: hasManagerAccess ? "Total Tracked Time" : "My Tracked Time", value: formatDuration(totalTrackedSeconds), icon: Clock, tone: "violet", valueClassName: "text-violet-700" },
+                    { label: hasManagerAccess ? "Total Tracked Time" : "My Tracked Time", value: formatDurationMinutes(totalTrackedSeconds), icon: Clock, tone: "violet", valueClassName: "text-violet-700" },
                 ].map((card) => (
                     <InsightCard key={card.label} {...card} />
                 ))}
@@ -1216,7 +1238,7 @@ function TaskManagementPageSecure({ currentUser, globalSearch = "" }) {
                                     <td className="border border-slate-300 px-4 py-3">{liveTask.assignedTo}</td>
                                     <td className="border border-slate-300 px-4 py-3">{liveTask.dueDate}</td>
                                     <td className="border border-slate-300 px-4 py-3 text-center"><PriorityBadge value={liveTask.priority} /></td>
-                                    <td className="border border-slate-300 px-4 py-3 text-center font-semibold text-slate-800">{formatDuration(getLiveTrackedSeconds(liveTask, timerTick, hasManagerAccess ? null : currentUser))}</td>
+                                    <td className="border border-slate-300 px-4 py-3 text-center font-semibold text-slate-800">{formatDurationMinutes(getLiveTrackedSeconds(liveTask, timerTick, hasManagerAccess ? null : currentUser))}</td>
                                     <td className="border border-slate-300 px-4 py-3 text-center"><Badge value={liveTask.status} /></td>
                                     <td className="border border-slate-300 px-4 py-3"><TimerControlSecure task={liveTask} currentTime={timerTick} currentUser={currentUser} onStart={startTimer} onStop={stopTimer} isAnotherTimerRunning={isAnotherTimerRunning} canUseTimer={canUseTimer} /></td>
                                     {hasManagerAccess && <td className="border border-slate-300 px-4 py-3"><RowActions onEdit={() => setTaskModal({ mode: "edit", data: liveTask })} onDelete={() => deleteTask(liveTask)} /></td>}
