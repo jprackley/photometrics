@@ -19,6 +19,7 @@ import {
     API_ENDPOINTS,
     apiRequest,
     getUseApiDataSetting,
+    isSeedRecord,
     normalizeEmployeeRows,
     normalizeTaskRows,
     normalizeProjectRows,
@@ -306,7 +307,7 @@ function ReportsPage({ globalSearch = "" }) {
     const [employeeFilter, setEmployeeFilter] = useState("All Employees");
 
     const reportData = useMemo(
-        () => buildOperationsReportData(projectRows, [], taskRows, employeeRows),
+        () => buildOperationsReportData(projectRows, taskRows, employeeRows),
         [projectRows, taskRows, employeeRows]
     );
 
@@ -369,7 +370,11 @@ function ReportsPage({ globalSearch = "" }) {
         setProjectDeliveryMessage("");
         try {
             const payload = await apiRequest(activeReportApiConfig.basePath);
-            const rows = unwrapReportPayload(payload, "reports").map(activeReportApiConfig.normalize);
+            // Drop seeded demo rows so the report matches the live project/employee
+            // lists (which already filter them out).
+            const rows = unwrapReportPayload(payload, "reports")
+                .filter((row) => !isSeedRecord(row))
+                .map(activeReportApiConfig.normalize);
             setCurrentReportRowsByType((currentRows) => ({
                 ...currentRows,
                 [reportType]: rows,
@@ -392,7 +397,9 @@ function ReportsPage({ globalSearch = "" }) {
         setProjectDeliveryMessage("");
         try {
             const payload = await apiRequest(`${activeReportApiConfig.basePath}/history`);
-            const rows = unwrapReportPayload(payload, "reports").map(activeReportApiConfig.normalize);
+            const rows = unwrapReportPayload(payload, "reports")
+                .filter((row) => !isSeedRecord(row))
+                .map(activeReportApiConfig.normalize);
             setProjectDeliveryHistoryRows(rows);
         } catch (apiError) {
             console.warn(`${reportType} report history could not be loaded.`, apiError);
@@ -581,8 +588,8 @@ function ReportsPage({ globalSearch = "" }) {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
                 <InsightCard label="Projects" value={reportData.summary.totalProjects} note={`${reportData.summary.completedProjects} complete`} icon={Folder} tone="blue" />
-                <InsightCard label="Completion Rate" value={`${reportData.summary.completionRate}%`} note={`${formatNumber(reportData.summary.completedImages)} images complete`} icon={BarChart3} tone="emerald" />
-                <InsightCard label="Images Remaining" value={formatNumber(reportData.summary.remainingImages)} note="Based on project progress" icon={Eye} tone="violet" />
+                <InsightCard label="Completion Rate" value={`${reportData.summary.completionRate}%`} note={`${reportData.summary.completedTasks} of ${reportData.summary.totalTasks} tasks complete`} icon={BarChart3} tone="emerald" />
+                <InsightCard label="Tasks Remaining" value={formatNumber(reportData.summary.tasksRemaining)} note="Tasks not yet completed" icon={Eye} tone="violet" />
                 <InsightCard label="Open Tasks" value={reportData.summary.openTasks} note={`${reportData.summary.completedTasks} task(s) complete`} icon={ListChecks} tone="amber" />
                 <InsightCard label="Review Queue" value={reportData.summary.reviewQueue} note="Tasks ready for review" icon={Bell} tone="cyan" />
                 <InsightCard label="Tracked Time" value={formatDuration(reportData.summary.totalTrackedSeconds)} note={`${reportData.summary.utilizationRate}% of estimate`} icon={Clock} tone="slate" />
