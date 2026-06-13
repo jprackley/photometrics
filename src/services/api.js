@@ -2020,6 +2020,7 @@ export {
     normalizeTaskRows,
     normalizeEmployeeRows,
     normalizeAssignmentRows,
+    isSeedRecord,
     normalizeTimeEntryRows,
     normalizeProductivityKpiRows,
     normalizeWorkflowKpiRows,
