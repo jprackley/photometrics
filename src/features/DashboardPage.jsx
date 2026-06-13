@@ -360,7 +360,7 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "remainingTasks", label: "Remaining Tasks", value: 0, objects: [] }, ["remaining"]),
     });
-    const { data: completedImagesKpi } = useApiPlaceholder(hasManagerAccess ? API_ENDPOINTS.kpi.images.completed : null, [{ key: "completedImages", label: "Completed Images", value: projects.reduce((total, project) => total + (Number(project.completed_images ?? project.completedImages ?? 0) || 0), 0), objects: projects }], {
+    const { data: completedImagesKpi } = useApiPlaceholder(hasManagerAccess ? API_ENDPOINTS.kpi.images.completed : null, [{ key: "completedImages", label: "Completed Tasks", value: projects.reduce((total, project) => total + (Number(project.completed_images ?? project.completedImages ?? 0) || 0), 0), objects: projects }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "completedImages", label: "Completed Images", value: 0, objects: [] }, ["completed"]),
     });
