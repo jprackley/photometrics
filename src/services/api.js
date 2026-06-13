@@ -15,7 +15,7 @@
 // UI components should consume these helpers instead of calling backend
 // endpoints directly.
 // =============================================================================
-
+ 
 // -----------------------------------------------------------------------------
 // Frontend API Service Layer
 // -----------------------------------------------------------------------------
@@ -23,9 +23,9 @@
 // payload normalization, login bridging, data-source preference storage, and the
 // reusable data-loading hook used by page components.
 // -----------------------------------------------------------------------------
-
+ 
 import { useCallback, useEffect, useRef, useState } from "react";
-
+ 
 // -----------------------------------------------------------------------------
 // API CONFIGURATION
 // -----------------------------------------------------------------------------
@@ -36,7 +36,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // Keep mock data ON by default so the deployed app stays usable while API work is tested.
 // Set VITE_USE_API_DATA=true only when you intentionally want API mode as the initial default.
 const DEFAULT_USE_API_DATA = String(import.meta.env.VITE_USE_API_DATA || "").toLowerCase() === "true";
-
+ 
 // Use a versioned key so any previously-saved API-only preference does not keep forcing
 // the app into API mode after this change is deployed.
 const LEGACY_API_DATA_SETTING_KEY = "photometrics-use-api-data";
@@ -45,68 +45,68 @@ const API_DATA_SETTING_EVENT = "photometrics-api-data-setting-changed";
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "/api";
 const DEFAULT_PAGE_LIMIT = 50;
-
+ 
 /**
  * Reads the saved mock/API data-source preference and clears legacy values that caused stale API-only mode.
  */
 function getUseApiDataSetting() {
     if (typeof window === "undefined") return DEFAULT_USE_API_DATA;
-
+ 
     try {
         // Clear the old key once so a browser that previously saved API-only mode
         // cannot keep causing a blank screen after the mock-data default is restored.
         window.localStorage.removeItem(LEGACY_API_DATA_SETTING_KEY);
-
+ 
         const savedValue = window.localStorage.getItem(API_DATA_SETTING_KEY);
         if (savedValue === null) return DEFAULT_USE_API_DATA;
-
+ 
         return savedValue === "true";
     } catch (storageError) {
         console.warn("Data-source preference could not be read from localStorage. Using default.", storageError);
         return DEFAULT_USE_API_DATA;
     }
 }
-
+ 
 /**
  * Persists the mock/API preference and broadcasts the change to active React views.
  */
 function saveUseApiDataSetting(value) {
     if (typeof window === "undefined") return;
-
+ 
     try {
         window.localStorage.setItem(API_DATA_SETTING_KEY, String(value));
     } catch (storageError) {
         console.warn("Data-source preference could not be saved to localStorage.", storageError);
     }
-
+ 
     window.dispatchEvent(new CustomEvent(API_DATA_SETTING_EVENT, { detail: value }));
 }
-
+ 
 /**
  * Adapter function so the frontend matches the backend data.
  */
 function formatApiDateForDisplay(value) {
     if (!value) return "";
-
+ 
     const parsedDate = new Date(value);
     if (Number.isNaN(parsedDate.getTime())) return String(value);
-
+ 
     return parsedDate.toLocaleDateString([], {
         month: "short",
         day: "2-digit",
         year: "numeric",
     });
 }
-
+ 
 /**
  * Formats API date-time values into human-readable timestamps.
  */
 function formatApiDateTimeForDisplay(value) {
     if (!value) return "";
-
+ 
     const parsedDate = new Date(value);
     if (Number.isNaN(parsedDate.getTime())) return String(value);
-
+ 
     return parsedDate.toLocaleString([], {
         month: "short",
         day: "2-digit",
@@ -114,30 +114,30 @@ function formatApiDateTimeForDisplay(value) {
         minute: "2-digit",
     });
 }
-
-
+ 
+ 
 /**
  * Converts date input values into API-compatible date-time strings.
  */
 function toApiDateTime(value) {
     if (!value) return undefined;
-
+ 
     const stringValue = String(value).trim();
     if (!stringValue) return undefined;
-
+ 
     const parsedDate = new Date(stringValue);
     if (Number.isNaN(parsedDate.getTime())) return undefined;
-
+ 
     return parsedDate.toISOString();
 }
-
+ 
 /**
  * Checks whether a value looks like a backend UUID.
  */
 function isUuid(value) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
 }
-
+ 
 /**
  * Converts dashboard metric values into safe numbers.
  */
@@ -145,7 +145,7 @@ function toMetricNumber(value, fallback = 0) {
     const numberValue = Number.parseFloat(value);
     return Number.isFinite(numberValue) ? numberValue : fallback;
 }
-
+ 
 /**
  * Builds a display name from optional first, middle, and last names.
  */
@@ -156,7 +156,7 @@ function buildDisplayName(firstName, middleName, lastName, fallback = "") {
         .replace(/\s+/g, " ")
         .trim() || fallback;
 }
-
+ 
 /**
  * Splits a full name into editable name parts.
  */
@@ -166,28 +166,28 @@ function splitFullName(fullName = "") {
         .replace(/\s+/g, " ")
         .split(" ")
         .filter(Boolean);
-
+ 
     if (parts.length === 0) {
         return { firstName: "", middleName: "", lastName: "" };
     }
-
+ 
     if (parts.length === 1) {
         return { firstName: parts[0], middleName: "", lastName: parts[0] };
     }
-
+ 
     return {
         firstName: parts[0],
         middleName: parts.length > 2 ? parts.slice(1, -1).join(" ") : "",
         lastName: parts[parts.length - 1],
     };
 }
-
+ 
 /**
  * Returns the best display name available from a backend employee record.
  */
 function getDisplayNameFromApi(record, fallback = "Unnamed Employee") {
     const nameParts = buildDisplayName(record?.first_name, record?.middle_name, record?.last_name);
-
+ 
     return record?.display_name
         || record?.employee_name
         || record?.assigned_to_name
@@ -196,7 +196,7 @@ function getDisplayNameFromApi(record, fallback = "Unnamed Employee") {
         || record?.email
         || fallback;
 }
-
+ 
 /**
  * Formats long backend identifiers for readable UI display.
  */
@@ -204,7 +204,7 @@ function shortBackendId(value, fallback = "Unassigned") {
     if (!value) return fallback;
     return String(value).slice(0, 8);
 }
-
+ 
 /**
  * Formats the last six characters of an identifier with a prefix.
  */
@@ -214,7 +214,7 @@ function lastSixBackendId(value, prefix = "ID") {
     const source = compact || String(value);
     return `${prefix}-${source.slice(-6).toUpperCase()}`;
 }
-
+ 
 /**
  * Checks whether a backend row is seeded demo data.
  */
@@ -240,11 +240,11 @@ function isSeedRecord(record) {
         record?.projectId,
         record?.employeeId,
     ];
-
+ 
     if (idFields.some((value) => SEED_ID_PATTERN.test(String(value || "")))) {
         return true;
     }
-
+ 
     const searchable = [
         record?.email,
         record?.project_name,
@@ -256,14 +256,14 @@ function isSeedRecord(record) {
         record?.employee_name,
         record?.assigned_to_name,
     ].join(" ").toLowerCase();
-
+ 
     return searchable.includes("[seed:photometrics]")
         || searchable.includes("seed.project")
         || searchable.includes("seed task")
         || searchable.includes("seed project")
         || searchable.includes("@photometrics.local");
 }
-
+ 
 /**
  * Converts supported API payload shapes into an array.
  */
@@ -272,27 +272,27 @@ function toArrayPayload(payload) {
     if (Array.isArray(unwrapped)) return unwrapped;
     return unwrapped ? [unwrapped] : [];
 }
-
-
+ 
+ 
 const ACCENT_COLOR_HEX_BY_NAME = {
     Violet: "#7c3aed",
     Blue: "#1976d2",
     Green: "#10b981",
     Slate: "#475569",
 };
-
+ 
 const TIMEZONE_IANA_BY_LABEL = {
     "Pacific Time": "America/Los_Angeles",
     "Eastern Time": "America/New_York",
     "London Time": "Europe/London",
 };
-
+ 
 const BACKEND_ALLOWED_SETTING_TIMEZONES = new Set(Object.values(TIMEZONE_IANA_BY_LABEL));
-
+ 
 const TIMEZONE_LABEL_BY_IANA = Object.fromEntries(
     Object.entries(TIMEZONE_IANA_BY_LABEL).map(([label, value]) => [value, label])
 );
-
+ 
 /**
  * Converts data to boolean setting.
  */
@@ -304,10 +304,10 @@ function toBooleanSetting(value, fallback = false) {
         if (["true", "1", "yes", "on"].includes(normalized)) return true;
         if (["false", "0", "no", "off"].includes(normalized)) return false;
     }
-
+ 
     return fallback;
 }
-
+ 
 /**
  * Normalizes title option for this feature.
  */
@@ -315,13 +315,13 @@ function normalizeTitleOption(value, fallback) {
     if (!value) return fallback;
     const normalized = String(value).trim().toLowerCase();
     if (!normalized) return fallback;
-
+ 
     return normalized
         .split(/[\s_-]+/)
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
         .join(" ");
 }
-
+ 
 /**
  * Normalizes theme option for this feature.
  */
@@ -329,40 +329,40 @@ function normalizeThemeOption(value, fallback = "Light") {
     const option = normalizeTitleOption(value, fallback);
     return ["Light", "Dark", "System"].includes(option) ? option : fallback;
 }
-
+ 
 /**
  * Normalizes accent option for this feature.
  */
 function normalizeAccentOption(value, fallback = "Violet") {
     if (!value) return fallback;
-
+ 
     const normalized = String(value).trim();
     const lowered = normalized.toLowerCase();
-
+ 
     if (lowered === "#1976d2" || lowered === "#2563eb" || lowered.includes("blue")) return "Blue";
     if (lowered === "#10b981" || lowered === "#059669" || lowered.includes("green")) return "Green";
     if (lowered === "#475569" || lowered === "#64748b" || lowered.includes("slate")) return "Slate";
     if (lowered === "#7c3aed" || lowered === "#8b5cf6" || lowered.includes("violet") || lowered.includes("purple")) return "Violet";
-
+ 
     return fallback;
 }
-
+ 
 /**
  * Normalizes timezone option for this feature.
  */
 function normalizeTimezoneOption(value, fallback = "Pacific Time") {
     if (!value) return fallback;
     const stringValue = String(value).trim();
-
+ 
     if (TIMEZONE_LABEL_BY_IANA[stringValue]) return TIMEZONE_LABEL_BY_IANA[stringValue];
     if (TIMEZONE_IANA_BY_LABEL[stringValue]) return stringValue;
-
+ 
     const titleValue = normalizeTitleOption(stringValue.replace(/_/g, " "), fallback);
     if (TIMEZONE_IANA_BY_LABEL[titleValue]) return titleValue;
-
+ 
     return fallback;
 }
-
+ 
 /**
  * Returns first settings record for this feature.
  */
@@ -371,24 +371,24 @@ function getFirstSettingsRecord(payload) {
     if (Array.isArray(unwrapped)) return unwrapped[0] || null;
     return unwrapped || null;
 }
-
+ 
 /**
  * Maps backend settings into the frontend settings object.
  */
 function normalizeBackendSettings(payload, baseSettings = {}, currentUser = null) {
     const record = getFirstSettingsRecord(payload);
-
+ 
     if (!record || typeof record !== "object") {
         return { ...baseSettings };
     }
-
+ 
     const baseCompany = baseSettings.company || {};
     const baseNotifications = baseSettings.notifications || {};
     const baseAppearance = baseSettings.appearance || {};
-
+ 
     const backendNotifications = record.notifications ?? record.notification_enabled ?? record.notifications_enabled;
     const notificationsEnabled = toBooleanSetting(backendNotifications, true);
-
+ 
     return {
         ...baseSettings,
         company: {
@@ -419,7 +419,7 @@ function normalizeBackendSettings(payload, baseSettings = {}, currentUser = null
         },
     };
 }
-
+ 
 /**
  * Converts frontend settings into the backend settings payload.
  */
@@ -428,7 +428,7 @@ function settingsToApiPayload(settings = {}, currentUser = null) {
     const company = settings.company || {};
     const notifications = settings.notifications || {};
     const backend = settings.backend || {};
-
+ 
     // The backend validator expects camelCase body fields, even though PostgreSQL
     // returns unquoted camelCase columns as lowercase keys such as accentcolor.
     return {
@@ -451,9 +451,9 @@ function settingsToApiPayload(settings = {}, currentUser = null) {
             : "America/Los_Angeles",
     };
 }
-
+ 
 const IMAGE_METRICS_NOTE_PREFIX = "[photometrics:image-metrics]";
-
+ 
 /**
  * Returns default image metrics for this feature.
  */
@@ -463,7 +463,7 @@ function getDefaultImageMetrics(project = {}) {
     const rejectedImages = toMetricNumber(project.rejectedImages ?? project.rejected_images, 0);
     const inProgressImages = toMetricNumber(project.inProgressImages ?? project.in_progress_images, 0);
     const pendingFallback = Math.max(0, totalImages - completedImages - rejectedImages - inProgressImages);
-
+ 
     return {
         totalImages,
         pendingImages: toMetricNumber(project.pendingImages ?? project.pending_images, pendingFallback),
@@ -475,7 +475,7 @@ function getDefaultImageMetrics(project = {}) {
         reviewNotes: project.reviewNotes || project.review_notes || "",
     };
 }
-
+ 
 /**
  * Splits project notes and image metrics for this feature.
  */
@@ -483,14 +483,14 @@ function splitProjectNotesAndImageMetrics(notes = "", project = {}) {
     const defaultMetrics = getDefaultImageMetrics(project);
     const rawNotes = String(notes || "");
     const markerIndex = rawNotes.indexOf(IMAGE_METRICS_NOTE_PREFIX);
-
+ 
     if (markerIndex === -1) {
         return { visibleNotes: rawNotes, imageMetrics: defaultMetrics };
     }
-
+ 
     const visibleNotes = rawNotes.slice(0, markerIndex).trim();
     const encoded = rawNotes.slice(markerIndex + IMAGE_METRICS_NOTE_PREFIX.length).trim();
-
+ 
     try {
         const parsed = JSON.parse(encoded);
         return {
@@ -501,7 +501,7 @@ function splitProjectNotesAndImageMetrics(notes = "", project = {}) {
         return { visibleNotes, imageMetrics: defaultMetrics };
     }
 }
-
+ 
 /**
  * Combines project notes and image metrics for this feature.
  */
@@ -509,12 +509,12 @@ function combineProjectNotesAndImageMetrics(notes = "", imageMetrics = {}) {
     const cleanNotes = String(notes || "").split(IMAGE_METRICS_NOTE_PREFIX)[0].trim();
     const metrics = getDefaultImageMetrics(imageMetrics);
     const encodedMetrics = JSON.stringify(metrics);
-
+ 
     return [cleanNotes, `${IMAGE_METRICS_NOTE_PREFIX}${encodedMetrics}`]
         .filter(Boolean)
         .join("\n");
 }
-
+ 
 /**
  * Maps a backend project into the frontend project row shape.
  */
@@ -529,7 +529,7 @@ function projectFromApi(project) {
         ?? project.percent_complete
         ?? (totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : undefined)
         ?? (totalImages > 0 ? Math.round((completedImages / totalImages) * 100) : 0);
-
+ 
     return {
         id: project.project_id || project.id,
         backendId: project.project_id || project.id,
@@ -559,7 +559,7 @@ function projectFromApi(project) {
         progress: Number(progress) || 0,
     };
 }
-
+ 
 /**
  * Maps a backend task into the frontend task row shape.
  */
@@ -583,21 +583,24 @@ function taskFromApi(task) {
         dueDate: formatApiDateForDisplay(task.due_time || task.dueDate),
         priority: task.priority || "Normal",
         estimatedHours: Number(task.estimated_hours ?? task.estimatedHours ?? 0) || 0,
+        // total_time is stored in MINUTES (backend: total_time = EXTRACT(EPOCH ...) / 60),
+        // so convert minutes -> seconds with * 60. (A previous * 3600 treated minutes as
+        // hours, which made a recorded 52 min render as 52:53:29.)
         trackedSeconds: Number(task.tracked_seconds ?? task.trackedSeconds ?? task.totalTrackedSeconds ?? 0)
-            || Math.round(toMetricNumber(task.total_time ?? task.totalTime ?? task.total_hours ?? task.totalHours, 0) * 3600),
+            || Math.round(toMetricNumber(task.total_time ?? task.totalTime, 0) * 60),
         status: task.status || "To-Do",
         timerStartedAt: task.timerStartedAt || null,
         lastStoppedAt: formatApiDateForDisplay(task.last_stopped_at || task.lastStoppedAt),
     };
 }
-
+ 
 /**
  * Maps a backend employee into the frontend employee row shape.
  */
 function employeeFromApi(employee) {
     const displayName = getDisplayNameFromApi(employee);
     const role = employee.title || employee.role || employee.account_role || "Employee";
-
+ 
     return {
         id: employee.user_id || employee.id,
         backendId: employee.user_id || employee.id,
@@ -623,7 +626,7 @@ function employeeFromApi(employee) {
         availability: employee.availability || employee.status || (employee.is_active === false ? "Inactive" : "Available"),
     };
 }
-
+ 
 /**
  * Normalizes project rows for this feature.
  */
@@ -632,7 +635,7 @@ function normalizeProjectRows(payload) {
         .filter((project) => !isSeedRecord(project))
         .map(projectFromApi);
 }
-
+ 
 /**
  * Normalizes task rows for this feature.
  */
@@ -641,7 +644,7 @@ function normalizeTaskRows(payload) {
         .filter((task) => !isSeedRecord(task))
         .map(taskFromApi);
 }
-
+ 
 /**
  * Normalizes employee rows for this feature.
  */
@@ -650,7 +653,7 @@ function normalizeEmployeeRows(payload) {
         .filter((employee) => !isSeedRecord(employee))
         .map(employeeFromApi);
 }
-
+ 
 /**
  * Maps backend assignment fields into the frontend row shape.
  */
@@ -658,7 +661,7 @@ function assignmentFromApi(assignment) {
     const employeeId = assignment.employee_id || assignment.assigned_to || assignment.user_id || assignment.employeeId || assignment.assignedToId || null;
     const taskId = assignment.task_id || assignment.id || assignment.taskId;
     const assignedTo = getDisplayNameFromApi(assignment, employeeId ? "Unknown employee" : "Unassigned");
-
+ 
     return {
         id: assignment.id || taskId || `assignment-${shortBackendId(employeeId)}-${shortBackendId(assignment.project_id)}`,
         backendId: assignment.id || taskId,
@@ -675,7 +678,7 @@ function assignmentFromApi(assignment) {
         status: assignment.status || "Assigned",
     };
 }
-
+ 
 /**
  * Normalizes assignment rows for this feature.
  */
@@ -685,7 +688,7 @@ function normalizeAssignmentRows(payload) {
         .filter((assignment) => assignment && (assignment.task_id || assignment.id || assignment.taskId))
         .map(assignmentFromApi);
 }
-
+ 
 /**
  * Maps backend time entry fields into the frontend row shape.
  */
@@ -693,7 +696,7 @@ function timeEntryFromApi(entry) {
     // Backend contract: total_time is stored in MINUTES (total_time = EXTRACT(EPOCH ...) / 60).
     const totalMinutes = Number(entry.total_time ?? entry.totalTime ?? 0) || 0;
     const estimatedHours = Number(entry.estimated_hours ?? entry.estimatedHours ?? 0) || 0;
-
+ 
     return {
         id: entry.time_entry_id || entry.id || entry.task_id || entry.taskId || null,
         backendId: entry.time_entry_id || entry.id || null,
@@ -709,7 +712,7 @@ function timeEntryFromApi(entry) {
         createdAt: entry.created_at || entry.createdAt || null,
     };
 }
-
+ 
 /**
  * Normalizes time entry rows for this feature.
  */
@@ -718,9 +721,9 @@ function normalizeTimeEntryRows(payload) {
         .filter((entry) => !isSeedRecord(entry))
         .map(timeEntryFromApi);
 }
-
+ 
 const DASHBOARD_COLORS = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444", "#14b8a6", "#8b5cf6", "#64748b"];
-
+ 
 /**
  * Normalizes productivity kpi rows for this feature.
  */
@@ -730,7 +733,7 @@ function normalizeProductivityKpiRows(payload) {
         .map((row, index) => {
             const displayName = getDisplayNameFromApi(row, `Employee ${index + 1}`);
             const completionRate = toMetricNumber(row.completion_rate_percent ?? row.completionRate ?? row.value ?? row.rate);
-
+ 
             return {
                 day: displayName,
                 name: displayName,
@@ -746,7 +749,7 @@ function normalizeProductivityKpiRows(payload) {
             };
         });
 }
-
+ 
 /**
  * Normalizes workflow kpi rows for this feature.
  */
@@ -756,7 +759,7 @@ function normalizeWorkflowKpiRows(payload) {
         .map((row, index) => {
             const status = row.status || row.name || `Status ${index + 1}`;
             const count = toMetricNumber(row.count ?? row.value ?? row.total);
-
+ 
             return {
                 name: status,
                 status,
@@ -767,7 +770,7 @@ function normalizeWorkflowKpiRows(payload) {
             };
         });
 }
-
+ 
 /**
  * Normalizes employee activity kpi rows for this feature.
  */
@@ -793,7 +796,7 @@ function normalizeEmployeeActivityKpiRows(payload) {
                 || row.workflowStep
                 || "Task Update"
             ).trim();
-
+ 
             return [
                 displayName,
                 activityText,
@@ -802,7 +805,7 @@ function normalizeEmployeeActivityKpiRows(payload) {
             ];
         });
 }
-
+ 
 /**
  * Normalizes project progress kpi rows for this feature.
  */
@@ -813,7 +816,7 @@ function normalizeProjectProgressKpiRows(payload) {
             const totalTasks = toMetricNumber(row.total_tasks ?? row.totalTasks);
             const completedTasks = toMetricNumber(row.completed_tasks ?? row.completedTasks);
             const remainingTasks = Math.max(0, totalTasks - completedTasks);
-
+ 
             return [
                 row.project_name || row.name || row.project || "Untitled Project",
                 totalTasks,
@@ -825,7 +828,7 @@ function normalizeProjectProgressKpiRows(payload) {
             ];
         });
 }
-
+ 
 /**
  * Converts a frontend project row into the backend payload shape.
  */
@@ -841,12 +844,12 @@ function projectToApi(project) {
         due_time: toApiDateTime(project.dueDate || project.due_time),
         completed_at: toApiDateTime(project.completedAt || project.completed_at),
     };
-
+ 
     const clientId = project.clientId || project.client_id;
     const managerId = project.managedBy || project.managed_by || project.managerId;
     if (isUuid(clientId)) payload.client_id = clientId;
     if (isUuid(managerId)) payload.managed_by = managerId;
-
+ 
     // Send the typed client name so it can be stored and shown on the project.
     // Harmless if the backend ignores it; once the backend stores client_name,
     // projectFromApi already reads it back for display. "Unassigned Client" is a
@@ -855,18 +858,18 @@ function projectToApi(project) {
     if (clientName && clientName !== "Unassigned Client") {
         payload.client_name = clientName;
     }
-
+ 
     return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""));
 }
-
-
+ 
+ 
 /**
  * Returns project image creation batches for this feature.
  */
 function getProjectImageCreationBatches(project = {}) {
     const projectId = project.backendId || project.project_id || project.id;
     if (!isUuid(projectId)) return [];
-
+ 
     const statusCounts = [
         { status: "Pending", count: project.pendingImages ?? project.pending_images },
         { status: "In Progress", count: project.inProgressImages ?? project.in_progress_images },
@@ -875,20 +878,20 @@ function getProjectImageCreationBatches(project = {}) {
         // Use Cancelled so rejected/manual counts are still represented as image rows.
         { status: "Cancelled", count: project.rejectedImages ?? project.rejected_images },
     ];
-
+ 
     return statusCounts
         .map(({ status, count }) => ({ status, count: Math.max(0, Math.trunc(toMetricNumber(count, 0))) }))
         .filter(({ count }) => count > 0)
         // Backend supports the implicit bulk shape: { project_id, status, count }.
         .map(({ status, count }) => ({ project_id: projectId, status, count }));
 }
-
+ 
 async function createImagesForProjectMetrics(project = {}) {
     const batches = getProjectImageCreationBatches(project);
     if (batches.length === 0) return [];
-
+ 
     const createdImages = [];
-
+ 
     for (const batch of batches) {
         try {
             // Preferred backend bulk shape: implicit array generation.
@@ -905,7 +908,7 @@ async function createImagesForProjectMetrics(project = {}) {
                 throw bulkError;
             }
         }
-
+ 
         // Backward-compatible fallback for the current image route.
         for (let imageIndex = 1; imageIndex <= batch.count; imageIndex += 1) {
             const singleResponse = await apiRequest(API_ENDPOINTS.images, {
@@ -921,10 +924,10 @@ async function createImagesForProjectMetrics(project = {}) {
             createdImages.push(...toArrayPayload(singleResponse));
         }
     }
-
+ 
     return createdImages;
 }
-
+ 
 /**
  * Converts a frontend employee row into the backend payload shape.
  */
@@ -938,7 +941,7 @@ function employeeToApiPayload(employee = {}) {
     const accountRole = ["Manager", "Employee"].includes(accountRoleValue)
         ? accountRoleValue
         : "Employee";
-
+ 
     return {
         employee_id: employee.employeeId || employee.employee_id || undefined,
         manager_id: employee.managerId || employee.manager_id || undefined,
@@ -956,7 +959,7 @@ function employeeToApiPayload(employee = {}) {
         is_admin: employee.is_admin ?? accountRole === "Manager",
     };
 }
-
+ 
 /**
  * Converts a frontend task row into the backend payload shape.
  */
@@ -964,7 +967,7 @@ function taskToApiPayload(task = {}) {
     const projectId = task.projectId || task.project_id;
     const assignedTo = task.assignedToId || task.assigned_to || task.employeeId;
     const assignedBy = task.assignedById || task.assigned_by;
-
+ 
     const payload = {
         project_id: isUuid(projectId) ? projectId : undefined,
         task_name: String(task.taskName || task.task_name || task.taskType || "Untitled Task").trim(),
@@ -980,14 +983,14 @@ function taskToApiPayload(task = {}) {
         assigned_to: isUuid(assignedTo) ? assignedTo : undefined,
         assigned_by: isUuid(assignedBy) ? assignedBy : undefined,
     };
-
+ 
     if (!["Import", "Cull", "Edit", "Quality Review", "Export", "Delivery", "Other"].includes(payload.category)) {
         payload.category = "Other";
     }
-
+ 
     return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""));
 }
-
+ 
 // Centralized route map for backend resources. Updating routes here keeps the UI components decoupled from backend path changes.
 const API_ENDPOINTS = {
     // Authentication endpoints for login/logout and session handling.
@@ -1015,7 +1018,7 @@ const API_ENDPOINTS = {
         projectProgress: "/dashboard/project-progress",
         loginSummary: "/dashboard/login-summary",
     },
-
+ 
     //-----------------------------------------------------------------------
     // Individual KPI endpoints. The frontend calls these without the /api
     // prefix because buildApiUrl adds the configured API base automatically.
@@ -1045,13 +1048,13 @@ const API_ENDPOINTS = {
             total: "/kpi/employees/total?v=true",
         },
     },
-
+ 
     //-----------------------------------------------------------------
     // CRUD for client accounts.
     // Backend provides:
     // Expected operations: list, read by ID, create, patch update, and delete/deactivate.
     clients: "/clients",
-
+ 
     //-----------------------------------------------------------------
     // CRUD for ALL user accounts.
     // Frontend expects:
@@ -1059,7 +1062,7 @@ const API_ENDPOINTS = {
     // Also used for user role and permission metadata.
     users: "/users",
     usersList: "/users?all=true",
-
+ 
     //------------------------------------------------------------------
     // CRUD for projects.
     // Frontend expects:
@@ -1068,12 +1071,12 @@ const API_ENDPOINTS = {
     // Stores project details, status, deadlines, linked client, assigned employees, uploaded files, etc.
     projects: "/projects",
     projectsList: "/projects?all=true",
-
+ 
     //------------------------------------------------------------------
     // Image/file upload CRUD for project attachments.
     // Used for project reference images, screenshots, documents, deliverables, etc.
     images: "/images",
-
+ 
     //-----------------------------------------------------------------------
     // Assignment API links employees/users to projects/tasks.
     // Frontend uses this for:
@@ -1087,7 +1090,7 @@ const API_ENDPOINTS = {
     // The live backend does not currently expose /assignments reliably.
     // Assignment-style UI rows are derived from task records instead.
     assignments: "/assignments",
-
+ 
     //-----------------------------------------------------------------------
     // This API endpoint will be READ-ONLY. Use "/users" for all user management.
     // Frontend uses it for:
@@ -1100,7 +1103,7 @@ const API_ENDPOINTS = {
     //-----------------------------------------------------------------------
     // Employee management should use the users table so both login users are visible.
     employees: "/users?all=true",
-
+ 
     //-----------------------------------------------------------------------
     // Task CRUD tied to projects and employees.
     // Includes:
@@ -1112,7 +1115,7 @@ const API_ENDPOINTS = {
     //-----------------------------------------------------------------------
     tasks: "/tasks",
     tasksList: "/tasks?all=true",
-
+ 
     //-----------------------------------------------------------------------
     // Task time tracking (merged with tasks). total_time is returned in MINUTES.
     // Confirmed backend routes:
@@ -1122,7 +1125,7 @@ const API_ENDPOINTS = {
     //-----------------------------------------------------------------------
     timeEntries: "/tasks/time-entries",
     timeEntriesList: "/tasks/time-entries",
-
+ 
     //-----------------------------------------------------------------------
     // Generated reports endpoint.
     // Used for exporting/filtering:
@@ -1139,13 +1142,13 @@ const API_ENDPOINTS = {
         employeeProductivity: "/reports/employee_productivity",
         assignmentStatus: "/reports/assignment_status",
     },
-
+ 
     //------------------------------------------------------------------------
     // Analytics endpoints for graphs, trends, forecasting, workload analysis, etc.
     // Mostly aggregated/calculated data.
     //------------------------------------------------------------------------
     analytics: "/analytics",
-
+ 
     //------------------------------------------------------------------------
     // Application/system settings storage.
     // Frontend currently needs:
@@ -1160,32 +1163,32 @@ const API_ENDPOINTS = {
     // Full mounted backend route. buildApiUrl prevents duplicate /api when VITE_API_BASE_URL already ends with /api.
     settings: "/api/settings",
 };
-
+ 
 /**
  * Sends a JSON request to the configured backend API and throws a clear error when the response fails.
  */
 function buildApiUrl(endpoint) {
     const endpointString = String(endpoint || "");
     if (/^https?:\/\//i.test(endpointString)) return endpointString;
-
+ 
     const baseUrl = String(API_BASE_URL || "").replace(/\/$/, "");
     let path = endpointString.startsWith("/") ? endpointString : `/${endpointString}`;
-
+ 
     // Settings is documented and mounted as /api/settings. If the API base already
     // includes /api, do not generate /api/api/settings.
     if (baseUrl.endsWith("/api") && path.startsWith("/api/")) {
         path = path.replace(/^\/api/, "");
     }
-
+ 
     return `${baseUrl}${path}`;
 }
-
+ 
 /**
  * Sends a JSON API request and converts failed responses into useful JavaScript errors.
  */
 function publishApiError(error) {
     if (typeof window === "undefined" || !error) return;
-
+ 
     const apiError = {
         endpoint: error.endpoint || "unknown",
         method: error.method || "GET",
@@ -1196,27 +1199,27 @@ function publishApiError(error) {
         url: error.url || "",
         timestamp: new Date().toISOString(),
     };
-
+ 
     window.__photometricsApiErrors = [apiError, ...(window.__photometricsApiErrors || [])].slice(0, 10);
     window.dispatchEvent(new CustomEvent("photometrics-api-error", { detail: apiError }));
 }
-
+ 
 /**
  * Clears any currently displayed global API errors.
  */
 function clearPublishedApiErrors() {
     if (typeof window === "undefined") return;
-
+ 
     window.__photometricsApiErrors = [];
     window.dispatchEvent(new CustomEvent("photometrics-api-error", { detail: null }));
 }
-
+ 
 /**
  * Broadcasts authentication failures to reset stale sessions.
  */
 function publishAuthFailure(error) {
     if (typeof window === "undefined") return;
-
+ 
     window.dispatchEvent(new CustomEvent("photometrics-auth-failed", {
         detail: {
             endpoint: error?.endpoint || "unknown",
@@ -1226,12 +1229,12 @@ function publishAuthFailure(error) {
         },
     }));
 }
-
+ 
 // Tracks a single in-flight token refresh so that several parallel requests
 // that all hit an expired access token at once share one refresh call instead
 // of stampeding the /refresh endpoint.
 let inFlightSessionRefresh = null;
-
+ 
 async function attemptSessionRefresh() {
     if (!inFlightSessionRefresh) {
         inFlightSessionRefresh = fetch(buildApiUrl(API_ENDPOINTS.auth.refresh), {
@@ -1243,10 +1246,10 @@ async function attemptSessionRefresh() {
             .catch(() => false)
             .finally(() => { inFlightSessionRefresh = null; });
     }
-
+ 
     return inFlightSessionRefresh;
 }
-
+ 
 async function apiRequest(endpoint, options = {}) {
     const method = options.method || "GET";
     const url = buildApiUrl(endpoint);
@@ -1255,7 +1258,7 @@ async function apiRequest(endpoint, options = {}) {
     const timeoutId = controller && timeoutMs > 0
         ? setTimeout(() => controller.abort(), timeoutMs)
         : null;
-
+ 
     try {
         const response = await fetch(url, {
             credentials: "include",
@@ -1266,13 +1269,13 @@ async function apiRequest(endpoint, options = {}) {
             signal: signal || controller?.signal,
             ...fetchOptions,
         });
-
+ 
         if (timeoutId) clearTimeout(timeoutId);
-
+ 
         if (!response.ok) {
             let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
             let errorCode = response.status;
-
+ 
             try {
                 const errorPayload = await response.json();
                 errorMessage = errorPayload?.error?.message || errorPayload?.message || errorMessage;
@@ -1280,7 +1283,7 @@ async function apiRequest(endpoint, options = {}) {
             } catch {
                 // Some failed responses do not include a JSON body. Keep the status-based message.
             }
-
+ 
             const error = new Error(`${method} ${endpoint} failed: ${errorMessage}`);
             error.status = response.status;
             error.statusText = response.statusText;
@@ -1288,13 +1291,13 @@ async function apiRequest(endpoint, options = {}) {
             error.endpoint = endpoint;
             error.method = method;
             error.url = url;
-
+ 
             // A single expired access token should not log the user out. Try a
             // silent refresh once, then retry the original request. Only if that
             // also fails do we treat it as a real authentication failure.
             const isAuthEndpoint = endpoint === API_ENDPOINTS.auth.refresh
                 || endpoint === API_ENDPOINTS.auth.login;
-
+ 
             if (response.status === 401 && !_retried && !isAuthEndpoint) {
                 // A single 401 should not end the session. The backend auth
                 // middleware renews the access token from the refresh cookie on
@@ -1307,7 +1310,7 @@ async function apiRequest(endpoint, options = {}) {
                 await new Promise((resolve) => setTimeout(resolve, 150));
                 return apiRequest(endpoint, { ...options, _retried: true });
             }
-
+ 
             if (!suppressApiError) {
                 publishApiError(error);
             }
@@ -1316,16 +1319,16 @@ async function apiRequest(endpoint, options = {}) {
             }
             throw error;
         }
-
+ 
         if (response.status === 204) {
             return null;
         }
-
+ 
         const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) {
             return null;
         }
-
+ 
         return response.json();
     } catch (requestError) {
         if (!requestError.endpoint) {
@@ -1340,19 +1343,19 @@ async function apiRequest(endpoint, options = {}) {
                 publishApiError(requestError);
             }
         }
-
+ 
         if (timeoutId) clearTimeout(timeoutId);
         throw requestError;
     }
 }
-
+ 
 /**
  * Normalizes the different payload shapes the backend may return so page components can work with simple arrays or objects.
  */
 function unwrapApiPayload(payload) {
     if (Array.isArray(payload)) return payload;
     if (!payload || typeof payload !== "object") return payload ?? [];
-
+ 
     // Backend routes currently return resource-named wrappers such as
     // { users: [...] }, { projects: [...] }, { tasks: [...] }, or { settings: [...] }.
     // Normalize those wrappers here so every page receives plain rows/objects.
@@ -1380,14 +1383,14 @@ function unwrapApiPayload(payload) {
         "timeEntries",
         "timeEntry",
     ];
-
+ 
     for (const key of resourceKeys) {
         if (payload[key] !== undefined) return payload[key];
     }
-
+ 
     return payload;
 }
-
+ 
 const KPI_VALUE_KEYS = ["displayValue", "value", "count", "total", "result", "metricValue", "kpi", "data"];
 const KPI_OBJECT_KEYS = ["objects", "records", "rows", "details", "items"];
 const KPI_LABEL_KEYS = ["label", "name", "title", "metric", "key"];
@@ -1401,21 +1404,21 @@ const KPI_IGNORED_OBJECT_KEYS = new Set([
     "message",
     "status",
 ]);
-
+ 
 /**
  * Checks whether plain object is true.
  */
 function isPlainObject(value) {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
-
+ 
 /**
  * Checks whether primitive value is true.
  */
 function isPrimitiveValue(value) {
     return value === null || ["string", "number", "boolean"].includes(typeof value);
 }
-
+ 
 /**
  * Documents the title case kpi label behavior used by this module.
  */
@@ -1424,9 +1427,9 @@ function titleCaseKpiLabel(value) {
         .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
         .replace(/[_.-]+/g, " ")
         .trim();
-
+ 
     if (!label) return "KPI";
-
+ 
     return label
         .split(/\s+/)
         .map((word) => {
@@ -1437,68 +1440,68 @@ function titleCaseKpiLabel(value) {
         })
         .join(" ");
 }
-
+ 
 /**
  * Returns first defined value for this feature.
  */
 function getFirstDefinedValue(source, keys) {
     if (!isPlainObject(source)) return undefined;
-
+ 
     for (const key of keys) {
         if (source[key] !== undefined) return source[key];
     }
-
+ 
     return undefined;
 }
-
+ 
 /**
  * Returns kpi detail objects for this feature.
  */
 function getKpiDetailObjects(source) {
     if (!isPlainObject(source)) return [];
-
+ 
     for (const key of KPI_OBJECT_KEYS) {
         if (Array.isArray(source[key])) return source[key];
     }
-
+ 
     return [];
 }
-
+ 
 /**
  * Returns kpi raw value for this feature.
  */
 function getKpiRawValue(source) {
     if (isPrimitiveValue(source)) return source;
     if (!isPlainObject(source)) return undefined;
-
+ 
     for (const key of KPI_VALUE_KEYS) {
         const value = source[key];
-
+ 
         if (key === "data" && (Array.isArray(value) || isPlainObject(value))) continue;
         if (value !== undefined && isPrimitiveValue(value)) return value;
     }
-
+ 
     const primitiveEntry = Object.entries(source).find(([key, value]) => (
         !KPI_LABEL_KEYS.includes(key)
         && !KPI_OBJECT_KEYS.includes(key)
         && !["id", "prefix", "suffix", "unit"].includes(key)
         && isPrimitiveValue(value)
     ));
-
+ 
     return primitiveEntry?.[1];
 }
-
+ 
 /**
  * Returns kpi label for this feature.
  */
 function getKpiLabel(source, fallbackLabel, index) {
     if (Array.isArray(source)) return source[0] || fallbackLabel || `KPI ${index + 1}`;
     if (!isPlainObject(source)) return fallbackLabel || `KPI ${index + 1}`;
-
+ 
     const label = getFirstDefinedValue(source, KPI_LABEL_KEYS);
     return titleCaseKpiLabel(label || fallbackLabel || `KPI ${index + 1}`);
 }
-
+ 
 /**
  * Formats kpi value for this feature.
  */
@@ -1506,19 +1509,19 @@ function formatKpiValue(rawValue, source) {
     if (isPlainObject(source) && source.displayValue !== undefined) {
         return String(source.displayValue);
     }
-
+ 
     const prefix = isPlainObject(source) && source.prefix ? String(source.prefix) : "";
     const suffix = isPlainObject(source) && (source.suffix || source.unit) ? String(source.suffix || source.unit) : "";
-
+ 
     if (rawValue === null || rawValue === undefined || rawValue === "") return `${prefix}0${suffix}`;
-
+ 
     const formattedValue = typeof rawValue === "number"
         ? rawValue.toLocaleString()
         : String(rawValue);
-
+ 
     return `${prefix}${formattedValue}${suffix}`;
 }
-
+ 
 /**
  * Normalizes kpi card for this feature.
  */
@@ -1527,7 +1530,7 @@ function normalizeKpiCard(source, index = 0, fallbackLabel) {
         const label = titleCaseKpiLabel(source[0] || fallbackLabel || `KPI ${index + 1}`);
         const rawValue = source[1];
         const objects = Array.isArray(source[2]) ? source[2] : [];
-
+ 
         return {
             id: label,
             label,
@@ -1537,11 +1540,11 @@ function normalizeKpiCard(source, index = 0, fallbackLabel) {
             source,
         };
     }
-
+ 
     const label = getKpiLabel(source, fallbackLabel, index);
     const rawValue = getKpiRawValue(source);
     const objects = getKpiDetailObjects(source);
-
+ 
     return {
         id: isPlainObject(source) ? source.id || source.key || label : label,
         label,
@@ -1551,19 +1554,19 @@ function normalizeKpiCard(source, index = 0, fallbackLabel) {
         source,
     };
 }
-
+ 
 /**
  * Returns fallback kpi label for this feature.
  */
 function getFallbackKpiLabel(fallbackKpis, index) {
     const fallback = Array.isArray(fallbackKpis) ? fallbackKpis[index] : null;
-
+ 
     if (Array.isArray(fallback)) return fallback[0];
     if (isPlainObject(fallback)) return getFirstDefinedValue(fallback, KPI_LABEL_KEYS);
-
+ 
     return undefined;
 }
-
+ 
 /**
  * Converts the dashboard KPI API contract into render-ready cards.
  * Supported backend shapes include:
@@ -1574,17 +1577,17 @@ function getFallbackKpiLabel(fallbackKpis, index) {
  */
 function normalizeDashboardKpis(payload, fallbackKpis = []) {
     if (payload === undefined || payload === null) return [];
-
+ 
     let source = payload;
-
+ 
     if (isPlainObject(source)) {
         const arrayKey = KPI_ARRAY_KEYS.find((key) => Array.isArray(source[key]));
-
+ 
         if (arrayKey) {
             source = source[arrayKey];
         } else {
             const objectContainerKey = KPI_OBJECT_CONTAINER_KEYS.find((key) => isPlainObject(source[key]));
-
+ 
             if (objectContainerKey) {
                 source = source[objectContainerKey];
             } else if (isPlainObject(source.data)) {
@@ -1592,46 +1595,46 @@ function normalizeDashboardKpis(payload, fallbackKpis = []) {
             }
         }
     }
-
+ 
     if (Array.isArray(source)) {
         return source.map((item, index) => normalizeKpiCard(item, index, getFallbackKpiLabel(fallbackKpis, index)));
     }
-
+ 
     if (isPrimitiveValue(source)) {
         return [normalizeKpiCard({ label: getFallbackKpiLabel(fallbackKpis, 0) || "KPI", value: source }, 0)];
     }
-
+ 
     if (isPlainObject(source)) {
         const hasDirectValue = KPI_VALUE_KEYS.some((key) => (
             source[key] !== undefined && (key !== "data" || isPrimitiveValue(source[key]))
         ));
-
+ 
         if (hasDirectValue) {
             return [normalizeKpiCard(source, 0, getFallbackKpiLabel(fallbackKpis, 0))];
         }
-
+ 
         return Object.entries(source)
             .filter(([key]) => !KPI_IGNORED_OBJECT_KEYS.has(key))
             .map(([key, value], index) => {
                 const label = titleCaseKpiLabel(key);
-
+ 
                 if (isPlainObject(value)) {
                     return normalizeKpiCard({ key, label, ...value }, index, label);
                 }
-
+ 
                 return normalizeKpiCard({ key, label, value }, index, label);
             });
     }
-
+ 
     return [];
 }
-
+ 
 /**
  * Converts backend user fields into the frontend user shape used by auth and access checks.
  */
 function normalizeBackendUser(user) {
     if (!user) return null;
-
+ 
     const firstName = user.first_name || "";
     const lastName = user.last_name || "";
     const displayName = user.display_name || `${firstName} ${lastName}`.trim() || user.email || "User";
@@ -1639,7 +1642,7 @@ function normalizeBackendUser(user) {
     const accessLevel = user.is_admin || String(role).toLowerCase().includes("manager") || String(role).toLowerCase().includes("admin")
         ? "manager"
         : "employee";
-
+ 
     return {
         ...user,
         id: user.user_id || user.id,
@@ -1655,8 +1658,8 @@ function normalizeBackendUser(user) {
         status: user.status || (user.is_active === false ? "Inactive" : "Active"),
     };
 }
-
-
+ 
+ 
 const PREVIEW_DATABASE_USERS = [
     {
         user_id: "00000000-0000-4000-8000-000000000001",
@@ -1679,7 +1682,7 @@ const PREVIEW_DATABASE_USERS = [
         previewPassword: "password",
     },
 ];
-
+ 
 /**
  * Returns preview database user for this feature.
  */
@@ -1687,13 +1690,13 @@ function getPreviewDatabaseUser(credentials) {
     const normalizedEmail = String(credentials?.email || "").trim().toLowerCase();
     const password = String(credentials?.password_hash || credentials?.password || "");
     const matchedUser = PREVIEW_DATABASE_USERS.find((user) => user.email.toLowerCase() === normalizedEmail);
-
+ 
     if (!matchedUser || matchedUser.previewPassword !== password) return null;
-
+ 
     const { previewPassword, ...safeUser } = matchedUser;
     return safeUser;
 }
-
+ 
 /**
  * Provides a temporary database-backed login bridge when the dedicated auth route is not available.
  */
@@ -1702,21 +1705,21 @@ async function loginWithUsersEndpoint(credentials) {
     const users = unwrapApiPayload(payload) || [];
     const normalizedEmail = String(credentials?.email || "").trim().toLowerCase();
     const matchedUser = users.find((user) => String(user.email || "").trim().toLowerCase() === normalizedEmail);
-
+ 
     if (matchedUser) {
         return { user: normalizeBackendUser(matchedUser), authMode: "users-endpoint" };
     }
-
+ 
     const previewUser = getPreviewDatabaseUser(credentials);
     if (previewUser) {
         return { user: normalizeBackendUser(previewUser), authMode: "api-preview-seed" };
     }
-
+ 
     const error = new Error("No backend user exists for that email address, or the password is incorrect.");
     error.status = 401;
     throw error;
 }
-
+ 
 /**
  * Returns an empty value that matches the mock/fallback shape so API mode never renders mock records while waiting or after an API failure.
  */
@@ -1725,7 +1728,7 @@ function getEmptyDataForFallback(fallbackData) {
     if (fallbackData && typeof fallbackData === "object") return {};
     return null;
 }
-
+ 
 /**
  * Reusable data-loading hook. When database/API mode is enabled, it only uses live API data.
  * Mock data is used only when the Data Source setting is unchecked.
@@ -1737,22 +1740,22 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
     const [error, setError] = useState(null);
     const fallbackRef = useRef(fallbackData);
     const optionsRef = useRef(options);
-
+ 
     fallbackRef.current = fallbackData;
     optionsRef.current = options;
-
+ 
     useEffect(() => {
         const syncApiDataSetting = () => setUseApiData(getUseApiDataSetting());
-
+ 
         window.addEventListener("storage", syncApiDataSetting);
         window.addEventListener(API_DATA_SETTING_EVENT, syncApiDataSetting);
-
+ 
         return () => {
             window.removeEventListener("storage", syncApiDataSetting);
             window.removeEventListener(API_DATA_SETTING_EVENT, syncApiDataSetting);
         };
     }, []);
-
+ 
     const loadData = useCallback(async (shouldUpdate = () => true) => {
         if (!useApiData || !endpoint) {
             if (shouldUpdate()) {
@@ -1761,13 +1764,13 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
             }
             return;
         }
-
+ 
         if (shouldUpdate()) {
             setIsLoading(true);
             setError(null);
             setData(getEmptyDataForFallback(fallbackRef.current));
         }
-
+ 
         try {
             const currentOptions = optionsRef.current || {};
             const payload = await apiRequest(endpoint, {
@@ -1778,7 +1781,7 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
                 : currentOptions.unwrap === false
                     ? payload
                     : unwrapApiPayload(payload);
-
+ 
             if (shouldUpdate() && nextData !== undefined) {
                 setData(nextData);
             }
@@ -1794,21 +1797,21 @@ function useApiPlaceholder(endpoint, fallbackData, options = {}) {
             }
         }
     }, [endpoint, useApiData]);
-
+ 
     useEffect(() => {
         let isMounted = true;
         loadData(() => isMounted);
-
+ 
         return () => {
             isMounted = false;
         };
     }, [loadData]);
-
+ 
     const retry = useCallback(() => loadData(), [loadData]);
-
+ 
     return { data, isLoading, error, retry };
 }
-
+ 
 // API action wrappers used by create, update, delete, authentication, settings, and timer workflows.
 // Some routes are placeholders until the corresponding backend endpoints are implemented.
 const apiPlaceholders = {
@@ -1826,7 +1829,7 @@ const apiPlaceholders = {
                 console.warn("Auth endpoint is not available. Using /users?all=true as a temporary database-backed login bridge.", authError);
                 return loginWithUsersEndpoint(credentials);
             }
-
+ 
             throw authError;
         }
     },
@@ -1838,7 +1841,7 @@ const apiPlaceholders = {
             : isLocalOnlyAuth
                 ? null
                 : userOrId?.userId || userOrId?.user_id || userOrId?.id || userOrId?.employeeId;
-
+ 
         try {
             return await apiRequest(API_ENDPOINTS.auth.logout, {
                 method: "POST",
@@ -1848,7 +1851,7 @@ const apiPlaceholders = {
             if (!userId || ![404, 405].includes(Number(logoutError.status))) {
                 throw logoutError;
             }
-
+ 
             return apiRequest(`${API_ENDPOINTS.auth.logout}/${encodeURIComponent(userId)}`, {
                 method: "POST",
                 suppressApiError: true,
@@ -1891,7 +1894,7 @@ const apiPlaceholders = {
             error.status = 400;
             throw error;
         }
-
+ 
         // Settings load failures should not raise the global API banner because the
         // settings page already falls back to the last local copy. Saving still uses
         // POST /api/settings, which is the confirmed backend route.
@@ -1910,13 +1913,13 @@ const apiPlaceholders = {
             : [
                 { endpoint: API_ENDPOINTS.settings, method: "POST" },
             ];
-
+ 
         let lastError;
-
+ 
         for (let index = 0; index < updateEndpoints.length; index += 1) {
             const { endpoint, method } = updateEndpoints[index];
             const isLastAttempt = index === updateEndpoints.length - 1;
-
+ 
             try {
                 return await apiRequest(endpoint, {
                     method,
@@ -1925,13 +1928,13 @@ const apiPlaceholders = {
                 });
             } catch (settingsError) {
                 lastError = settingsError;
-
+ 
                 if (![404, 405].includes(Number(settingsError.status))) {
                     throw settingsError;
                 }
             }
         }
-
+ 
         throw lastError || new Error("Settings update failed.");
     },
     updateSettings: (settings, currentUser) => apiPlaceholders.saveSettings(settings, currentUser),
@@ -1951,7 +1954,7 @@ const apiPlaceholders = {
             account_role: ["Manager", "Employee"].includes(profile.role) ? profile.role : undefined,
             title: profile.title || undefined,
         };
-
+ 
         return apiRequest(`${API_ENDPOINTS.users}/${encodeURIComponent(userId)}`, {
             method: "PATCH",
             body: JSON.stringify(Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""))),
@@ -1994,7 +1997,7 @@ const apiPlaceholders = {
         body: JSON.stringify(timeEntry),
     }),
 };
-
+ 
 export {
     DEFAULT_USE_API_DATA,
     LEGACY_API_DATA_SETTING_KEY,
