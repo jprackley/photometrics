@@ -502,13 +502,43 @@ function ReportsPage({ globalSearch = "" }) {
         return Array.isArray(currentRows) && currentRows.length > 0 ? currentRows : snapshotRows.length > 0 ? snapshotRows : fallbackRows;
     };
 
+    // Per-project Completed/Remaining task counts. The backend project_delivery
+    // report only returns open-task counts, so we compute these from the task
+    // list and merge them onto each project row (live or fallback).
+    const projectTaskCounts = useMemo(() => {
+        const byId = new Map();
+        const byName = new Map();
+        const bump = (map, key, completed, remaining) => {
+            if (!key) return;
+            const k = String(key).toLowerCase();
+            const bucket = map.get(k) || { completedTasks: 0, remainingTasks: 0 };
+            if (completed) bucket.completedTasks += 1;
+            if (remaining) bucket.remainingTasks += 1;
+            map.set(k, bucket);
+        };
+        taskRows.forEach((task) => {
+            const completed = task.status === "Completed";
+            const remaining = task.status !== "Completed" && task.status !== "Cancelled";
+            bump(byId, task.projectId, completed, remaining);
+            bump(byName, task.project, completed, remaining);
+        });
+        return { byId, byName };
+    }, [taskRows]);
+
+    const addProjectTaskCounts = (rows) => (Array.isArray(rows) ? rows : []).map((row) => {
+        const counts = projectTaskCounts.byId.get(String(row.projectId || "").toLowerCase())
+            || projectTaskCounts.byName.get(String(row.name || "").toLowerCase())
+            || { completedTasks: 0, remainingTasks: 0 };
+        return { ...row, completedTasks: counts.completedTasks, remainingTasks: counts.remainingTasks };
+    });
+
     const reportDefinitions = useMemo(() => ([
         {
             label: "Project Delivery",
             filename: "photometrics-project-delivery-report.csv",
             title: "Project Delivery Report",
             columns: REPORT_PROJECT_COLUMNS,
-            rows: getLiveRows("Project Delivery", reportData.projectReportRows),
+            rows: addProjectTaskCounts(getLiveRows("Project Delivery", reportData.projectReportRows)),
             searchKeys: ["name", "client", "dueDate", "status", "dueStatus", "assignedTo"],
         },
         {
@@ -535,7 +565,7 @@ function ReportsPage({ globalSearch = "" }) {
             rows: getLiveRows("Task Assignment Status", reportData.assignmentReportRows),
             searchKeys: ["id", "project", "taskType", "assignedTo", "dueDate", "priority", "status", "dueStatus"],
         },
-    ]), [reportData, useLiveReports, reportType, projectDeliveryPreviewRow, projectDeliveryHistoryRows, currentReportRowsByType]);
+    ]), [reportData, useLiveReports, reportType, projectDeliveryPreviewRow, projectDeliveryHistoryRows, currentReportRowsByType, projectTaskCounts]);
 
     const activeReport = reportDefinitions.find((report) => report.label === reportType) || reportDefinitions[0];
 
