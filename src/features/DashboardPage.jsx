@@ -341,36 +341,38 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const hasManagerAccess = canManageContent(currentUser);
     const currentUserId = currentUser?.userId || currentUser?.user_id || currentUser?.id || currentUser?.employeeId;
     const currentUserPathId = currentUserId ? encodeURIComponent(currentUserId) : "";
-    const workflowEndpoint = currentUserPathId ? `${API_ENDPOINTS.dashboard.workflow}/${currentUserPathId}` : null;
-    const employeeActivityEndpoint = !hasManagerAccess && currentUserPathId
-        ? `${API_ENDPOINTS.dashboard.employeeActivity}/${currentUserPathId}`
-        : API_ENDPOINTS.dashboard.employeeActivity;
+    // Dashboard/KPI routes are manager-only on the backend, so fetching them as
+    // an employee just produces 403 "permission" banners. Skip them for
+    // employees — the employee dashboard is built from their own /tasks and
+    // /projects data below, which they are allowed to read.
+    const workflowEndpoint = hasManagerAccess && currentUserPathId ? `${API_ENDPOINTS.dashboard.workflow}/${currentUserPathId}` : null;
+    const employeeActivityEndpoint = hasManagerAccess ? API_ENDPOINTS.dashboard.employeeActivity : null;
 
-    const { data: activeProjectsKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.active, [{ key: "activeProjects", label: "Active Projects", value: projects.filter((project) => project.status !== "Completed").length, objects: projects.filter((project) => project.status !== "Completed") }], {
+    const { data: activeProjectsKpi } = useApiPlaceholder(hasManagerAccess ? API_ENDPOINTS.kpi.projects.active : null, [{ key: "activeProjects", label: "Active Projects", value: projects.filter((project) => project.status !== "Completed").length, objects: projects.filter((project) => project.status !== "Completed") }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "activeProjects", label: "Active Projects", value: 0, objects: [] }, ["active"]),
     });
-    const { data: completedProjectsKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.projects.completed, [{ key: "completedProjects", label: "Completed Projects", value: projects.filter((project) => project.status === "Completed").length, objects: projects.filter((project) => project.status === "Completed") }], {
+    const { data: completedProjectsKpi } = useApiPlaceholder(hasManagerAccess ? API_ENDPOINTS.kpi.projects.completed : null, [{ key: "completedProjects", label: "Completed Projects", value: projects.filter((project) => project.status === "Completed").length, objects: projects.filter((project) => project.status === "Completed") }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "completedProjects", label: "Completed Projects", value: 0, objects: [] }, ["completed"]),
     });
-    const { data: remainingTasksKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.tasks.remaining, [{ key: "remainingTasks", label: "Remaining Tasks", value: taskItems.filter((task) => task.status !== "Completed").length, objects: taskItems.filter((task) => task.status !== "Completed") }], {
+    const { data: remainingTasksKpi } = useApiPlaceholder(hasManagerAccess ? API_ENDPOINTS.kpi.tasks.remaining : null, [{ key: "remainingTasks", label: "Remaining Tasks", value: taskItems.filter((task) => task.status !== "Completed").length, objects: taskItems.filter((task) => task.status !== "Completed") }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "remainingTasks", label: "Remaining Tasks", value: 0, objects: [] }, ["remaining"]),
     });
-    const { data: completedImagesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.images.completed, [{ key: "completedImages", label: "Completed Images", value: projects.reduce((total, project) => total + (Number(project.completed_images ?? project.completedImages ?? 0) || 0), 0), objects: projects }], {
+    const { data: completedImagesKpi } = useApiPlaceholder(hasManagerAccess ? API_ENDPOINTS.kpi.images.completed : null, [{ key: "completedImages", label: "Completed Tasks", value: projects.reduce((total, project) => total + (Number(project.completed_images ?? project.completedImages ?? 0) || 0), 0), objects: projects }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "completedImages", label: "Completed Images", value: 0, objects: [] }, ["completed"]),
     });
-    const { data: totalEmployeesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.employees.total, [{ key: "totalEmployees", label: "Total Employees", value: employees.length, objects: employees }], {
+    const { data: totalEmployeesKpi } = useApiPlaceholder(hasManagerAccess ? API_ENDPOINTS.kpi.employees.total : null, [{ key: "totalEmployees", label: "Total Employees", value: employees.length, objects: employees }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "totalEmployees", label: "Total Employees", value: 0, objects: [] }, ["total"]),
     });
-    const { data: activeEmployeesKpi } = useApiPlaceholder(API_ENDPOINTS.kpi.employees.active, [{ key: "activeEmployees", label: "Active Employees", value: employees.filter((employee) => employee.status !== "Inactive" && employee.status !== "Offline").length, objects: employees.filter((employee) => employee.status !== "Inactive" && employee.status !== "Offline") }], {
+    const { data: activeEmployeesKpi } = useApiPlaceholder(hasManagerAccess ? API_ENDPOINTS.kpi.employees.active : null, [{ key: "activeEmployees", label: "Active Employees", value: employees.filter((employee) => employee.status !== "Inactive" && employee.status !== "Offline").length, objects: employees.filter((employee) => employee.status !== "Inactive" && employee.status !== "Offline") }], {
         unwrap: false,
         transformPayload: (payload) => summaryKpiFromApi(payload, { key: "activeEmployees", label: "Active Employees", value: 0, objects: [] }, ["active"]),
     });
-    const { data: productivityData } = useApiPlaceholder(API_ENDPOINTS.dashboard.productivity, productivity, {
+    const { data: productivityData } = useApiPlaceholder(hasManagerAccess ? API_ENDPOINTS.dashboard.productivity : null, productivity, {
         transformPayload: normalizeProductivityKpiRows,
     });
     const { data: workflowData } = useApiPlaceholder(workflowEndpoint, workflow, {
@@ -379,7 +381,7 @@ function Dashboard({ onPageChange, currentUser, appSettings }) {
     const { data: employeeActivityData } = useApiPlaceholder(employeeActivityEndpoint, employeeActivity, {
         transformPayload: normalizeEmployeeActivityKpiRows,
     });
-    const { data: projectProgressData } = useApiPlaceholder(API_ENDPOINTS.dashboard.projectProgress, projectProgress, {
+    const { data: projectProgressData } = useApiPlaceholder(hasManagerAccess ? API_ENDPOINTS.dashboard.projectProgress : null, projectProgress, {
         transformPayload: normalizeProjectProgressKpiRows,
     });
     const { data: liveTaskData } = useApiPlaceholder(API_ENDPOINTS.tasksList, taskItems, {

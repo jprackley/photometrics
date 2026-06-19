@@ -5,7 +5,7 @@
 // records. The Reports page uses these helpers for summaries, CSV
 // exports, risk views, and chart-ready datasets.
 // -----------------------------------------------------------------------------
-
+ 
 import {
     createCsv,
     downloadTextFile,
@@ -15,7 +15,7 @@ import {
     getDueStatus,
     normalizeNumber,
 } from "./helpers";
-
+ 
 /**
  * Creates a normalized reporting model shared by report views and exports.
  */
@@ -23,7 +23,7 @@ function buildOperationsReportData(projectRows = [], taskRows = [], employeeRows
     const safeProjects = Array.isArray(projectRows) ? projectRows : [];
     const safeTasks = Array.isArray(taskRows) ? taskRows : [];
     const safeEmployees = Array.isArray(employeeRows) ? employeeRows : [];
-
+ 
     const totalImages = safeProjects.reduce((total, project) => total + normalizeNumber(project.images), 0);
     const completedImages = safeProjects.reduce((total, project) => {
         const imageCount = normalizeNumber(project.images);
@@ -33,21 +33,23 @@ function buildOperationsReportData(projectRows = [], taskRows = [], employeeRows
     const remainingImages = Math.max(0, totalImages - completedImages);
     const completedProjects = safeProjects.filter((project) => project.status === "Completed").length;
     const completedTasks = safeTasks.filter((task) => task.status === "Completed").length;
-    const openTasks = safeTasks.filter((task) => task.status !== "Completed").length;
-    const reviewQueue = safeTasks.filter((task) => task.status === "Review").length;
+    const openTasks = safeTasks.filter((task) => task.status !== "Completed" && task.status !== "Cancelled").length;
+    const reviewQueue = safeTasks.filter((task) => (
+        task.category === "Quality Review" && task.status !== "Completed" && task.status !== "Cancelled"
+    )).length;
     const totalTrackedSeconds = safeTasks.reduce((total, task) => total + normalizeNumber(task.trackedSeconds), 0);
     const estimatedSeconds = safeTasks.reduce((total, task) => total + normalizeNumber(task.estimatedHours) * 3600, 0);
     const averageEfficiency = safeEmployees.length
         ? safeEmployees.reduce((total, employee) => total + normalizeNumber(employee.efficiency), 0) / safeEmployees.length
         : 0;
-
+ 
     const projectReportRows = safeProjects.map((project) => {
         const projectTasks = safeTasks.filter((task) => task.project === project.name);
         const imageCount = normalizeNumber(project.images);
         const progress = formatPercent(normalizeNumber(project.progress));
         const projectCompletedImages = Math.round(imageCount * (progress / 100));
         const assignedNames = [...new Set(projectTasks.map((row) => row.assignedTo).filter(Boolean))];
-
+ 
         return {
             id: project.id,
             name: project.name,
@@ -56,6 +58,8 @@ function buildOperationsReportData(projectRows = [], taskRows = [], employeeRows
             images: formatNumber(imageCount),
             completedImages: formatNumber(projectCompletedImages),
             remainingImages: formatNumber(Math.max(0, imageCount - projectCompletedImages)),
+            completedTasks: projectTasks.filter((task) => task.status === "Completed").length,
+            remainingTasks: projectTasks.filter((task) => task.status !== "Completed" && task.status !== "Cancelled").length,
             progress,
             status: project.status,
             dueStatus: getDueStatus(project),
@@ -64,12 +68,12 @@ function buildOperationsReportData(projectRows = [], taskRows = [], employeeRows
             assignedTo: assignedNames.length ? assignedNames.join(", ") : "Unassigned",
         };
     });
-
+ 
     const timeReportRows = safeTasks.map((task) => {
         const trackedSeconds = normalizeNumber(task.trackedSeconds);
         const estimatedHours = normalizeNumber(task.estimatedHours);
         const utilization = estimatedHours > 0 ? formatPercent((trackedSeconds / (estimatedHours * 3600)) * 100) : 0;
-
+ 
         return {
             id: task.id,
             taskName: task.taskName,
@@ -84,11 +88,11 @@ function buildOperationsReportData(projectRows = [], taskRows = [], employeeRows
             dueStatus: getDueStatus(task),
         };
     });
-
+ 
     const employeeReportRows = safeEmployees.map((employee) => {
         const employeeTasks = safeTasks.filter((task) => task.assignedTo === employee.name);
         const employeeTrackedSeconds = employeeTasks.reduce((total, task) => total + normalizeNumber(task.trackedSeconds), 0);
-
+ 
         return {
             id: employee.id,
             name: employee.name,
@@ -103,7 +107,7 @@ function buildOperationsReportData(projectRows = [], taskRows = [], employeeRows
             efficiency: normalizeNumber(employee.efficiency),
         };
     });
-
+ 
     const taskAssignmentReportRows = safeTasks.map((task) => ({
         id: task.id,
         project: task.project,
@@ -114,17 +118,17 @@ function buildOperationsReportData(projectRows = [], taskRows = [], employeeRows
         status: task.status,
         dueStatus: getDueStatus(task),
     }));
-
+ 
     const taskStatusData = ["Completed", "Review", "In Progress", "Not Started"].map((status) => ({
         name: status,
         value: safeTasks.filter((task) => task.status === status).length,
     })).filter((item) => item.value > 0);
-
+ 
     const priorityData = ["High", "Medium", "Low"].map((priority) => ({
         name: priority,
         value: safeTasks.filter((task) => task.priority === priority).length,
     })).filter((item) => item.value > 0);
-
+ 
     const projectAnalyticsRows = safeProjects.map((project) => ({
         name: project.name,
         progress: normalizeNumber(project.progress),
@@ -132,18 +136,18 @@ function buildOperationsReportData(projectRows = [], taskRows = [], employeeRows
         status: project.status,
         dueStatus: getDueStatus(project),
     }));
-
+ 
     const employeeWorkloadData = employeeReportRows.map((employee) => ({
         name: employee.name,
         assignedTasks: employee.assignedTasks,
         completedTasks: employee.completedTasks,
         efficiency: employee.efficiency,
     }));
-
+ 
     const riskProjectRows = projectReportRows.filter((project) => (
         project.status !== "Completed" && ["Overdue", "Due Soon"].includes(project.dueStatus)
     )).sort((left, right) => normalizeNumber(left.progress) - normalizeNumber(right.progress));
-
+ 
     return {
         summary: {
             totalProjects: safeProjects.length,
@@ -151,10 +155,11 @@ function buildOperationsReportData(projectRows = [], taskRows = [], employeeRows
             totalImages,
             completedImages,
             remainingImages,
-            completionRate: totalImages > 0 ? formatPercent((completedImages / totalImages) * 100) : 0,
+            completionRate: safeTasks.length > 0 ? formatPercent((completedTasks / safeTasks.length) * 100) : 0,
             totalTasks: safeTasks.length,
             completedTasks,
             openTasks,
+            tasksRemaining: safeTasks.length - completedTasks,
             reviewQueue,
             totalTrackedSeconds,
             estimatedSeconds,
@@ -173,7 +178,7 @@ function buildOperationsReportData(projectRows = [], taskRows = [], employeeRows
         riskProjectRows,
     };
 }
-
+ 
 /**
  * Exports the selected report table to CSV.
  */
@@ -183,10 +188,10 @@ function downloadReportTable(filename, title, columns, rows) {
         rows,
         columns.map((column) => column.key)
     );
-
+ 
     downloadTextFile(filename, `${title}\n${csv}`);
 }
-
+ 
 /**
  * Exports a complete operations report with project, task assignment, time, and employee sections.
  */
@@ -213,28 +218,28 @@ function downloadFullOperationsReport(reportData) {
             rows: reportData.employeeReportRows,
         },
     ];
-
+ 
     const contents = sections.map((section) => createCsv(
         section.columns.map((column) => column.label),
         section.rows,
         section.columns.map((column) => column.key)
     )).map((csv, index) => `${sections[index].title}\n${csv}`).join("\n\n");
-
+ 
     downloadTextFile("photometrics-full-operations-report.csv", contents);
 }
-
+ 
 const REPORT_PROJECT_COLUMNS = [
     { label: "Project", key: "name" },
     { label: "Client", key: "client" },
     { label: "Due Date", key: "dueDate" },
     { label: "Images", key: "images", align: "center" },
-    { label: "Completed", key: "completedImages", align: "center" },
-    { label: "Remaining", key: "remainingImages", align: "center" },
+    { label: "Completed Tasks", key: "completedTasks", align: "center" },
+    { label: "Remaining Tasks", key: "remainingTasks", align: "center" },
     { label: "Progress", key: "progress", align: "center" },
     { label: "Status", key: "status", align: "center" },
     { label: "Due Status", key: "dueStatus", align: "center" },
 ];
-
+ 
 const REPORT_TIME_COLUMNS = [
     { label: "Task", key: "taskName" },
     { label: "Project", key: "project" },
@@ -246,7 +251,7 @@ const REPORT_TIME_COLUMNS = [
     { label: "Utilization", key: "utilization", align: "center" },
     { label: "Status", key: "status", align: "center" },
 ];
-
+ 
 const REPORT_EMPLOYEE_COLUMNS = [
     { label: "Employee", key: "name" },
     { label: "Role", key: "role" },
@@ -258,7 +263,7 @@ const REPORT_EMPLOYEE_COLUMNS = [
     { label: "Efficiency", key: "efficiency", align: "center" },
     { label: "Status", key: "status", align: "center" },
 ];
-
+ 
 const REPORT_ASSIGNMENT_COLUMNS = [
     { label: "Task", key: "id" },
     { label: "Project", key: "project" },
@@ -269,9 +274,9 @@ const REPORT_ASSIGNMENT_COLUMNS = [
     { label: "Status", key: "status", align: "center" },
     { label: "Due Status", key: "dueStatus", align: "center" },
 ];
-
+ 
 const ANALYTICS_COLORS = ["#7c3aed", "#2563eb", "#10b981", "#f59e0b", "#ef4444", "#14b8a6"];
-
+ 
 export {
     buildOperationsReportData,
     downloadReportTable,

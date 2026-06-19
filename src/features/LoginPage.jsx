@@ -224,27 +224,12 @@ function LoginPage({ onLogin }) {
         let isMounted = true;
 
         async function loadLoginSummary() {
-            if (useMockLoginData) {
-                setLoginSummary(getMockLoginSummary());
-                return;
-            }
-
-            try {
-                const summary = await apiRequest(API_ENDPOINTS.dashboard.loginSummary, { suppressApiError: true });
-
-                if (isMounted && summary) {
-                    setLoginSummary({
-                        projects: Number(summary.projects) || 0,
-                        openTasks: Number(summary.openTasks) || 0,
-                        efficiency: Number(summary.efficiency) || 0,
-                    });
-                }
-            } catch (summaryError) {
-                console.warn("Login summary API failed. Falling back to mock summary values.", summaryError);
-                if (isMounted) {
-                    setLoginSummary(getMockLoginSummary());
-                }
-            }
+            // The decorative login stat panel never had a dedicated backend route
+            // (/dashboard/login-summary is not mounted) and runs pre-authentication,
+            // so a live call would always fail with 401/404. Use the mock summary
+            // directly to keep the panel populated without a doomed network request.
+            setLoginSummary(getMockLoginSummary());
+            return;
         }
 
         loadLoginSummary();

@@ -19,6 +19,7 @@ import {
     API_ENDPOINTS,
     apiRequest,
     getUseApiDataSetting,
+    isSeedRecord,
     normalizeEmployeeRows,
     normalizeTaskRows,
     normalizeProjectRows,
@@ -118,18 +119,18 @@ function unwrapProjectDeliveryPayload(payload, key) {
 
 
 /**
- * Formats tracked-time values that may arrive as strings, minutes, or seconds.
+ * Formats tracked-time values. The backend reports tracked_time/total_time in minutes
+ * (confirmed by backend: total_time = EXTRACT(EPOCH ...) / 60). Values may arrive as
+ * numbers or numeric strings. Pre-formatted strings (containing a unit like "h" or "m")
+ * are passed through unchanged.
  */
 function formatTrackedTime(value) {
     if (value === null || value === undefined || value === "") return "0m";
-    if (typeof value === "string") return value;
+    // Pre-formatted, human-readable strings (e.g. "2h 5m") should pass through as-is.
+    if (typeof value === "string" && /[a-z]/i.test(value)) return value;
     const numericValue = Number(value);
     if (!Number.isFinite(numericValue)) return String(value);
-    // Backend report views store tracked_time as hours or formatted text depending on the view.
-    // Treat small decimal values as hours and larger whole values as minutes.
-    if (numericValue > 0 && numericValue < 1000 && !Number.isInteger(numericValue)) {
-        return formatDuration(Math.round(numericValue * 3600));
-    }
+    // tracked_time is in minutes -> convert to seconds for formatDuration.
     return formatDuration(Math.round(numericValue * 60));
 }
 
@@ -299,6 +300,7 @@ function ReportsPage({ globalSearch = "" }) {
     const [selectedProjectId, setSelectedProjectId] = useState("");
     const [projectDeliveryHistoryRows, setProjectDeliveryHistoryRows] = useState([]);
     const [projectDeliveryPreviewRow, setProjectDeliveryPreviewRow] = useState(null);
+    const [currentReportRowsByType, setCurrentReportRowsByType] = useState({});
     const [projectDeliveryMessage, setProjectDeliveryMessage] = useState("");
     const [isProjectDeliveryLoading, setIsProjectDeliveryLoading] = useState(false);
     const [statusFilter, setStatusFilter] = useState("All Status");
@@ -362,13 +364,42 @@ function ReportsPage({ globalSearch = "" }) {
             .filter((option) => option.value),
     ]), [activeReportApiConfig]);
 
+    const loadCurrentReportRows = async () => {
+        if (!useLiveReports || !activeReportApiConfig) return;
+        setIsProjectDeliveryLoading(true);
+        setProjectDeliveryMessage("");
+        try {
+            const payload = await apiRequest(activeReportApiConfig.basePath);
+            // Drop seeded demo rows so the report matches the live project/employee
+            // lists (which already filter them out).
+            const rows = unwrapReportPayload(payload, "reports")
+                .filter((row) => !isSeedRecord(row))
+                .map(activeReportApiConfig.normalize);
+            setCurrentReportRowsByType((currentRows) => ({
+                ...currentRows,
+                [reportType]: rows,
+            }));
+        } catch (apiError) {
+            console.warn(`${reportType} current report rows could not be loaded.`, apiError);
+            setCurrentReportRowsByType((currentRows) => ({
+                ...currentRows,
+                [reportType]: [],
+            }));
+            setProjectDeliveryMessage(apiError?.message || `${reportType} current report rows could not be loaded.`);
+        } finally {
+            setIsProjectDeliveryLoading(false);
+        }
+    };
+
     const loadReportHistory = async () => {
         if (!useLiveReports || !activeReportApiConfig) return;
         setIsProjectDeliveryLoading(true);
         setProjectDeliveryMessage("");
         try {
             const payload = await apiRequest(`${activeReportApiConfig.basePath}/history`);
-            const rows = unwrapReportPayload(payload, "reports").map(activeReportApiConfig.normalize);
+            const rows = unwrapReportPayload(payload, "reports")
+                .filter((row) => !isSeedRecord(row))
+                .map(activeReportApiConfig.normalize);
             setProjectDeliveryHistoryRows(rows);
         } catch (apiError) {
             console.warn(`${reportType} report history could not be loaded.`, apiError);
@@ -428,6 +459,7 @@ function ReportsPage({ globalSearch = "" }) {
 
     useEffect(() => {
         if (!useLiveReports || !activeReportApiConfig) return;
+        loadCurrentReportRows();
         loadReportHistory();
     }, [useLiveReports, activeReportApiConfig]);
 
@@ -463,15 +495,50 @@ function ReportsPage({ globalSearch = "" }) {
         return ["All Status", ...new Set(values.sort())];
     }, [projectRows, taskRows]);
 
+    const getLiveRows = (label, fallbackRows) => {
+        if (!useLiveReports) return fallbackRows;
+        const currentRows = currentReportRowsByType[label];
+        const snapshotRows = reportType === label ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean) : [];
+        return Array.isArray(currentRows) && currentRows.length > 0 ? currentRows : snapshotRows.length > 0 ? snapshotRows : fallbackRows;
+    };
+
+    // Per-project Completed/Remaining task counts. The backend project_delivery
+    // report only returns open-task counts, so we compute these from the task
+    // list and merge them onto each project row (live or fallback).
+    const projectTaskCounts = useMemo(() => {
+        const byId = new Map();
+        const byName = new Map();
+        const bump = (map, key, completed, remaining) => {
+            if (!key) return;
+            const k = String(key).toLowerCase();
+            const bucket = map.get(k) || { completedTasks: 0, remainingTasks: 0 };
+            if (completed) bucket.completedTasks += 1;
+            if (remaining) bucket.remainingTasks += 1;
+            map.set(k, bucket);
+        };
+        taskRows.forEach((task) => {
+            const completed = task.status === "Completed";
+            const remaining = task.status !== "Completed" && task.status !== "Cancelled";
+            bump(byId, task.projectId, completed, remaining);
+            bump(byName, task.project, completed, remaining);
+        });
+        return { byId, byName };
+    }, [taskRows]);
+
+    const addProjectTaskCounts = (rows) => (Array.isArray(rows) ? rows : []).map((row) => {
+        const counts = projectTaskCounts.byId.get(String(row.projectId || "").toLowerCase())
+            || projectTaskCounts.byName.get(String(row.name || "").toLowerCase())
+            || { completedTasks: 0, remainingTasks: 0 };
+        return { ...row, completedTasks: counts.completedTasks, remainingTasks: counts.remainingTasks };
+    });
+
     const reportDefinitions = useMemo(() => ([
         {
             label: "Project Delivery",
             filename: "photometrics-project-delivery-report.csv",
             title: "Project Delivery Report",
             columns: REPORT_PROJECT_COLUMNS,
-            rows: useLiveReports && reportType === "Project Delivery"
-                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
-                : reportData.projectReportRows,
+            rows: addProjectTaskCounts(getLiveRows("Project Delivery", reportData.projectReportRows)),
             searchKeys: ["name", "client", "dueDate", "status", "dueStatus", "assignedTo"],
         },
         {
@@ -479,9 +546,7 @@ function ReportsPage({ globalSearch = "" }) {
             filename: "photometrics-task-time-report.csv",
             title: "Task Time Report",
             columns: REPORT_TIME_COLUMNS,
-            rows: useLiveReports && reportType === "Task Time"
-                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
-                : reportData.timeReportRows,
+            rows: getLiveRows("Task Time", reportData.timeReportRows),
             searchKeys: ["taskName", "project", "assignedTo", "dueDate", "priority", "status", "dueStatus"],
         },
         {
@@ -489,9 +554,7 @@ function ReportsPage({ globalSearch = "" }) {
             filename: "photometrics-employee-productivity-report.csv",
             title: "Employee Productivity Report",
             columns: REPORT_EMPLOYEE_COLUMNS,
-            rows: useLiveReports && reportType === "Employee Productivity"
-                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
-                : reportData.employeeReportRows,
+            rows: getLiveRows("Employee Productivity", reportData.employeeReportRows),
             searchKeys: ["name", "role", "status"],
         },
         {
@@ -499,12 +562,10 @@ function ReportsPage({ globalSearch = "" }) {
             filename: "photometrics-task-assignment-status-report.csv",
             title: "Task Assignment Status Report",
             columns: REPORT_ASSIGNMENT_COLUMNS,
-            rows: useLiveReports && reportType === "Task Assignment Status"
-                ? [projectDeliveryPreviewRow, ...projectDeliveryHistoryRows].filter(Boolean)
-                : reportData.taskAssignmentReportRows,
+            rows: getLiveRows("Task Assignment Status", reportData.assignmentReportRows),
             searchKeys: ["id", "project", "taskType", "assignedTo", "dueDate", "priority", "status", "dueStatus"],
         },
-    ]), [reportData, useLiveReports, reportType, projectDeliveryPreviewRow, projectDeliveryHistoryRows]);
+    ]), [reportData, useLiveReports, reportType, projectDeliveryPreviewRow, projectDeliveryHistoryRows, currentReportRowsByType, projectTaskCounts]);
 
     const activeReport = reportDefinitions.find((report) => report.label === reportType) || reportDefinitions[0];
 
@@ -557,8 +618,8 @@ function ReportsPage({ globalSearch = "" }) {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
                 <InsightCard label="Projects" value={reportData.summary.totalProjects} note={`${reportData.summary.completedProjects} complete`} icon={Folder} tone="blue" />
-                <InsightCard label="Completion Rate" value={`${reportData.summary.completionRate}%`} note={`${formatNumber(reportData.summary.completedImages)} images complete`} icon={BarChart3} tone="emerald" />
-                <InsightCard label="Images Remaining" value={formatNumber(reportData.summary.remainingImages)} note="Based on project progress" icon={Eye} tone="violet" />
+                <InsightCard label="Completion Rate" value={`${reportData.summary.completionRate}%`} note={`${reportData.summary.completedTasks} of ${reportData.summary.totalTasks} tasks complete`} icon={BarChart3} tone="emerald" />
+                <InsightCard label="Tasks Remaining" value={formatNumber(reportData.summary.tasksRemaining)} note="Tasks not yet completed" icon={Eye} tone="violet" />
                 <InsightCard label="Open Tasks" value={reportData.summary.openTasks} note={`${reportData.summary.completedTasks} task(s) complete`} icon={ListChecks} tone="amber" />
                 <InsightCard label="Review Queue" value={reportData.summary.reviewQueue} note="Tasks ready for review" icon={Bell} tone="cyan" />
                 <InsightCard label="Tracked Time" value={formatDuration(reportData.summary.totalTrackedSeconds)} note={`${reportData.summary.utilizationRate}% of estimate`} icon={Clock} tone="slate" />
@@ -579,16 +640,24 @@ function ReportsPage({ globalSearch = "" }) {
                                     <option key={option.value || "empty"} value={option.value}>{option.label}</option>
                                 ))}
                             </select>
-                            <p className="mt-2 text-xs text-slate-500">Preview uses GET /api{activeReportApiConfig.basePath}/ID. Save uses POST /api{activeReportApiConfig.basePath}/ID/save. History uses GET /api{activeReportApiConfig.basePath}/history.</p>
+                            <p className="mt-2 text-xs text-slate-500">Current rows use GET /api{activeReportApiConfig.basePath}. Preview uses GET /api{activeReportApiConfig.basePath}/ID. Save uses POST /api{activeReportApiConfig.basePath}/ID/save. History uses GET /api{activeReportApiConfig.basePath}/history.</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={loadCurrentReportRows}
+                                disabled={isProjectDeliveryLoading}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <Eye size={16} /> Refresh Current Rows
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => loadReportPreview()}
                                 disabled={isProjectDeliveryLoading || !selectedProjectId}
                                 className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                <Eye size={16} /> Preview Current Report
+                                <Eye size={16} /> Preview Selected Row
                             </button>
                             <button
                                 type="button"
